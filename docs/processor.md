@@ -1,6 +1,6 @@
 # Processor Walkthrough: `vcbSkimmer`
 
-How `src/processors/vcbSkimmer.py` turns a NanoAOD file into a skimmed output,
+How `src/vcb/processors/vcbSkimmer.py` turns a NanoAOD file into a skimmed output,
 step by step. For the output-branch dictionary see the top-level
 [`README.md`](../README.md); for run history see [`docs/history.md`](history.md).
 

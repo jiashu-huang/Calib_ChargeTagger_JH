@@ -1,8 +1,20 @@
 # Project History
 
+> **Provenance of `Calib_ChargeTagger_JH` (this repo).** Created 2026-07-14 as
+> a standalone port of the Vcb pipeline from the old
+> `Vcb/Calib_ChargeTagger` repo at commit `a763acb` **plus its uncommitted
+> 2026-07-14 working tree** (which already carried the 2024 trigger wiring).
+> The `boostedhh` submodule was vendored into `src/boostedhh/` from its
+> patched working tree at upstream commit `71bd456` + the outdir patch
+> (archived at [`archive/boostedhh-outdir.patch`](archive/boostedhh-outdir.patch);
+> details in [`../src/boostedhh/VENDORED.md`](../src/boostedhh/VENDORED.md)).
+> `bbtautau` was renamed to `vcb`; only the Vcb skimmer path was ported.
+> The old repo is untouched and remains the reference for pre-2026-07 history.
+
 Consolidated, chronological history of `Calib_ChargeTagger` (JH fork). This
 distills the four original logs — `LOG.md`, `BRANCH_LOG.md`, `AI_LOG.md`, and
-`STATE.md` — which are preserved verbatim under [`docs/archive/`](archive/).
+`STATE.md` — which are preserved verbatim in the **old repo** under
+`docs/archive/` (not carried over here; only the boostedhh outdir patch is).
 
 - **Purpose & how to run:** see the top-level [`README.md`](../README.md).
 - **How the processor works internally:** see [`docs/processor.md`](processor.md).
