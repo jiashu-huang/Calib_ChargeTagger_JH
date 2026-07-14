@@ -1,0 +1,142 @@
+diff --git a/src/boostedhh/processors/SkimmerABC.py b/src/boostedhh/processors/SkimmerABC.py
+index eae654c..91ce286 100644
+--- a/src/boostedhh/processors/SkimmerABC.py
++++ b/src/boostedhh/processors/SkimmerABC.py
+@@ -7,6 +7,7 @@ Author(s): Raghav Kansal
+ from __future__ import annotations
+ 
+ import logging
++import os
+ from abc import abstractmethod
+ from pathlib import Path
+ 
+@@ -49,14 +50,14 @@ class SkimmerABC(processor.ProcessorABC):
+ 
+     def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None) -> None:
+         """
+-        Saves pandas dataframe events to './outparquet'
++        Saves pandas dataframe events to the configured intermediate parquet directory.
+         """
+         import pyarrow as pa
+         import pyarrow.parquet as pq
+ 
+-        local_dir = (Path() / "outparquet").resolve()
++        local_dir = Path(os.environ.get("BOOSTEDHH_OUTPARQUET_DIR", "outparquet")).resolve()
+         if odir_str:
+-            local_dir += odir_str
++            local_dir = local_dir / odir_str
+         local_dir.mkdir(parents=True, exist_ok=True)
+ 
+         # need to write with pyarrow as pd.to_parquet doesn't support different types in
+diff --git a/src/boostedhh/run_utils.py b/src/boostedhh/run_utils.py
+index f9f0637..a3b56f0 100644
+--- a/src/boostedhh/run_utils.py
++++ b/src/boostedhh/run_utils.py
+@@ -231,21 +231,26 @@ def run(
+     filetag: str,  # should be starti-endi
+     executor: str = "iterative",
+     batch_size: int = 20,
++    outdir: Path | None = None,
+ ):
+     """
+     Run processor without fancy dask (outputs then need to be accumulated manually)
+ 
+     batch_size (int): used to combine a ``batch_size`` number of outputs into one parquet / root
++    outdir (Path | None): directory to write outputs to; defaults to current working directory
+     """
+     add_mixins(nanoevents)  # update nanoevents schema
+ 
++    # resolve output directory
++    local_dir = Path(outdir).resolve() if outdir is not None else Path().resolve()
++    local_dir.mkdir(parents=True, exist_ok=True)
++
+     # outputs are saved here as pickles
+-    outdir = Path("./outfiles")
+-    outdir.mkdir(exist_ok=True)
++    pickles_dir = local_dir / "outfiles"
++    pickles_dir.mkdir(exist_ok=True)
+ 
+     if save_parquet or save_root:
+-        # these processors store intermediate files in the "./outparquet" local directory
+-        local_dir = Path().resolve()
++        # these processors store intermediate files in the "outparquet" local directory
+         local_parquet_dir = local_dir / "outparquet"
+ 
+         if local_parquet_dir.is_dir():
+@@ -269,25 +274,35 @@ def run(
+         skipbadfiles=skipbadfiles,
+     )
+ 
+-    # try file opening 3 times if it fails
+-    for i in range(3):
+-        try:
+-            out, metrics = run(fileset, "Events", processor_instance=p)
+-            break
+-        except FileNotFoundError as e:
+-            import time
+-
+-            print("Error!")
+-            print(e)
+-            if i < 2:
+-                print("Retrying in 1 minute")
+-                time.sleep(60)
+-            else:
+-                raise e
++    previous_outparquet_dir = os.environ.get("BOOSTEDHH_OUTPARQUET_DIR")
++    if save_parquet or save_root:
++        os.environ["BOOSTEDHH_OUTPARQUET_DIR"] = str(local_parquet_dir)
++
++    try:
++        # try file opening 3 times if it fails
++        for i in range(3):
++            try:
++                out, metrics = run(fileset, "Events", processor_instance=p)
++                break
++            except FileNotFoundError as e:
++                import time
++
++                print("Error!")
++                print(e)
++                if i < 2:
++                    print("Retrying in 1 minute")
++                    time.sleep(60)
++                else:
++                    raise e
++    finally:
++        if previous_outparquet_dir is None:
++            os.environ.pop("BOOSTEDHH_OUTPARQUET_DIR", None)
++        else:
++            os.environ["BOOSTEDHH_OUTPARQUET_DIR"] = previous_outparquet_dir
+ 
+     print(out)
+ 
+-    with Path(f"{outdir}/{filetag}.pkl").open("wb") as f:
++    with (pickles_dir / f"{filetag}.pkl").open("wb") as f:
+         pickle.dump(out, f)
+ 
+     if save_parquet or save_root:
+@@ -300,7 +315,7 @@ def run(
+         parquet_files = list(path.glob("*.parquet"))
+ 
+         num_batches = int(np.ceil(len(parquet_files) / batch_size))
+-        with Path(f"num_batches_{filetag}.txt").open("w") as f:
++        with (local_dir / f"num_batches_{filetag}.txt").open("w") as f:
+             f.write(f"{num_batches}")
+ 
+         # need to combine all the files from these processors before transferring to EOS
+@@ -316,13 +331,13 @@ def run(
+                 # need to write with pyarrow as pd.to_parquet doesn't support different types in
+                 # multi-index column names
+                 table = pa.Table.from_pandas(pddf)
+-                pq.write_table(table, f"{local_dir}/out_{filetag}_batch_{i}.parquet")
++                pq.write_table(table, local_dir / f"out_{filetag}_batch_{i}.parquet")
+ 
+             if save_root:
+                 import awkward as ak
+ 
+                 with uproot.recreate(
+-                    f"{local_dir}/nano_skim_{filetag}_batch_{i}.root", compression=uproot.LZ4(4)
++                    local_dir / f"nano_skim_{filetag}_batch_{i}.root", compression=uproot.LZ4(4)
+                 ) as rfile:
+                     rfile["Events"] = ak.Array(
+                         # take only top-level column names in multiindex df
