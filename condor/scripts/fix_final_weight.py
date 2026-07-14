@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Processed output directory containing roots/, pickles/, and metadata/.",
     )
-    parser.add_argument("--year", default="2022", help="Year key expected inside each pickle.")
+    parser.add_argument("--year", default="2024", help="Year key expected inside each pickle.")
     parser.add_argument(
         "--dataset",
         default=None,

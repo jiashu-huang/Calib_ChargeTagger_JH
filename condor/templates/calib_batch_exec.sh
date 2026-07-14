@@ -19,12 +19,12 @@ MAMBA_ENV="@@MAMBA_ENV@@"
 KEEP_INTERMEDIATE="@@KEEP_INTERMEDIATE@@"
 
 if [ ! -d "$CALIB_REPO" ]; then
-  echo "ERROR: Calib_ChargeTagger repo not found: $CALIB_REPO" >&2
+  echo "ERROR: Calib_ChargeTagger_JH repo not found: $CALIB_REPO" >&2
   exit 1
 fi
 
-if [ ! -f "$CALIB_REPO/src/run.py" ]; then
-  echo "ERROR: run.py not found under: $CALIB_REPO/src/run.py" >&2
+if [ ! -f "$CALIB_REPO/src/vcb/run.py" ]; then
+  echo "ERROR: run.py not found under: $CALIB_REPO/src/vcb/run.py" >&2
   exit 1
 fi
 
@@ -81,12 +81,13 @@ for input_file in "${INPUT_FILES[@]}"; do
   fi
 done
 
-# src/run.py always updates outputs/latest relative to the process CWD,
+# vcb.run updates outputs/latest relative to the process CWD,
 # so the parent outputs/ directory must exist inside the worker work area.
 mkdir -p "$OUTPUT_ROOTS_DIR" "$OUTPUT_PICKLES_DIR" "$WORK_DIR" "$WORK_DIR/outputs"
 pushd "$WORK_DIR" >/dev/null
 
-export PYTHONPATH="$CALIB_REPO/src:$CALIB_REPO/boostedhh/src${PYTHONPATH:+:$PYTHONPATH}"
+# Single source tree: vcb + vendored boostedhh both live under src/.
+export PYTHONPATH="$CALIB_REPO/src${PYTHONPATH:+:$PYTHONPATH}"
 
 # Give each Condor job its own micromamba cache so parallel jobs do not
 # race on the shared ~/.cache/mamba/proc lock.
@@ -96,7 +97,7 @@ export MAMBA_PKGS_DIRS="$WORK_DIR/.conda/pkgs"
 mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
 
 "$MICROMAMBA_BIN" run -n "$MAMBA_ENV" \
-  python -u "$CALIB_REPO/src/run.py" \
+  python -u -m vcb.run \
     --processor skimmer \
     --skimmer "$SKIMMER" \
     --year "$YEAR" \

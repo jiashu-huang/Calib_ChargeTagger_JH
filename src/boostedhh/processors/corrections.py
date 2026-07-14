@@ -310,7 +310,9 @@ class JECs:
             np.array(j.event_rho, dtype=np.float64),
             np.array(j.phi, dtype=np.float64),
         )
-        factor = ak.unflatten(factor, nj)
+        # float32 keeps jet pt/mass dtypes identical to the 2022/2023 pickle
+        # factories (e.g. the summed `ht` branch stays Float_t)
+        factor = ak.unflatten(ak.values_astype(factor, np.float32), nj)
 
         jets["pt"] = jets.pt_raw * factor
         jets["mass"] = jets.mass_raw * factor

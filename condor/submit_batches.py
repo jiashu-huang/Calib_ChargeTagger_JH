@@ -105,7 +105,7 @@ def parse_args() -> argparse.Namespace:
         "--calib-repo",
         type=Path,
         default=REPO_ROOT,
-        help="Path to the Calib_ChargeTagger checkout visible to Condor workers.",
+        help="Path to the Calib_ChargeTagger_JH checkout visible to Condor workers.",
     )
     parser.add_argument(
         "--run-dir",
@@ -135,10 +135,10 @@ def parse_args() -> argparse.Namespace:
         default="ttbar",
         help="Micromamba environment name used on Condor workers.",
     )
-    parser.add_argument("--year", default="2022", help="Year passed to src/run.py.")
+    parser.add_argument("--year", default="2024", help="Year passed to vcb.run.")
     parser.add_argument(
         "--files-name",
-        default="TT1L2Q",
+        default="TTtoLNuCB",
         help="Dataset name used with --files so gen-selection logic matches.",
     )
     parser.add_argument("--skimmer", default="vcbSkimmer", help="Skimmer module to run.")
@@ -146,13 +146,13 @@ def parse_args() -> argparse.Namespace:
         "--chunksize",
         type=int,
         default=1_000_000,
-        help="Chunk size passed through to src/run.py.",
+        help="Chunk size passed through to vcb.run.",
     )
     parser.add_argument(
         "--maxchunks",
         type=int,
         default=0,
-        help="Max chunks passed through to src/run.py. 0 means no limit.",
+        help="Max chunks passed through to vcb.run. 0 means no limit.",
     )
     parser.add_argument(
         "--batch-size",
@@ -239,9 +239,11 @@ def main() -> None:
     if not input_root.is_dir():
         raise FileNotFoundError(f"Input root directory not found: {input_root}")
     if not calib_repo.is_dir():
-        raise FileNotFoundError(f"Calib_ChargeTagger checkout not found: {calib_repo}")
-    if not (calib_repo / "src" / "run.py").is_file():
-        raise FileNotFoundError(f"run.py not found under repo: {calib_repo / 'src' / 'run.py'}")
+        raise FileNotFoundError(f"Calib_ChargeTagger_JH checkout not found: {calib_repo}")
+    if not (calib_repo / "src" / "vcb" / "run.py").is_file():
+        raise FileNotFoundError(
+            f"run.py not found under repo: {calib_repo / 'src' / 'vcb' / 'run.py'}"
+        )
 
     if run_dir.exists():
         raise FileExistsError(f"Run directory already exists: {run_dir}")
