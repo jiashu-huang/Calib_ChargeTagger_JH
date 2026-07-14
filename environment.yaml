@@ -1,0 +1,11 @@
+## Micromamba environment for Calib_ChargeTagger_JH.
+## The existing `ttbar` env already satisfies this; to recreate from scratch:
+##   micromamba create -f environment.yaml
+##   micromamba run -n ttbar pip install -e ".[diagnostics,test]"
+name: ttbar
+channels:
+  - conda-forge
+dependencies:
+  - python==3.11
+  - xrootd==5.7.1
+  - root==6.32.2

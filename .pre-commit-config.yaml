@@ -1,0 +1,29 @@
+# Lean hook set. Deliberately absent (they blocked commits in the old repo):
+# name-tests-test, rst hooks, blacken-docs, codespell-on-everything.
+# src/boostedhh is vendored upstream code and is excluded from ruff so it
+# stays byte-diffable against LPC-HH/boostedhh.
+
+# tests/outfile: committed regression baselines; docs/archive: archived patch
+# files whose whitespace must stay byte-exact.
+exclude: ^(tests/outfile|docs/archive)/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]  # jec_compiled_py311.pkl.gz is ~1.4 MB
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--show-fixes"]
+        exclude: ^(src/boostedhh|diagnostics)/
+      - id: ruff-format
+        exclude: ^(src/boostedhh|diagnostics)/

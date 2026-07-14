@@ -1,0 +1,37 @@
+# ROOT / parquet data products
+*.root
+*.parquet
+
+# run outputs
+outputs/
+outfiles/
+outparquet/
+outparquet_dask/
+num_batches_*.txt
+
+# condor campaign run dirs (generated JDLs, worker scripts, logs)
+condor/runs/*/
+
+# test fixtures + generated plots (baselines .csv/.txt ARE committed)
+tests/data/
+tests/outfile/*.pdf
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+.ipynb_checkpoints/
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

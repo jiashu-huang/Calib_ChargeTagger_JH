@@ -1,0 +1,108 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "vcb"
+authors = [
+  { name = "Jiashu Huang", email = "huangjiashu@gmail.com" },
+]
+description = "Vcb (t->bW, W->cb) NanoAOD skimmer for the charge-tagger calibration, 2024 target"
+readme = "README.md"
+license.file = "LICENSE"
+requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering",
+]
+dynamic = ["version"]
+# Static dependencies pinned to the `ttbar` micromamba environment
+# (py3.11; see environment.yaml). This fixes the old repo's broken
+# dynamic-deps setup (requirements.txt was never packaged).
+dependencies = [
+  "coffea==0.7.21",
+  "awkward==1.10.4",
+  "correctionlib==2.5.0",
+  "numpy==1.23.5",
+  "pandas==2.0.3",
+  "pyarrow==12.0.1",
+  "uproot==4.3.7",
+  "hist==2.7.1",
+  "vector==1.1.0",
+  "cachetools",
+  "PyYAML",
+  "lz4",
+  "cloudpickle",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+diagnostics = [
+  "matplotlib",
+  "mplhep",
+]
+test = [
+  "pytest>=6",
+]
+
+[project.urls]
+Homepage = "https://github.com/jiashu-huang/Calib_ChargeTagger_JH"
+
+[tool.hatch]
+version.path = "src/vcb/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vcb", "src/boostedhh"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals"]
+testpaths = ["tests"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+# src/boostedhh is vendored upstream code -- keep it byte-diffable, don't lint it.
+# diagnostics/ are standalone debug scripts copied as-is from the old repo.
+extend-exclude = ["src/boostedhh", "diagnostics"]
+
+[tool.ruff.lint]
+extend-select = [
+  "B",           # flake8-bugbear
+  "I",           # isort
+  "ARG",         # flake8-unused-arguments
+  "C4",          # flake8-comprehensions
+  "ICN",         # flake8-import-conventions
+  "G",           # flake8-logging-format
+  "PGH",         # pygrep-hooks
+  "PIE",         # flake8-pie
+  "PT",          # flake8-pytest-style
+  "PTH",         # flake8-use-pathlib
+  "RUF",         # Ruff-specific
+  "SIM",         # flake8-simplify
+  "UP",          # pyupgrade
+  "YTT",         # flake8-2020
+  "NPY",         # NumPy specific rules
+]
+ignore = [
+  "E722",   # bare except
+  "PT009",  # tests use unittest-style asserts intentionally
+  "G004",   # f-string in logging
+  "RUF005", # iterable unpacking
+  "RUF012", # mutable class attributes
+  "RUF013", # implicit Optional
+  "SIM108", # ternary
+  "PLR",    # pylint design
+]
+isort.required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["T20"]
+"diagnostics/**" = ["T20"]
+# make_abs() deliberately avoids Path.resolve() so symlinks are not resolved
+"condor/**" = ["PTH100", "PTH111"]
