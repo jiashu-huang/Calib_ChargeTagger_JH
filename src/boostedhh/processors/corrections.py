@@ -64,12 +64,13 @@ def get_pog_json(obj: str, year: str) -> str:
         print(f"No json for {obj}")
 
     year = get_UL_year(year) if year == "2018" else year
-    if "2022" in year or "2023" in year:
+    if "2022" in year or "2023" in year or "2024" in year:
         year = {
             "2022": "2022_Summer22",
             "2022EE": "2022_Summer22EE",
             "2023": "2023_Summer23",
             "2023BPix": "2023_Summer23BPix",
+            "2024": "2024_Summer24",
         }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -106,14 +107,34 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
         values = {}
 
-        cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-        corr = {
-            "2018": "Collisions18_UltraLegacy_goldenJSON",
-            "2022": "Collisions2022_355100_357900_eraBCD_GoldenJson",
-            "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
-            "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
-            "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
-        }[year]
+        if year == "2024":
+            # No POG/LUM/2024_Summer24 on this cvmfs jsonpog-integration snapshot.
+            # Preferred: a user-supplied 2024 puWeights bundled in the repo
+            # (see SHOPPING-LIST.md). Fallback: 2023 (Summer23) weights as a
+            # PLACEHOLDER -- pileup is a norm-preserving weight, so this only
+            # reshapes distributions, not the normalization.
+            bundled_2024 = package_path + "/corrections/2024_puWeights.json.gz"
+            if pathlib.Path(bundled_2024).is_file():
+                cset = correctionlib.CorrectionSet.from_file(bundled_2024)
+                corr = list(cset.keys())[0]
+                print(f"Pileup 2024: using bundled {bundled_2024} (correction '{corr}')")
+            else:
+                print(
+                    "WARNING: 2024 pileup weights not available -- using 2023 (Summer23) "
+                    "puWeights as a PLACEHOLDER. Drop the real 2024 file in "
+                    "src/boostedhh/corrections/2024_puWeights.json.gz (see SHOPPING-LIST.md)."
+                )
+                cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", "2023"))
+                corr = "Collisions2023_366403_369802_eraBC_GoldenJson"
+        else:
+            cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+            corr = {
+                "2018": "Collisions18_UltraLegacy_goldenJSON",
+                "2022": "Collisions2022_355100_357900_eraBCD_GoldenJson",
+                "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
+                "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
+                "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
+            }[year]
         # evaluate and clip up to 10 to avoid large weights
         values["nominal"] = np.clip(cset[corr].evaluate(nPU, "nominal"), 0, 10)
         values["up"] = np.clip(cset[corr].evaluate(nPU, "up"), 0, 10)
@@ -222,6 +243,12 @@ def get_scale_weights(events):
         return None
 
 
+# 2024 (Summer24) MC JEC applied via correctionlib -- the bundled pickle
+# factories only cover 2022/2023 and rebuilding them needs internet access
+# to JECDatabase. Compound key verified on cvmfs jsonpog-integration.
+JEC_2024_MC_COMPOUND = "Summer24Prompt24_V1_MC_L1L2L3Res_AK4PFPuppi"
+
+
 class JECs:
     def __init__(self, year):
         if year in ["2022", "2022EE", "2023", "2023BPix"]:
@@ -238,6 +265,18 @@ class JECs:
 
         self.jet_factory = {}
         self.met_factory = None
+        self.correctionlib_cset = None
+
+        if year == "2024":
+            # correctionlib path (see JEC_2024_MC_COMPOUND above)
+            self.correctionlib_cset = correctionlib.CorrectionSet.from_file(
+                get_pog_json("jet_jec", year)
+            )
+            print(f"JECs 2024: correctionlib compound {JEC_2024_MC_COMPOUND}")
+            print(
+                "WARNING: no JER smearing for 2024 -- Summer24 jet resolution "
+                "not published on this jsonpog-integration snapshot (see SHOPPING-LIST.md)."
+            )
 
         print(jec_compiled)
         if jec_compiled is not None:
@@ -247,6 +286,38 @@ class JECs:
             self.jet_factory["ak4"] = jmestuff["jet_factory"]
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
+
+    def _apply_correctionlib_jec_2024(self, jets: JetArray, isData: bool, fatjets: bool):
+        """
+        Apply the Summer24 MC compound JEC (L1L2L3Res) on raw jet pT/mass via
+        correctionlib. Nominal only: no JER smearing (not published for
+        Summer24) and no JES/JER variations (jec_shifted_vars is not consumed
+        by the Vcb skimmer).
+        """
+        if isData:
+            print("WARNING: 2024 data JECs not implemented; keeping NanoAOD jet energies.")
+            return jets, None
+        if fatjets:
+            print("WARNING: 2024 AK8 JECs not implemented; keeping NanoAOD fatjet energies.")
+            return jets, None
+
+        corr = self.correctionlib_cset.compound[JEC_2024_MC_COMPOUND]
+        j, nj = ak.flatten(jets), ak.num(jets)
+        factor = corr.evaluate(
+            np.array(j.area, dtype=np.float64),
+            np.array(j.eta, dtype=np.float64),
+            np.array(j.pt_raw, dtype=np.float64),
+            np.array(j.event_rho, dtype=np.float64),
+            np.array(j.phi, dtype=np.float64),
+        )
+        factor = ak.unflatten(factor, nj)
+
+        jets["pt"] = jets.pt_raw * factor
+        jets["mass"] = jets.mass_raw * factor
+        # rawFactor must be consistent with the recorrected energies
+        jets["rawFactor"] = 1 - 1 / factor
+
+        return jets, None
 
     def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
         """add variables needed for JECs"""
@@ -286,6 +357,10 @@ class JECs:
             apply_jecs = False
         if not apply_jecs:
             return jets, None
+
+        # 2024: no pickle factories; apply the Summer24 compound JEC via correctionlib.
+        if self.correctionlib_cset is not None:
+            return self._apply_correctionlib_jec_2024(jets, isData, fatjets)
 
         jec_vars = ["pt"]  # variables we are saving that are affected by JECs
         jet_factory_str = "ak4"
@@ -412,6 +487,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+        "2024": "Summer24Prompt24_RunBCDEFGHI_V1",  # verified on cvmfs jsonpog-integration
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0

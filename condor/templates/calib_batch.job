@@ -1,0 +1,15 @@
+universe              = vanilla
+executable            = @@EXECUTABLE@@
+initialdir            = @@INITIALDIR@@
+getenv                = true
+notification          = never
+
+log                   = @@LOG@@
+output                = @@STDOUT@@
+error                 = @@STDERR@@
+
+request_cpus          = @@REQUEST_CPUS@@
+request_memory        = @@REQUEST_MEMORY@@
+request_disk          = @@REQUEST_DISK@@
+
+queue

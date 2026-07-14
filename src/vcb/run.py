@@ -31,7 +31,7 @@ from boostedhh.processors import SkimmerABC
 from boostedhh.xsecs import xsecs
 from vcb import vcb_utils
 
-DEFAULT_FILES_NAME = "TT1L2Q"
+DEFAULT_FILES_NAME = "TTtoLNuCB"
 
 
 def _parse_skimmer_arg(skimmer: str | None) -> tuple[str, str | None]:
@@ -361,6 +361,8 @@ def main(args):
             )
 
         # Update the "latest" symlink to point to this run's output directory.
+        # outputs/ may not exist yet when --outdir points somewhere else.
+        outputs_root.mkdir(parents=True, exist_ok=True)
         latest_link = outputs_root / "latest"
         if latest_link.is_symlink():
             latest_link.unlink()

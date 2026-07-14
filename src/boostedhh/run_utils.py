@@ -111,7 +111,7 @@ def parse_common_hh_args(parser):
         type=str,
         nargs="+",
         required=True,
-        choices=["2018", "2022", "2022EE", "2023", "2023BPix"],
+        choices=["2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
     )
 
     parser.add_argument(

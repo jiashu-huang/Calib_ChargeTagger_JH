@@ -82,7 +82,8 @@ from . import GenSelection, objects  # Local gen selection and object definition
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
-    "TT1L2Q": GenSelection.gen_selection_Vcb,
+    "TTtoLNuCB": GenSelection.gen_selection_Vcb,  # 2024 Summer24 private production
+    "TT1L2Q": GenSelection.gen_selection_Vcb,  # legacy 2022 private sample naming
     "TTtoLNu2Q": GenSelection.gen_selection_Vcb,
 }
 
@@ -712,7 +713,7 @@ class vcbSkimmer(SkimmerABC):
         # 10) Add theory variations (scale/PDF) for supported datasets.
         ###################### alpha_S and PDF variations ######################
 
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith(("TTTo", "TTto")):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
@@ -732,11 +733,7 @@ class vcbSkimmer(SkimmerABC):
         # 11) Apply cross section * luminosity normalization to all weights.
         ###################### Normalization (Step 1) ######################
 
-        # Use TTtoLNu2Q xsec/lumi normalization for the TT1L2Q private sample naming.
-        norm_dataset = (
-            "TTtoLNu2Q" if (dataset == "TT1L2Q" or dataset.startswith("TT1L2Q_")) else dataset
-        )
-        weight_norm = self.get_dataset_norm(year, norm_dataset)
+        weight_norm = self.get_dataset_norm(year, dataset)
         # normalize all the weights to xsec, needs to be divided by totals in Step 2 in post-processing
         for key, val in weights_dict.items():
             weights_dict[key] = val * weight_norm

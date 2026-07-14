@@ -87,6 +87,11 @@ xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
 xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
 xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
+# Vcb signal: tt -> (t -> b W(->cb)) (t~ -> b~ W(->l nu)).
+# TODO(user): confirm value (see SHOPPING-LIST.md). Placeholder:
+#   sigma_tt(923.6) * 2 * BR(W->lnu, 0.333) * BR(W->cb, 0.667 * |Vcb=0.0410|^2 / 2)
+# Pure overall scale under the finalWeight = weight / np_nominal scheme.
+xsecs["TTtoLNuCB"] = 923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)  # ~= 0.345 pb
 
 # Diboson
 xsecs["WW"] = 116.8  #  173.4 (116.8 at NNLO)

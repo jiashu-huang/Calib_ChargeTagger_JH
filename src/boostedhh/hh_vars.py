@@ -11,10 +11,11 @@ boostedhh.utils / boostedhh.run_utils / vcb are kept. See VENDORED.md.
 
 from __future__ import annotations
 
-years = ["2022", "2022EE", "2023", "2023BPix"]
+years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
 
 # in pb^-1
 LUMI = {
+    "2024": 109_080.0,  # TODO(user): confirm certified 2024 golden-JSON value (see SHOPPING-LIST.md)
     "2022": 7971.4,
     "2022EE": 26337.0,
     "2022All": 34308.0,
