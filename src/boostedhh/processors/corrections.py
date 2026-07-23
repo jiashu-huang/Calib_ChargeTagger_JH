@@ -243,14 +243,43 @@ def get_scale_weights(events):
         return None
 
 
-# 2024 (Summer24) MC JEC applied via correctionlib -- the bundled pickle
-# factories only cover 2022/2023 and rebuilding them needs internet access
-# to JECDatabase. Compound key verified on cvmfs jsonpog-integration.
-JEC_2024_MC_COMPOUND = "Summer24Prompt24_V1_MC_L1L2L3Res_AK4PFPuppi"
+# 2024 (Summer24) jet corrections applied via correctionlib -- the bundled
+# pickle factories only cover 2022/2023 and rebuilding them needs internet
+# access to JECDatabase. Source is the CAT Summer24 bundle (V5 compound JEC +
+# JRV2 JER), bundled in corrections/ with a cvmfs fallback; see
+# corrections/README.md. jsonpog-integration is NOT used for 2024: its snapshot
+# ships only a V1 JEC and a Summer23BPix JRV1 JER stand-in.
+JEC_2024_MC_COMPOUND = "Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi"
+JER_2024_MC_RESO = "Summer24Prompt24_JRV2_MC_PtResolution_AK4PFPuppi"
+JER_2024_MC_SF = "Summer24Prompt24_JRV2_MC_ScaleFactor_AK4PFPuppi"
+JER_2024_SMEAR = "JERSmear"
+
+# Bundled-first, cvmfs-fallback sources for the 2024 jet corrections.
+JEC_JER_2024_BUNDLED = package_path + "/corrections/2024_jet_jerc.json.gz"
+JERSMEAR_2024_BUNDLED = package_path + "/corrections/jer_smear.json.gz"
+# CAT metadata tree (has the real Summer24 V5 JEC + JRV2 JER; jsonpog does not).
+_CAT_JME = "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME"
+JEC_JER_2024_CVMFS = (
+    f"{_CAT_JME}/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz"
+)
+JERSMEAR_2024_CVMFS = f"{_CAT_JME}/JER-Smearing/latest/jer_smear.json.gz"
+
+
+def _load_correctionset_bundled_first(bundled: str, cvmfs: str, what: str):
+    """Load a correctionlib CorrectionSet, preferring the bundled repo copy and
+    falling back to the cvmfs (CAT) path. Returns None (with a warning) if
+    neither exists, so JEC/JER degrade gracefully rather than crashing."""
+    for path, tag in ((bundled, "bundled"), (cvmfs, "cvmfs")):
+        if pathlib.Path(path).is_file():
+            print(f"{what}: using {tag} {path}")
+            return correctionlib.CorrectionSet.from_file(path)
+    print(f"WARNING: {what} not found (bundled or cvmfs); 2024 JER disabled.")
+    return None
 
 
 class JECs:
     def __init__(self, year):
+        self.year = year
         if year in ["2022", "2022EE", "2023", "2023BPix"]:
             if sys.version_info[1] < 11:  # noqa: YTT203
                 jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
@@ -266,16 +295,21 @@ class JECs:
         self.jet_factory = {}
         self.met_factory = None
         self.correctionlib_cset = None
+        self.jersmear_cset = None
 
         if year == "2024":
-            # correctionlib path (see JEC_2024_MC_COMPOUND above)
-            self.correctionlib_cset = correctionlib.CorrectionSet.from_file(
-                get_pog_json("jet_jec", year)
+            # 2024 uses correctionlib (no pickle factories). Load the compound
+            # JEC + JRV2 JER (one file) and the generic JERSmear formula,
+            # preferring the bundled repo copies over the cvmfs CAT path.
+            self.correctionlib_cset = _load_correctionset_bundled_first(
+                JEC_JER_2024_BUNDLED, JEC_JER_2024_CVMFS, "JEC/JER 2024 (V5 + JRV2)"
             )
-            print(f"JECs 2024: correctionlib compound {JEC_2024_MC_COMPOUND}")
+            self.jersmear_cset = _load_correctionset_bundled_first(
+                JERSMEAR_2024_BUNDLED, JERSMEAR_2024_CVMFS, "JERSmear 2024"
+            )
             print(
-                "WARNING: no JER smearing for 2024 -- Summer24 jet resolution "
-                "not published on this jsonpog-integration snapshot (see SHOPPING-LIST.md)."
+                f"JECs 2024: compound {JEC_2024_MC_COMPOUND}; "
+                f"JER {JER_2024_MC_RESO} (nominal smearing)"
             )
 
         print(jec_compiled)
@@ -287,11 +321,13 @@ class JECs:
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
 
-    def _apply_correctionlib_jec_2024(self, jets: JetArray, isData: bool, fatjets: bool):
+    def _apply_correctionlib_jec_2024(
+        self, jets: JetArray, isData: bool, fatjets: bool, event: ak.Array | None = None
+    ):
         """
-        Apply the Summer24 MC compound JEC (L1L2L3Res) on raw jet pT/mass via
-        correctionlib. Nominal only: no JER smearing (not published for
-        Summer24) and no JES/JER variations (jec_shifted_vars is not consumed
+        Apply the Summer24 compound JEC (V5 L1L2L3Res) on raw jet pT/mass via
+        correctionlib, then nominal JRV2 JER smearing on the corrected pT.
+        MC + AK4 only. No JES/JER variations (jec_shifted_vars is not consumed
         by the Vcb skimmer).
         """
         if isData:
@@ -316,10 +352,67 @@ class JECs:
 
         jets["pt"] = jets.pt_raw * factor
         jets["mass"] = jets.mass_raw * factor
-        # rawFactor must be consistent with the recorrected energies
-        jets["rawFactor"] = 1 - 1 / factor
+
+        # JER smearing (nominal) on the JEC-corrected pT; fold into `factor` so
+        # rawFactor stays consistent with the final energies.
+        smear = self._jer_smear_2024(jets, event)
+        if smear is not None:
+            jets["pt"] = jets.pt * smear
+            jets["mass"] = jets.mass * smear
+            factor = factor * smear
+
+        # rawFactor must be consistent with the recorrected energies. Guard the
+        # division: a jet whose (rare) stochastic JER smear clamps to 0 has
+        # factor == 0 and is dropped by the pt > 15 selection, but must stay
+        # finite here; all realistic jets take the plain 1 - 1/factor branch.
+        safe = factor > 0
+        jets["rawFactor"] = ak.where(safe, 1 - 1 / ak.where(safe, factor, 1.0), 0.0)
 
         return jets, None
+
+    def _jer_smear_2024(self, jets: JetArray, event: ak.Array | None):
+        """
+        Nominal Summer24 JRV2 JER smear factor per jet (jagged float32), applied
+        on the JEC-corrected pT, or None if inputs are unavailable (smearing
+        skipped). Hybrid method: the JERSmear correction branches on GenPt
+        (>= 0 -> scaling, -1 -> stochastic with a deterministic hashprng seed);
+        the gen match (dR < 0.2 and the 3-sigma window) is decided here.
+        """
+        if self.correctionlib_cset is None or self.jersmear_cset is None or event is None:
+            return None
+
+        nj = ak.num(jets)
+        j = ak.flatten(jets)
+        eta = np.array(j.eta, dtype=np.float64)
+        pt = np.array(j.pt, dtype=np.float64)  # JEC-corrected
+        rho = np.array(j.event_rho, dtype=np.float64)
+
+        reso = self.correctionlib_cset[JER_2024_MC_RESO].evaluate(eta, pt, rho)
+        sf = self.correctionlib_cset[JER_2024_MC_SF].evaluate(eta, pt)
+
+        # hybrid gen match: pt_gen (0 if unmatched) and dr_gen were stored in
+        # _add_jec_variables. Pass the matched gen pT only inside dR < 0.2 and the
+        # 3-sigma window; otherwise the -1 sentinel selects stochastic smearing.
+        genpt = ak.values_astype(jets.pt_gen, np.float64)
+        reso_j = ak.unflatten(reso, nj)
+        matched = (
+            (genpt > 0)
+            & (jets.dr_gen < 0.2)
+            & (np.abs(jets.pt - genpt) < 3.0 * reso_j * jets.pt)
+        )
+        genpt_in = np.array(ak.flatten(ak.where(matched, genpt, -1.0)), dtype=np.float64)
+
+        # deterministic entropy source: event number broadcast to each jet
+        evid = np.array(
+            ak.flatten(ak.broadcast_arrays(ak.values_astype(event, np.int64), jets.pt)[0]),
+            dtype=np.int64,
+        )
+
+        smear = self.jersmear_cset[JER_2024_SMEAR].evaluate(
+            pt, eta, genpt_in, rho, evid, reso, sf
+        )
+        smear = np.maximum(smear, 0.0)
+        return ak.unflatten(ak.values_astype(smear, np.float32), nj)
 
     def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
         """add variables needed for JECs"""
@@ -328,7 +421,15 @@ class JECs:
         jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
         if not isData:
             # gen pT needed for smearing
-            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+            gen = jets.matched_gen
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(gen.pt, 0), np.float32)
+            if self.year == "2024":
+                # reco-gen dR for the 2024 JER hybrid match. Captured here (before
+                # JEC modifies pt/mass) while matched_gen resolves cleanly; JEC
+                # leaves the jet direction unchanged, so dR is JEC-invariant.
+                jets["dr_gen"] = ak.values_astype(
+                    ak.fill_none(jets.delta_r(gen), 999.0), np.float32
+                )
         return jets
 
     def get_jec_jets(
@@ -360,9 +461,9 @@ class JECs:
         if not apply_jecs:
             return jets, None
 
-        # 2024: no pickle factories; apply the Summer24 compound JEC via correctionlib.
+        # 2024: no pickle factories; apply the Summer24 JEC + JER via correctionlib.
         if self.correctionlib_cset is not None:
-            return self._apply_correctionlib_jec_2024(jets, isData, fatjets)
+            return self._apply_correctionlib_jec_2024(jets, isData, fatjets, event=events.event)
 
         jec_vars = ["pt"]  # variables we are saving that are affected by JECs
         jet_factory_str = "ak4"
