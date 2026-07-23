@@ -14,6 +14,7 @@ because cvmfs mtimes track the sync, not the derivation.
 | `jec_compiled_py311.pkl.gz` | 2022 `22Sep2023` reReco / 2023 `Prompt` (see tags) | 2026-07-14 (repo port) | 2022 / 2023 JEC **+ JER** |
 | `2024_jet_jerc.json.gz` | 2026-07-16 snapshot | 2026-07-23 | 2024 MC AK4 JEC (V5) + nominal JER (JRV2) |
 | `jer_smear.json.gz` | 2025-11-03 | 2026-07-23 | 2024 MC AK4 nominal JER smearing formula |
+| `2024_puWeights.json.gz` | 2026-04-15 snapshot | 2026-07-23 | 2024 pileup event weight (nominal/up/down) |
 
 ---
 
@@ -138,11 +139,56 @@ only by the 2024 MC AK4 path.
 
 ---
 
-## Related (not in this directory yet)
+## `2024_puWeights.json.gz`
 
-- `2024_puWeights.json.gz` — planned bundle for 2024 pileup weights (SHOPPING-LIST
-  item 3). Until present, `add_pileup_weight` falls back to the 2023 Summer23
-  weights as a stand-in with a loud warning.
+**What it is.** The LUM `puWeights` correctionlib payload for the 2024 Summer24
+campaign: the pileup event reweighting derived from the ratio of the data
+`NumTrueInteractions` profile (certified golden JSON) to the Summer24 MC profile.
+One correction, `Collisions24_CDEFGHI_goldenJSON`, with inputs
+`(NumTrueInteractions: real, weights: string)` where `weights ∈ {nominal, up, down}`
+and output `weight`.
+
+**Origin.**
+`/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz`
+(the CAT metadata tree — the LUM sibling of the same
+`Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15` campaign that
+`2024_jet_jerc.json.gz` comes from, **not** the `jsonpog-integration` tree). At
+retrieval, `latest/` was byte-identical to the dated snapshot folder
+**`2026-04-15`** (verified by md5 and full `diff -qr`), so the bundled copy is
+pinned to that snapshot.
+
+- content date: **2026-04-15** (cvmfs snapshot)
+- retrieved: **2026-07-23**
+- size: 2737 bytes
+- md5: `05a482b913a68ed10755f35341c12f57`
+
+**Which era set and why.** The directory ships several golden-JSON variants:
+per-era (`B` … `I`), the inclusive `BCDEFGHI`, and `CDEFGHI`. We bundle the
+**CDEFGHI** file. It matches (a) the campaign name itself —
+`24CDEReprocessingFGHIPrompt` (C–E reReco + F–I prompt, no commissioning era B),
+(b) that snapshot's `changes.md` ("2026-04-15: Added weights for CDEFGHI only"),
+(c) the cms-talk request that motivated it (`pileup-weights-for-2024cdefghi`), and
+(d) the sibling `2024_jet_jerc.json.gz`, taken from the identically-named JME
+campaign. `CDEFGHI` did not exist in the older `2025-12-02` snapshot — it was added
+specifically on 2026-04-15. To include the commissioning era B instead, bundle
+`puWeights_BCDEFGHI.json.gz` (correction `Collisions24_BCDEFGHI_goldenJSON`) from
+the same directory; no code change is needed because `add_pileup_weight` reads the
+first correction key in the file.
+
+**Why the CAT tree and not jsonpog.** The `jsonpog-integration` snapshot on this
+machine has no `POG/LUM/2024_Summer24` — its LUM tree stops at
+`2023_Summer23BPix`. The 2024 pileup weights live only in the CAT tree (same
+reason as `2024_jet_jerc.json.gz`).
+
+**How the code uses it.** `add_pileup_weight` in
+[`../processors/corrections.py`](../processors/corrections.py) loads this file for
+`year == "2024"` through `correctionlib`, preferring the bundled repo copy. It
+takes the first (only) correction key and evaluates `nominal` / `up` / `down` on
+the per-event `nPU` (`NumTrueInteractions`, clipped to `[0, 99]`), clipping each
+resulting weight to `[0, 10]`. If the bundled file is absent it falls back to the
+2023 Summer23 eraBC weights as a placeholder with a loud warning. Pileup is
+norm-preserving, so this reshapes nPU-dependent distributions without changing the
+overall normalization.
 
 [cloudpickle]: https://github.com/cloudpipe/cloudpickle
 [coffea]: https://github.com/scikit-hep/coffea

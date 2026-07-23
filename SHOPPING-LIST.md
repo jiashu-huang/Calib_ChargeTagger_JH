@@ -33,25 +33,27 @@ Status as of 2026-07-23.
 - **Impact:** pure overall scale under the `finalWeight = weight / np_nominal`
   scheme.
 
-## 3. 2024 pileup weights (`puWeights.json.gz`)  ⚠️ currently 2023 copy-paste
+## 3. 2024 pileup weights (`puWeights.json.gz`)  (done)
 
-- **Get:** `POG/LUM/2024_Summer24/puWeights.json.gz` from the CERN GitLab
-  **jsonpog-integration** repo
-  (<https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration>, master branch —
-  it is NOT on this machine's cvmfs snapshot, which only has LUM up to
-  2023_Summer23BPix). Alternatively derive one with
-  `src/boostedhh/corrections/makePUReWeightJSON.py`.
-- **Now:** the skimmer **uses the 2023 (Summer23, eraBC golden-JSON) pileup
-  weights as a stand-in** and prints a loud `WARNING` on every chunk. Pileup
-  is a norm-preserving weight, so this only reshapes distributions — the
-  normalization is unaffected.
-- **Fill in:** drop the file at
-  `src/boostedhh/corrections/2024_puWeights.json.gz` — **no code change
-  needed**; `add_pileup_weight` in
+- **Done (2026-07-23):** bundled the real 2024 Summer24 pileup weights at
+  `src/boostedhh/corrections/2024_puWeights.json.gz`. `add_pileup_weight` in
   [src/boostedhh/processors/corrections.py](src/boostedhh/processors/corrections.py)
-  picks it up automatically (it uses the first correction key in the file) and
-  the warning disappears. Then re-run the skims.
-- **Impact:** nPU-dependent event weights (shape only).
+  now picks it up automatically (first correction key,
+  `Collisions24_CDEFGHI_goldenJSON`), evaluates nominal/up/down, and the 2023
+  stand-in `WARNING` is gone — **no code change was needed**.
+- **Source:** `puWeights_CDEFGHI.json.gz` from the CAT metadata tree
+  `/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/`
+  (pinned to the `2026-04-15` snapshot, md5 `05a482b9…`). This is the LUM sibling
+  of the same campaign as the 2024 JEC/JER file (item 4). The
+  **jsonpog-integration** snapshot on this machine has no `POG/LUM/2024_Summer24`
+  (LUM stops at 2023_Summer23BPix), so the CAT tree is the only local source.
+- **Era choice:** **CDEFGHI** (C–E reReco + F–I prompt; excludes commissioning
+  era B) — matches the campaign name, the snapshot's `changes.md`, and the
+  cms-talk request. To include era B instead, swap in `puWeights_BCDEFGHI.json.gz`
+  from the same directory (no code change). Provenance in
+  [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+- **Impact:** nPU-dependent event weights (shape only); normalization unaffected
+  (pileup is norm-preserving).
 
 ## 4. Summer24 JER (jet energy resolution)  (done)
 
@@ -88,7 +90,8 @@ Status as of 2026-07-23.
 ### Quick-check after filling things in
 
 ```bash
-# item 4 (JER) no longer warns; item 3 (pileup) still prints its stand-in WARNING:
+# items 3 (pileup) and 4 (JER) no longer warn; instead item 3 prints
+# "Pileup 2024: using bundled .../2024_puWeights.json.gz (correction 'Collisions24_CDEFGHI_goldenJSON')":
 micromamba run -n ttbar python -m vcb.run --year 2024 \
   --files <one production file> --maxchunks 1 --naming-tag check --outdir /tmp/check
 
