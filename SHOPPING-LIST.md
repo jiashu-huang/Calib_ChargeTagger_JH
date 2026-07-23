@@ -1,8 +1,10 @@
 # SHOPPING LIST — 2024 inputs to fill in
 
-Everything below is running on a **placeholder** right now (the pipeline works
-and is safe to run — these only affect calibration-grade correctness). For
-each item: what to get, what's in place now, and **exactly where to put it**.
+**All four calibration inputs (items 1–4) are now filled in** with real 2024
+values; only the bonus data-quality note (item 5) remains. Each item below records
+what was needed, what is in place, and **exactly where it lives**. The pipeline
+worked on placeholders throughout — these only ever affected calibration-grade
+correctness.
 
 Status as of 2026-07-23.
 
@@ -19,19 +21,26 @@ Status as of 2026-07-23.
   `LUMI["2024"]` entry at the top of the `LUMI` dict.
 - **Impact:** pure overall scale of `weight`/`finalWeight`.
 
-## 2. σ(TTtoLNuCB) cross section  ⭐ trivial to fill
+## 2. σ(TTtoLNuCB) cross section  (done)
 
-- **Get:** the cross section (pb) you want to normalize the private
-  `TTtoLNuCB` sample to. Suggested: σ_tt(NNLO, 13.6 TeV) = 923.6 pb ×
-  2 × BR(W→ℓν) × BR(W→cb̄), or take the effective xsec straight from the
-  gridpack/GenXsecAnalyzer of the production.
-- **Now:** placeholder `923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)` ≈ 0.345 pb
-  (|Vcb| = 0.0410).
-- **Fill in:** [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py) — the
-  `xsecs["TTtoLNuCB"]` line right after `xsecs["TTtoLNu2Q"]`
-  (marked `TODO(user)`).
-- **Impact:** pure overall scale under the `finalWeight = weight / np_nominal`
-  scheme.
+- **Done (2026-07-23):** kept `923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)`
+  ≈ 0.345 pb in [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py); removed the
+  `TODO`, verified the value, and documented the reasoning inline. This is the
+  **physical** σ of the `(ℓν)(cb)` final state.
+- **σ_tt = 923.6 pb (NNLO+NNLL SM)**, *not* the measured 881 ± 30 pb
+  (arXiv:2303.10680; agrees within uncertainty). Rationale: consistency with the
+  sibling `TTto4Q/2L2Nu/LNu2Q` entries (same tt̄ split by decay), the CMS
+  convention of normalizing tt̄ MC to theory, and the fact that it's a pure
+  overall scale anyway. Swapping to 881 is a one-number change if preferred.
+- **The `|Vcb|²` factor is mandatory — do NOT use the gridpack xsec.** The private
+  POWHEG `hvq` sample (`gridpack/powheg.input`: `semileptonic 1`, `VcbOnly 1`)
+  **forces** W→cb, so its generated xsec (`pwg-stat.dat` = 762 pb) has no `|Vcb|²`
+  and is ~2200× the physical rate. Under `finalWeight = weight / np_nominal` that
+  generated xsec is divided out and the value here is multiplied back in, so it
+  must be the physical `(ℓν)(cb)` xsec. Plugging in the GenXsecAnalyzer/gridpack
+  ~762 pb would overcount the signal by ~2200×.
+- **Impact:** pure overall scale on the TTtoLNuCB sample under
+  `finalWeight = weight / np_nominal`.
 
 ## 3. 2024 pileup weights (`puWeights.json.gz`)  (done)
 

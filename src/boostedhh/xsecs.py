@@ -83,14 +83,22 @@ xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
 
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO: 923.6
-# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012: 887
+# CMS 13.6 TeV measurement (TOP-22-012, arXiv:2303.10680): 881 +/- 23 +/- 20 pb
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
 xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
 xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
 # Vcb signal: tt -> (t -> b W(->cb)) (t~ -> b~ W(->l nu)).
-# TODO(user): confirm value (see SHOPPING-LIST.md). Placeholder:
 #   sigma_tt(923.6) * 2 * BR(W->lnu, 0.333) * BR(W->cb, 0.667 * |Vcb=0.0410|^2 / 2)
-# Pure overall scale under the finalWeight = weight / np_nominal scheme.
+# The |Vcb|^2 suppression MUST be applied here by hand. The private POWHEG hvq
+# sample (powheg.input: semileptonic 1, VcbOnly 1) FORCES W->cb, so its generated
+# cross section (gridpack pwg-stat.dat = 762 pb) carries no |Vcb|^2 and is ~2200x
+# the physical rate. That generated xsec is divided out by np_nominal, and this
+# value is multiplied back in, so it must be the *physical* (lnu)(cb) xsec -- do
+# NOT plug the gridpack/GenXsec ~762 pb in directly.
+# sigma_tt uses the NNLO+NNLL SM reference (923.6 pb, TtbarNNLO twiki), consistent
+# with the sibling TTto* samples above; the measured 881 +/- 30 pb (2303.10680,
+# agrees within unc.) is an alternative. Under finalWeight = weight / np_nominal
+# this xsec is a pure overall scale on the sample.
 xsecs["TTtoLNuCB"] = 923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)  # ~= 0.345 pb
 
 # Diboson
