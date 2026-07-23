@@ -12,8 +12,8 @@ because cvmfs mtimes track the sync, not the derivation.
 | File | Content date | Retrieved | Used by |
 |---|---|---|---|
 | `jec_compiled_py311.pkl.gz` | 2022 `22Sep2023` reReco / 2023 `Prompt` (see tags) | 2026-07-14 (repo port) | 2022 / 2023 JEC **+ JER** |
-| `2024_jet_jerc.json.gz` | 2026-07-16 snapshot | 2026-07-23 | 2024 JEC (V5) + JER (JRV2) — *wiring pending* |
-| `jer_smear.json.gz` | 2025-11-03 | 2026-07-23 | 2024 JER stochastic-smear formula — *wiring pending* |
+| `2024_jet_jerc.json.gz` | 2026-07-16 snapshot | 2026-07-23 | 2024 MC AK4 JEC (V5) + nominal JER (JRV2) |
+| `jer_smear.json.gz` | 2025-11-03 | 2026-07-23 | 2024 MC AK4 nominal JER smearing formula |
 
 ---
 
@@ -61,7 +61,7 @@ across Python versions; a matching build is kept per interpreter major.minor.
 
 ---
 
-## `2024_jet_jerc.json.gz`  *(new — Step 1 of the JER plan)*
+## `2024_jet_jerc.json.gz`
 
 **What it is.** The full JME `jet_jerc` correctionlib payload for the 2024
 Summer24 campaign: the compound JEC **and** the JER pieces in one file.
@@ -89,17 +89,25 @@ machine (Sep 2025) ships only a **Summer23BPix JRV1** JER stand-in and the older
 is co-derived with — are only in the CAT tree. Bundling this file adopts the
 consistent, POG-intended **V5 + JRV2** pair.
 
-**Status.** Bundled, but not yet consumed by the code — `corrections.py` still
-applies the V1 compound from jsonpog and no smearing. Wiring it in (loader,
-`_apply_jer_2024`, V1→V5 swap) is Steps 2–5 of the JER plan.
+**How the code uses it.** `JECs.__init__` in
+[`../processors/corrections.py`](../processors/corrections.py) loads this file for
+`year == "2024"` through `correctionlib`, preferring the bundled repo copy and
+falling back to the CAT `latest/` path if the bundled file is unavailable. The
+2024 path does not use the coffea pickle factories above.
 
-**Runtime fallback (planned).** When wired, the loader will prefer this bundled
-file and fall back to the CAT `latest/` path, which tracks the newest snapshot
-rather than the pinned 2026-07-16 one.
+For 2024 MC AK4 jets, `_apply_correctionlib_jec_2024` evaluates the compound
+`Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw jet pT/mass inputs and
+updates jet `pt`, `mass`, and `rawFactor`. It then evaluates the JRV2
+`PtResolution` and `ScaleFactor` corrections from this file and passes those
+values to the generic `JERSmear` formula in `jer_smear.json.gz` for nominal JER
+smearing.
+
+Current limits: 2024 data JECs are not implemented; 2024 AK8 JECs/JER are not
+implemented; JES/JER up/down variations are not wired into the skimmer output.
 
 ---
 
-## `jer_smear.json.gz`  *(new — Step 1 of the JER plan)*
+## `jer_smear.json.gz`
 
 **What it is.** The generic, campaign-independent **`JERSmear`** correction: the
 hybrid stochastic-smearing formula that turns a resolution + SF + (optional) matched
@@ -118,8 +126,15 @@ tree; the CAT copy was used for consistency with `2024_jet_jerc.json.gz`.)
 - size: 462 bytes
 - md5: `390e4be4be109bb1a2d3a116f2c9386a`
 
-**Status.** Bundled, wiring pending (same Steps 2–5). This formula is not tied to
-2024 — the same file applies to any campaign's resolution/SF inputs.
+**How the code uses it.** `JECs.__init__` loads this file for `year == "2024"`,
+again preferring the bundled copy and falling back to the CAT `latest/` path. In
+`_jer_smear_2024`, the code calls `JERSmear` with the JEC-corrected jet pT, jet
+eta, matched gen-jet pT or `-1` for stochastic smearing, event rho, event number,
+JER resolution, and JER scale factor. The resulting non-negative smear factor is
+multiplied into the corrected jet `pt` and `mass`.
+
+The formula itself is not campaign-specific; in this repo it is currently used
+only by the 2024 MC AK4 path.
 
 ---
 
