@@ -69,15 +69,18 @@ what to get and where to put it.
 
 | Item | Interim behavior |
 |---|---|
-| 2024 luminosity | placeholder 109,080 pb⁻¹ in `boostedhh/hh_vars.py` (overall scale only) |
+| 2024 luminosity | **set** to 124,000 pb⁻¹ (CMS DP-2026/003) in `boostedhh/hh_vars.py` (overall scale only) |
 | `xsecs["TTtoLNuCB"]` | placeholder computed from σ_tt×2×BR(W→ℓν)×BR(W→cb) in `boostedhh/xsecs.py` (overall scale only) |
 | 2024 pileup weights | **2023 (Summer23) puWeights used as stand-in** with a loud warning (norm-preserving) |
-| 2024 JER smearing | **not applied** (Summer24 JR not published); loud log line |
+| 2024 JER smearing | **applied** — nominal Summer24 JRV2 smearing via correctionlib (no longer a placeholder) |
 
-2024 JEC is applied via correctionlib directly from
-`/cvmfs/.../POG/JME/2024_Summer24/jet_jerc.json.gz` (compound
-`Summer24Prompt24_V1_MC_L1L2L3Res_AK4PFPuppi` on raw pT). 2022/2023 keep the
-bundled pickle factories.
+2024 jet corrections are applied via correctionlib from the bundled CAT Summer24
+file `src/boostedhh/corrections/2024_jet_jerc.json.gz` — compound
+`Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 JER
+smearing (`jer_smear.json.gz`) on the corrected pT; both loaded bundled-first
+with a CAT cvmfs fallback (see
+[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md)).
+2022/2023 keep the bundled pickle factories.
 
 ## Repo layout
 

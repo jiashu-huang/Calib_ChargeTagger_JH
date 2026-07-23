@@ -4,19 +4,19 @@ Everything below is running on a **placeholder** right now (the pipeline works
 and is safe to run — these only affect calibration-grade correctness). For
 each item: what to get, what's in place now, and **exactly where to put it**.
 
-Status as of 2026-07-14.
+Status as of 2026-07-23.
 
 ---
 
-## 1. Certified 2024 luminosity  ⭐ trivial to fill
+## 1. Certified 2024 luminosity  (done)
 
 - **Get:** the certified 2024 golden-JSON integrated luminosity in pb⁻¹
   (BRIL / `brilcalc` with the 2024 Collisions golden JSON, or the
   LumiPOG TWiki "LumiRecommendationsRun3" page).
-- **Now:** placeholder `109_080.0` pb⁻¹ (~109.08 fb⁻¹, the commonly quoted
-  2024 recorded number — close, but not the certified value).
-- **Fill in:** [src/boostedhh/hh_vars.py](src/boostedhh/hh_vars.py) — the
-  `LUMI["2024"]` entry at the top of the `LUMI` dict (marked `TODO(user)`).
+- **Set (2026-07-23):** `LUMI["2024"] = 124000.0` pb⁻¹ (124 fb⁻¹), from
+  CMS DP-2026/003 (<https://cds.cern.ch/record/2952191>).
+- **Location:** [src/boostedhh/hh_vars.py](src/boostedhh/hh_vars.py) — the
+  `LUMI["2024"]` entry at the top of the `LUMI` dict.
 - **Impact:** pure overall scale of `weight`/`finalWeight`.
 
 ## 2. σ(TTtoLNuCB) cross section  ⭐ trivial to fill
@@ -53,24 +53,28 @@ Status as of 2026-07-14.
   the warning disappears. Then re-run the skims.
 - **Impact:** nPU-dependent event weights (shape only).
 
-## 4. Summer24 JER (jet energy resolution)  ⏳ blocked on JME POG
+## 4. Summer24 JER (jet energy resolution)  (done)
 
-- **Get:** nothing to do until JME publishes Summer24 `JRV*` for AK4PFPuppi.
-  Watch `POG/JME/2024_Summer24/jet_jerc.json.gz` on cvmfs — note it currently
-  ships **Summer23BPixPrompt23_RunD_JRV1** PtResolution/ScaleFactor entries,
-  which could be used as a 2023 stand-in if you want smearing sooner.
-- **Now:** 2024 MC jets get the compound **Summer24Prompt24_V1_MC_L1L2L3Res**
-  JEC (verified, applied via correctionlib on raw pT) but **no JER smearing**;
-  a loud warning is printed at JEC-loader construction. 2022/2023 keep the
-  bundled pickle factories (with smearing).
-- **Fill in (when available):** either implement correctionlib JER smearing in
-  `JECs._apply_correctionlib_jec_2024` in
-  [src/boostedhh/processors/corrections.py](src/boostedhh/processors/corrections.py),
-  or rebuild the JEC pickle with
-  [src/boostedhh/corrections/build_jec.py](src/boostedhh/corrections/build_jec.py)
-  (needs internet access to JECDatabase text files).
-- **Impact:** MC jet pT resolution; no JES/JER *variations* are consumed by
-  the Vcb skimmer anyway (`jec_shifted_jetvars` is unused).
+- **Done (2026-07-23):** 2024 MC jets now get nominal **JRV2** JER smearing
+  (PtResolution + ScaleFactor + the generic `JERSmear` hybrid formula) on the
+  JEC-corrected pT, applied via correctionlib in `JECs._jer_smear_2024` /
+  `JECs._apply_correctionlib_jec_2024`
+  ([src/boostedhh/processors/corrections.py](src/boostedhh/processors/corrections.py)).
+  The old "no JER" warning is gone.
+- **JEC bumped V1 → V5** at the same time, to match the JRV2 JER (both are
+  co-derived in the CAT Summer24 bundle). jsonpog-integration is no longer used
+  for 2024 jets — its snapshot ships only a V1 JEC and a Summer23BPix JRV1
+  stand-in.
+- **Inputs:** bundled in `src/boostedhh/corrections/` — `2024_jet_jerc.json.gz`
+  (V5 JEC + JRV2 JER, CAT 2026-07-16 snapshot) and `jer_smear.json.gz`
+  (`JERSmear`, 2025-11-03); loaded bundled-first with a CAT cvmfs fallback.
+  Provenance in
+  [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+- **Not wired (future):** JER up/down + JES variations (`…_SFUncertainty`) — the
+  Vcb skimmer consumes no jet-energy variations (`jec_shifted_jetvars` unused);
+  2024 **data** L2L3Residual JEC and AK8 remain no-ops.
+- **Impact:** MC jet pT resolution (shape) plus a JES shift from V1→V5. Jet-pT
+  baselines move — refresh with `tests/test_run.py`.
 
 ## 5. (Bonus) corrupt production file
 
@@ -84,10 +88,10 @@ Status as of 2026-07-14.
 ### Quick-check after filling things in
 
 ```bash
-# should show no WARNING lines about pileup/JER any more (items 3–4):
+# item 4 (JER) no longer warns; item 3 (pileup) still prints its stand-in WARNING:
 micromamba run -n ttbar python -m vcb.run --year 2024 \
   --files <one production file> --maxchunks 1 --naming-tag check --outdir /tmp/check
 
-# baselines: rerun and commit if values moved (items 1–3 change weights only):
+# baselines: item 4 (JER + V5 JEC) moves jet pT; items 1–3 change weights only:
 micromamba run -n ttbar python tests/test_run.py
 ```
