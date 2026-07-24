@@ -18,6 +18,24 @@ pickle totals → `finalWeight = weight / np_nominal` (locally in `vcb.run`, or
 globally across batches via `condor/scripts/fix_final_weight.py`).
 Details: [docs/processor.md](docs/processor.md).
 
+### Lepton threshold
+
+Relevant file: [src/vcb/processors/objects.py](src/vcb/processors/objects.py).
+
+Each retained event is assigned one leading trigger lepton.  The lepton must
+pass the offline selection, be matched to the object for the HLT path that
+fired, and lie above that path's activation threshold. 
+
+For 2024, `HLT_Ele30_WPTight_Gsf` selects an electron with pT ≥ 32 GeV and
+|η| < 2.5, while `HLT_IsoMu24` selects a muon with pT ≥ 26 GeV and |η| < 2.4.
+If both single-lepton paths fire, a trigger-ready muon is preferred; otherwise
+the leading selected electron is used. 
+
+This single per-event lepton is used for the trigger-lepton output branches and
+AK4 jet cleaning.
+
+### Jet energy correction (JEC)
+
 ## Setup
 
 **One-time, per machine / per environment**:
