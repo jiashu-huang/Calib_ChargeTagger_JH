@@ -21,9 +21,9 @@ Details: [docs/processor.md](docs/processor.md).
 ### Trigger lepton selection
 
 Relevant files: 
-- leptons in [src/vcb/processors/objects.py](src/vcb/processors/objects.py),
-- HLTs in [src/vcb/HLTs.py](src/vcb/HLTs.py),
-- Reconciling two single-lepton HLTS: [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), 
+- leptons in [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py),
+- HLTs in [`src/vcb/HLTs.py`](src/vcb/HLTs.py),
+- Reconciling two single-lepton HLTS: [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py), 
   done through the main processing method for each chunk.
 
 Each retained event is assigned one leading trigger lepton.  The lepton must
