@@ -7,10 +7,18 @@ step by step. For the output-branch dictionary see the top-level
 > **Note on provenance.** This document supersedes the archived
 > `Vcb_OVERVIEW.md` (kept verbatim in [`docs/archive/`](archive/)). The archived
 > version described the pre-`lep-overlap` behavior — cleaning jets against *all*
-> soft leptons and applying *no* trigger requirement. Both were changed on the
-> `lep-overlap` branch; the current behavior is documented below, and the old
-> behavior is preserved only in the clearly-labeled
+> soft leptons and applying *no* trigger requirement. The `lep-overlap` branch
+> replaced that with a per-event "trigger lepton" used for cleaning; that layer
+> has since been removed in favor of deferring the lepton selection entirely (see
+> [§2.3](#23-what-the-skimmer-deliberately-does-not-do)). The old cleaning
+> behavior survives only in the clearly-labeled
 > [historical b-jet-loss study](#historical-study-why-lepton-cleaning-was-changed).
+
+> **Design rule.** The skimmer records *facts* and makes only the coarsest
+> acceptance decision. Every finer cut — which lepton triggered, offline
+> activation thresholds, lepton multiplicity, jet–lepton overlap removal — is
+> applied by a separate selection script that runs on this skim. Cuts made here
+> are irreversible; cuts made downstream can be retuned without re-skimming.
 
 The processor targets **pp → tt̄, (t → bW, W → cb̄), (t̄ → b̄W, W → ℓν)**.
 
@@ -33,7 +41,7 @@ pileup, and cross-section lookups.
 
 ## 2. Object selection
 
-### Electrons — `objects.good_electrons`
+### 2.1 Electrons — `objects.good_electrons`
 
 | Cut | Threshold |
 |-----|-----------|
@@ -43,9 +51,12 @@ pileup, and cross-section lookups.
 | \|dz\| | < 0.2 cm |
 | \|dxy\| | < 0.045 cm |
 
-Trigger matching against EGamma triggers (filter bit 1, lepton pT > 31 GeV).
+Saved as `ElectronTrigMatchEGamma`: the year's single-electron path fired **and**
+the electron is within ΔR < 0.2 of a `TrigObj` carrying filter bit 1
+(`1e WPTight`). **No pT threshold is folded in** — see
+[§2.3](#23-what-the-skimmer-deliberately-does-not-do).
 
-### Muons — `objects.good_muons`
+### 2.2 Muons — `objects.good_muons`
 
 | Cut | Threshold |
 |-----|-----------|
@@ -56,29 +67,54 @@ Trigger matching against EGamma triggers (filter bit 1, lepton pT > 31 GeV).
 | \|dz\| | < 0.2 cm |
 | \|dxy\| | < 0.045 cm |
 
-Trigger matching against single-muon triggers (filter bit 3, lepton pT > 26 GeV).
+Saved as `MuonTrigMatchMuon`: `HLT_IsoMu24` fired **and** the muon is within
+ΔR < 0.2 of a `TrigObj` carrying filter bit 3 (`1mu`). **No pT threshold is
+folded in.**
 
-### The prompt "trigger lepton" (current behavior)
+### 2.3 What the skimmer deliberately does *not* do
 
-The `lep-overlap` branch introduced a single, per-event **trigger lepton** that
-is the only object used for AK4 jet cleaning. It is chosen as follows
-(`vcbSkimmer.py` ~L281–347):
+There is **no per-event "trigger lepton"**. The skimmer does not pick one, does
+not apply the offline activation thresholds, and does not clean jets against a
+lepton. All of that is the selection script's job.
 
-1. Build `prompt_electrons` / `prompt_muons` = good leptons that are
-   trigger-matched (`ElectronTrigMatchEGamma`, `MuonTrigMatchMuon`).
-2. If only `HLT_IsoMu24` fired → use the leading prompt muon passing the IsoMu24
-   activation threshold (`HLT_ISOMU24_LEPTON_PT = 26 GeV`).
-3. If only the single-electron HLT fired → use the leading prompt electron
-   passing the electron activation threshold (`HLT_ELE32_LEPTON_PT = 35 GeV`).
-4. If **both** fired → prefer a trigger-ready muon; otherwise fall back to the
-   leading selected electron.
+The reason is that these cuts are lossy in one direction only. A trigger-match
+flag defined as *fired AND matched AND pT ≥ 32* cannot be loosened afterwards —
+the sub-threshold matches are simply gone. A jet dropped for overlapping a
+lepton cannot be put back. So the skimmer stores the ingredients instead:
 
-> ⚠️ Steps 3–4 hard-code `HLT_Ele32_WPTight_Gsf` / 35 GeV, which is **2022-only**.
-> Run3 2023/2024 use `HLT_Ele30_WPTight_Gsf`. See the pending-work note in
-> [`docs/history.md`](history.md#-known-discrepancies--pending-2024-work) before
-> running on the 2024 samples.
+| Saved | Branches |
+|-------|----------|
+| All good electrons / muons (up to 3 each) | `Electron*`, `Muon*` — pT, η, φ, mass, charge, `ElectronMvaIsoWP90`, `ElectronPfRelIso03All`, `MuonPfRelIso04All` |
+| Per-lepton trigger match (no pT cut) | `ElectronTrigMatchEGamma`, `MuonTrigMatchMuon` |
+| Per-event HLT decisions | `HLT_IsoMu24`, `HLT_Ele30_WPTight_Gsf`, … |
+| Lepton counts | `nElectrons`, `nMuons` |
+| Uncleaned jets | `ak4JetEta`, `ak4JetPhi`, … |
 
-### AK4 jets — `objects.good_ak4jets`
+**Checklist for the downstream selection script.** The thresholds it should
+apply live in `objects.py` as the single source of truth:
+
+| Constant | Value | Applies to |
+|----------|-------|------------|
+| `HLT_ELE30_LEPTON_PT` | 32 GeV | 2024, `HLT_Ele30_WPTight_Gsf` |
+| `HLT_ELE32_LEPTON_PT` | 35 GeV | 2022/2023, `HLT_Ele32_WPTight_Gsf` |
+| `HLT_ISOMU24_LEPTON_PT` | 26 GeV | all years, `HLT_IsoMu24` |
+
+Use `objects.single_ele_lepton_pt(year)` to get the right electron value. Beyond
+the thresholds, the script still needs to decide:
+
+1. **Trigger-lepton choice** when both paths fire, and what to do with events
+   that fire a path but yield no matched, above-threshold lepton (~10% of
+   triggered events on the 2024 fixture — mostly non-prompt muons failing the
+   offline `pfRelIso04_all < 0.15`, plus genuine turn-on events at 29–32 GeV
+   (e) and 24–26 GeV (µ)).
+2. **Jet–lepton overlap removal** at ΔR < 0.4, recomputed from the saved η/φ.
+3. **Electron η**, which the skimmer only cuts at \|η\| < 2.5 on the *track*
+   η. Neither the supercluster η (`eta + deltaEtaSC`, what the HLT filters on)
+   nor an EB–EE gap veto (1.444 < \|η_SC\| < 1.566, ~2.2% of trigger electrons)
+   is applied here. `deltaEtaSC` is **not** currently saved — add it to
+   `skim_vars["ElectronDebug"]` if the script needs it.
+
+### 2.4 AK4 jets — `objects.good_ak4jets`
 
 JECs are applied first (`JEC_loader.get_jec_jets`), then:
 
@@ -86,14 +122,14 @@ JECs are applied first (`JEC_loader.get_jec_jets`), then:
 |-----|-----------|
 | pT | > 15 GeV |
 | \|η\| | < 4.7 |
-| ΔR from the **prompt trigger lepton only** | > 0.4 |
 
-This is the key change from the archived overview: overlap removal is done
-against the single prompt, trigger-matched analysis lepton passed as
-`cleaning_electrons` / `cleaning_muons`, **not** against every soft electron
-> 5 GeV or muon > 7 GeV.
+**No lepton overlap removal** — `good_ak4jets` is called with
+`apply_lepton_cleaning=False`. On the 2024 fixture ~99.9% of events with a good
+muon contain a jet within ΔR < 0.4 of it, so `nJets` and `ht` here include the
+lepton-overlapping jets by construction. The selection script must do its own
+cleaning before using either.
 
-### MET
+### 2.5 MET
 
 `events.PFMET` for MC (JEC-corrected MET factory used for data when available).
 
@@ -113,19 +149,37 @@ list.
 
 ## 4. Event-level selection (current cutflow)
 
-Registered in this order (`vcbSkimmer.py` ~L561–585):
-
 | # | Cut | Condition |
 |---|-----|-----------|
-| 1 | `single_lep_trigger` | `HLT_IsoMu24 \| HLT_Ele32_WPTight_Gsf` fired |
+| 1 | `single_lep_trigger` | the year's single-µ **or** single-e path fired |
 | 2 | `met_filters` | all configured `Flag.*` branches present in the input pass |
 | 3 | `ak4_jetveto` | no good jet falls in the Run-3 jet-veto map |
-| 4 | `1lep` | `nMuons + nElectrons ≥ 1` |
-| 5 | `prescale` *(optional)* | only if `--prescale-factor` is set |
+| 4 | `prescale` *(optional)* | only if `--prescale-factor` is set |
+
+Cut 1 is the **only** lepton-level requirement, and it is a plain OR of the two
+per-event HLT bits — firing both is fine and no flavor is assigned. The paths are
+resolved per year from [`HLTs.py`](../src/vcb/HLTs.py), which is the single source
+of truth; `vcbSkimmer` and `objects.trig_match_sel` use the same lookup, so the
+path an event is selected on always matches the path its leptons are matched to:
+
+| Year | Electron path | Muon path |
+|------|---------------|-----------|
+| 2022, 2022EE, 2023, 2023BPix | `HLT_Ele32_WPTight_Gsf` | `HLT_IsoMu24` |
+| **2024** | **`HLT_Ele30_WPTight_Gsf`** | **`HLT_IsoMu24`** |
+
+A missing single-lepton HLT branch **raises** rather than silently dropping that
+lepton channel.
+
+Cuts 2–3 are detector-quality cuts, not physics selection, which is why they stay
+here. **There is no `1lep` cut** — lepton multiplicity is deferred with the rest
+of the lepton selection. On the 2024 fixture this keeps ~7% more events than the
+old skim; those are events that fired a lepton path with no good offline lepton,
+which also leaves the fake / non-prompt sideband intact for downstream study.
+**No b-jet multiplicity cut** is applied (unlike `ttSkimmer`) — b-tag
+requirements are deferred to analysis time.
 
 The final mask is `selection.all(*names)`; only events passing all registered
-cuts are written. **No b-jet multiplicity cut** is applied (unlike `ttSkimmer`) —
-b-tag requirements are deferred to analysis time.
+cuts are written.
 
 ---
 
@@ -164,7 +218,11 @@ would silently delete a genuine b-jet — migrating events from "2 b-jets" to
 "1 b-jet" ~67% of the time (medium WP).
 
 **Conclusion that drove the branch:** cleaning against every soft lepton removes
-real signal b-jets. The fix (current behavior) is to clean only against the
-prompt, trigger-matched analysis lepton, and to require the single-lepton
-trigger explicitly. The full set of diagnostic plots referenced by the original
-study lived under the git-ignored `diagnostics/` directory.
+real signal b-jets. The `lep-overlap` fix was to clean only against the prompt,
+trigger-matched analysis lepton, and to require the single-lepton trigger
+explicitly. The trigger requirement stayed; the cleaning has since moved
+downstream entirely (see [§2.3](#23-what-the-skimmer-deliberately-does-not-do)),
+so the conclusion now applies to the **selection script** — it must clean against
+the prompt trigger lepton, not against every soft lepton. The full set of
+diagnostic plots referenced by the original study lived under the git-ignored
+`diagnostics/` directory.

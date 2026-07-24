@@ -8,6 +8,9 @@ ElectronMass2,Double_t
 ElectronMvaIsoWP900,Long64_t
 ElectronMvaIsoWP901,Long64_t
 ElectronMvaIsoWP902,Long64_t
+ElectronPfRelIso03All0,Double_t
+ElectronPfRelIso03All1,Double_t
+ElectronPfRelIso03All2,Double_t
 ElectronPhi0,Double_t
 ElectronPhi1,Double_t
 ElectronPhi2,Double_t
@@ -114,13 +117,6 @@ MuonTrigMatchMuon2,Long64_t
 Muoncharge0,Long64_t
 Muoncharge1,Long64_t
 Muoncharge2,Long64_t
-TriggerLeptonCharge,Long64_t
-TriggerLeptonEta,Double_t
-TriggerLeptonFlav,Long64_t
-TriggerLeptonIsolation,Double_t
-TriggerLeptonMass,Double_t
-TriggerLeptonPhi,Double_t
-TriggerLeptonPt,Double_t
 ak4JetBTaggable0,Long64_t
 ak4JetBTaggable1,Long64_t
 ak4JetBTaggable2,Long64_t

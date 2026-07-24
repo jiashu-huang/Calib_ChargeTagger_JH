@@ -10,8 +10,9 @@ code renamed `bbtautau` → `vcb`. Lineage: [docs/history.md](docs/history.md).
 ## What the pipeline does
 
 NanoAOD → `vcb.processors.vcbSkimmer` (object selection: tight leptons with
-trigger matching, AK4 jets with JEC + jet-veto map + lepton cleaning;
-gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
+trigger-match flags, AK4 jets with JEC + jet-veto map — no lepton cleaning, which
+is deferred to the downstream selection script along with the rest of the lepton
+selection; gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
 `JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
 (genWeight, pileup, PS ISR/FSR, xsec×lumi normalization) → parquet/ROOT skim +
 pickle totals → `finalWeight = weight / np_nominal` (locally in `vcb.run`, or

@@ -4,25 +4,35 @@ Vcb analysis:
     p p > t t~, (t > b W, W > c b~), (t~ > b~ W~, W~ > l- nu~)
 
 Event acceptance in this processor:
-- Keep events that pass at least one single-lepton trigger path:
-  `HLT_IsoMu24 OR <year's single-electron path>`, resolved from bbtautau/HLTs.py
-  (Ele32_WPTight_Gsf for 2022/2023, Ele30_WPTight_Gsf for 2024). A missing
-  single-lepton HLT branch raises rather than silently dropping that channel.
+- Keep events that fire at least one single-lepton trigger path:
+  `HLT_IsoMu24 OR <year's single-electron path>`, resolved from vcb/HLTs.py
+  (Ele32_WPTight_Gsf for 2022/2023, Ele30_WPTight_Gsf for 2024). Firing both is
+  fine. A missing single-lepton HLT branch raises rather than silently dropping
+  that channel.
 - Require the configured MET filters and the Run-3 AK4 jet-veto map event
-  selection.
-- Require at least one selected lepton: either a good electron or a good muon.
-  This is a good-lepton count, not an explicit requirement on a saved
-  single "trigger lepton" object.
-- Good electrons and muons are saved with their trigger-match flags. A single
-  trigger lepton is chosen for `TriggerLepton*` output and AK4 jet cleaning.
+  selection. These are detector-quality cuts, not physics selection.
+
+That trigger OR is the *only* lepton-level requirement made here. Everything
+finer -- picking a single trigger lepton, the offline activation thresholds
+(32 GeV for Ele30, 26 GeV for IsoMu24), the trigger-match requirement, and the
+lepton multiplicity cut -- is deliberately deferred to an independent selection
+script that runs on this skim. Rationale: those cuts are only correct once, and
+folding them in here discards events irreversibly. Instead the skimmer saves the
+facts needed to apply them later:
+- all good electrons and muons, with kinematics, charge and ID/isolation;
+- per-lepton trigger-match flags (`ElectronTrigMatchEGamma`, `MuonTrigMatchMuon`),
+  which are pure "path fired AND dR-matched to a trigger object" booleans with no
+  pT threshold folded in;
+- the per-event HLT decision bits (`HLT_*`).
 
 Jet handling in this processor:
 - Build AK4 jets from NanoAOD `events.Jet` and apply year-dependent JECs.
 - Keep AK4 jets with corrected `pt > 15 GeV` and `|eta| < 4.7`; a jet at
   exactly 15 GeV is not selected.
-- Remove jets within `DeltaR < 0.4` of the selected trigger lepton used for
-  the single-lepton path, so the overlap veto is applied only against the
-  prompt electron / muon rather than all reconstructed leptons.
+- Apply *no* lepton-jet overlap removal. Cleaning depends on which lepton is the
+  trigger lepton, which is deferred, and a jet dropped here could not be
+  recovered downstream. The selection script redoes `DeltaR < 0.4` cleaning from
+  the saved jet and lepton eta/phi.
 - Rebuild `PFMET` from the corrected AK4 jets when the MET factory is available
   for data; otherwise keep the input `PFMET`.
 - Do not apply any b-tag working point at skimmer level and do not use AK8 jets
@@ -151,6 +161,8 @@ class vcbSkimmer(SkimmerABC):
         },
         "ElectronDebug": {
             "mvaIso_WP90": "MvaIsoWP90",
+            # Needed downstream now that TriggerLeptonIsolation is gone.
+            "pfRelIso03_all": "PfRelIso03All",
         },
         "MuonDebug": {
             "pfRelIso04_all": "PfRelIso04All",
@@ -168,9 +180,8 @@ class vcbSkimmer(SkimmerABC):
     # We will not b-tag the jets at the Coffea skimmer processing level.
     # This is because our analysis would require testing multiple working points.
 
-    # AK4 jet cleaning in this skimmer uses only the trigger-matched prompt lepton.
-    # The cleaning collections are passed explicitly in process(), so no separate
-    # lepton pT threshold configuration is needed here.
+    # This skimmer applies no AK4 lepton cleaning; overlap removal is deferred to the
+    # downstream selection script together with the trigger-lepton choice it depends on.
 
     # The constructor method, which is run automatically when an instance of the class is created.
     # Keep these variables in the function signature, as they are set by run.py.
@@ -302,63 +313,10 @@ class vcbSkimmer(SkimmerABC):
         hlt_single_ele = read_single_lep_hlt(single_ele_hlt)
         hlt_single_mu = read_single_lep_hlt(single_mu_hlt)
 
-        # Identify prompt leptons: good leptons that are trigger-matched and pass
-        # the analysis trigger activation thresholds in objects.trig_match_sel().
-        prompt_electrons = electrons[etrigvars["ElectronTrigMatchEGamma"]]
-        prompt_muons = muons[mtrigvars["MuonTrigMatchMuon"]]
-
-        def leading_lepton_collection(leptons):
-            pt_order = ak.argsort(leptons.pt, axis=1, ascending=False)
-            leading_collection = leptons[pt_order][:, :1]
-            return leading_collection, ak.firsts(leading_collection)
-
-        leading_electrons, fallback_trigger_electron = leading_lepton_collection(electrons)
-        leading_prompt_electrons, prompt_trigger_electron = leading_lepton_collection(
-            prompt_electrons
-        )
-        leading_prompt_muons, trigger_muon = leading_lepton_collection(prompt_muons)
-
-        trigger_electron_ready = ak.fill_none(
-            prompt_trigger_electron.pt >= objects.single_ele_lepton_pt(year),
-            False,
-        ).to_numpy()
-        fallback_trigger_electron_ready = ak.fill_none(
-            fallback_trigger_electron.pt > 0,
-            False,
-        ).to_numpy()
-        trigger_muon_ready = ak.fill_none(
-            trigger_muon.pt >= objects.HLT_ISOMU24_LEPTON_PT,
-            False,
-        ).to_numpy()
-        both_single_lep_triggers = hlt_single_ele & hlt_single_mu
-
-        # If both single-lepton HLTs fire, prefer a trigger-matched muon at the
-        # IsoMu24 activation threshold. If none exists, classify the event as
-        # electron and use the leading selected electron as the trigger lepton.
-        use_trigger_muon = (
-            (hlt_single_mu & ~hlt_single_ele) | (both_single_lep_triggers & trigger_muon_ready)
-        ) & trigger_muon_ready
-        use_prompt_trigger_electron = (hlt_single_ele & ~hlt_single_mu) & trigger_electron_ready
-        use_fallback_trigger_electron = (
-            both_single_lep_triggers & ~trigger_muon_ready & fallback_trigger_electron_ready
-        )
-        use_trigger_electron = use_prompt_trigger_electron | use_fallback_trigger_electron
-
-        def keep_leading_when(leading_collection, event_mask):
-            event_mask_broadcast = ak.broadcast_arrays(ak.Array(event_mask), leading_collection.pt)[
-                0
-            ]
-            return leading_collection[event_mask_broadcast]
-
-        cleaning_electrons = ak.concatenate(
-            [
-                keep_leading_when(leading_prompt_electrons, use_prompt_trigger_electron),
-                keep_leading_when(leading_electrons, use_fallback_trigger_electron),
-            ],
-            axis=1,
-        )
-        cleaning_muons = keep_leading_when(leading_prompt_muons, use_trigger_muon)
-        trigger_electron = ak.firsts(cleaning_electrons)
+        # No trigger lepton is resolved here. Choosing one requires the offline
+        # activation thresholds and a tie-break rule when both paths fire, all of
+        # which belong to the downstream selection script. The good leptons, their
+        # trigger-match flags and the HLT bits are saved so it can do that itself.
 
         print("* Leptons:\t", f"{time.time() - start:.2f}")
 
@@ -385,13 +343,13 @@ class vcbSkimmer(SkimmerABC):
 
         print("* ak4 JECs:\t", f"{time.time() - start:.2f}")
 
+        # Lepton-jet overlap removal is deferred along with the trigger-lepton choice
+        # it depends on; the selection script redoes it from the saved eta/phi.
         jets = objects.good_ak4jets(
             jets,
             self._nano_version,
             events,
-            dr_leptons=0.4,
-            cleaning_electrons=cleaning_electrons,
-            cleaning_muons=cleaning_muons,
+            apply_lepton_cleaning=False,
         )
         ht = ak.sum(jets.pt, axis=1)
         print("* ak4:\t", f"{time.time() - start:.2f}")
@@ -442,55 +400,8 @@ class vcbSkimmer(SkimmerABC):
         )
         leptonVars = {**electronVars, **muonVars}
 
-        # Trigger lepton variables use the same per-event trigger-lepton choice
-        # used above for AK4 jet cleaning.
-
-        def leading_or_pad(leptons, field: str) -> np.ndarray:
-            if field not in leptons.fields:
-                return np.full(len(events), PAD_VAL)
-            return ak.fill_none(leptons[field], PAD_VAL).to_numpy()
-
-        triggerLeptonVars = {
-            "TriggerLeptonFlav": np.where(
-                use_trigger_electron,
-                11,
-                np.where(use_trigger_muon, 13, PAD_VAL),
-            ),
-            "TriggerLeptonPt": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "pt"),
-                np.where(use_trigger_muon, leading_or_pad(trigger_muon, "pt"), PAD_VAL),
-            ),
-            "TriggerLeptonPhi": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "phi"),
-                np.where(use_trigger_muon, leading_or_pad(trigger_muon, "phi"), PAD_VAL),
-            ),
-            "TriggerLeptonEta": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "eta"),
-                np.where(use_trigger_muon, leading_or_pad(trigger_muon, "eta"), PAD_VAL),
-            ),
-            "TriggerLeptonCharge": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "charge"),
-                np.where(use_trigger_muon, leading_or_pad(trigger_muon, "charge"), PAD_VAL),
-            ),
-            "TriggerLeptonMass": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "mass"),
-                np.where(use_trigger_muon, leading_or_pad(trigger_muon, "mass"), PAD_VAL),
-            ),
-            "TriggerLeptonIsolation": np.where(
-                use_trigger_electron,
-                leading_or_pad(trigger_electron, "pfRelIso03_all"),
-                np.where(
-                    use_trigger_muon,
-                    leading_or_pad(trigger_muon, "pfRelIso04_all"),
-                    PAD_VAL,
-                ),
-            ),
-        }
+        # No `TriggerLepton*` branches: the trigger lepton is picked downstream from
+        # the per-lepton kinematics, isolation and trigger-match flags saved above.
 
         # AK4 Jet variables
         jet_skimvars = self.skim_vars["Jet"]
@@ -559,7 +470,6 @@ class vcbSkimmer(SkimmerABC):
             **trigMatchVars,
             **HLTVars,
             **leptonVars,
-            **triggerLeptonVars,
             **ak4JetVars,
             **metVars,
         }
@@ -570,10 +480,9 @@ class vcbSkimmer(SkimmerABC):
         # Selection
         ######################
 
-        # Require at least one single-lepton trigger path: IsoMu24 OR the year's
-        # single-electron path (Ele32 for 2022/2023, Ele30 for 2024). If both fire, the
-        # event is retained and the trigger-lepton flavor is resolved by the per-event
-        # trigger-lepton choice above.
+        # The only lepton-level requirement made here: fire at least one single-lepton
+        # path, IsoMu24 OR the year's single-electron path (Ele32 for 2022/2023, Ele30
+        # for 2024). Firing both is fine -- no flavor is assigned at this stage.
         single_lep_trigger = hlt_single_mu | hlt_single_ele
         add_selection("single_lep_trigger", single_lep_trigger, *selection_args)
 
@@ -592,7 +501,11 @@ class vcbSkimmer(SkimmerABC):
 
         # # >=2 AK8 jets passing selections
         # add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
-        add_selection("1lep", ak.num(muons) + ak.num(electrons) >= 1, *selection_args)
+
+        # No `1lep` cut. Lepton multiplicity is a physics selection and belongs with the
+        # trigger-lepton choice in the downstream script; `nElectrons` / `nMuons` are
+        # saved so it can apply it. Keeping events that fired a lepton path with no good
+        # offline lepton also leaves the fake/non-prompt sideband intact.
         if self._prescale_factor:
             cut_prescale = events.event % self._prescale_factor == 0
             add_selection("prescale", cut_prescale, *selection_args)
