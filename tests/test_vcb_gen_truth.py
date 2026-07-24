@@ -1,3 +1,7 @@
+"""
+TODO: write opening docstring
+"""
+
 from __future__ import annotations
 
 import unittest
