@@ -20,7 +20,11 @@ Details: [docs/processor.md](docs/processor.md).
 
 ### Trigger lepton selection
 
-Relevant file: [src/vcb/processors/objects.py](src/vcb/processors/objects.py).
+Relevant files: 
+- leptons in [src/vcb/processors/objects.py](src/vcb/processors/objects.py),
+- HLTs in [src/vcb/HLTs.py](src/vcb/HLTs.py),
+- Reconciling two single-lepton HLTS: [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), 
+  done through the main processing method for each chunk.
 
 Each retained event is assigned one leading trigger lepton.  The lepton must
 pass the offline selection, be matched to the object for the HLT path that
@@ -29,7 +33,7 @@ fired, and lie above that path's activation threshold.
 For 2024, `HLT_Ele30_WPTight_Gsf` selects an electron with pT ≥ 32 GeV and
 |η| < 2.5, while `HLT_IsoMu24` selects a muon with pT ≥ 26 GeV and |η| < 2.4.
 If both single-lepton paths fire, a trigger-ready muon is preferred; otherwise
-the leading selected electron is used. 
+use a trigger-ready electron; otherwise discard the event. 
 
 This single per-event lepton is used for the trigger-lepton output branches and
 AK4 jet cleaning.

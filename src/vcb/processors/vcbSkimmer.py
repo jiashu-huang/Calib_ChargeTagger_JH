@@ -323,7 +323,7 @@ class vcbSkimmer(SkimmerABC):
             False,
         ).to_numpy()
         fallback_trigger_electron_ready = ak.fill_none(
-            fallback_trigger_electron.pt > 0,
+            fallback_trigger_electron.pt >= objects.single_ele_lepton_pt(year),
             False,
         ).to_numpy()
         trigger_muon_ready = ak.fill_none(
