@@ -18,7 +18,7 @@ pickle totals → `finalWeight = weight / np_nominal` (locally in `vcb.run`, or
 globally across batches via `condor/scripts/fix_final_weight.py`).
 Details: [docs/processor.md](docs/processor.md).
 
-### Lepton threshold
+### Trigger lepton selection
 
 Relevant file: [src/vcb/processors/objects.py](src/vcb/processors/objects.py).
 
