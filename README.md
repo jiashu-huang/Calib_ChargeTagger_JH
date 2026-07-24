@@ -40,6 +40,25 @@ AK4 jet cleaning.
 
 ### Jet energy correction (JEC)
 
+Relevant files:
+
+- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py) creates
+  `JECs(year)` and applies it to AK4 jets before jet selection.
+- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py)
+  implements `JECs` and its `get_jec_jets` correction path.
+- [`src/boostedhh/corrections/`](src/boostedhh/corrections/) contains the bundled
+  inputs: `jec_compiled_py311.pkl.gz` for 2022--2023 and
+  `2024_jet_jerc.json.gz` plus `jer_smear.json.gz` for 2024. Their versions and
+  provenance are recorded in [the corrections' README](src/boostedhh/corrections/README.md).
+
+For every jet, the code first derives raw pT and mass from NanoAOD `rawFactor`
+and attaches event rho (and, for MC, matched-generator-jet information). 
+For 2024 MC AK4 jets, correctionlib evaluates the Summer24 V5 `L1L2L3Res` 
+compound correction on raw pT/mass, then applies nominal JRV2 hybrid JER 
+smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet 
+cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD 
+energies, and JES/JER variations are not written by the skimmer.
+
 ## Setup
 
 **One-time, per machine / per environment**:
