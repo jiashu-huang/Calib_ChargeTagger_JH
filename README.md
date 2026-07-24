@@ -59,24 +59,64 @@ smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet
 cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD 
 energies, and JES/JER variations are not written by the skimmer.
 
-### Jet-veto map
+### Lepton cleaning
 
 Relevant files:
 
+- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py)
+  chooses the one trigger lepton per event and passes it as the cleaning
+  electron or muon collection for AK4 jets.
+- [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py) implements
+  `good_ak4jets`, including the lepton--jet overlap requirement.
+
+Jet cleaning uses *only* the selected per-event trigger lepton, not every
+reconstructed lepton. If both single-lepton paths fire, it prefers a
+trigger-matched muon above the IsoMu24 activation threshold; otherwise it uses
+the selected electron for the fired single-electron path. 
+
+`good_ak4jets` retains jets only when their ΔR from every supplied cleaning 
+electron and muon is greater than 0.4. Jets within ΔR < 0.4 of that trigger 
+lepton are removed before the jet-veto map and subsequent selections.
+
+### Jet-veto map
+
+Relevant files (line numbers as of the current commit):
+
 - [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py) applies
-  the resulting event selection as the `ak4_jetveto` cut.
-- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py)
-  implements `get_jetveto_event` and maps each year to its correction name.
+  the resulting event selection as the `ak4_jetveto` cut (see lines 369–379, 388–395, 589–591).
+- [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py#L84-L89)
+  (lines 84–89) defines which jets reach the veto: `pt > 15`, `|eta| < 4.7`, and
+  ΔR > 0.4 from the selected trigger-lepton candidates.
+- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L573-L599)
+  (lines 573–599) implements `get_jetveto_event`; the year → correction-name map
+  is at [lines 588–594](src/boostedhh/processors/corrections.py#L588-L594), and
+  the CVMFS path is built by `get_pog_json`
+  ([lines 60–75](src/boostedhh/processors/corrections.py#L60-L75)).
 - The map payload is the campaign-specific correctionlib
   `jetvetomaps.json.gz` read from the CMS JSON POG CVMFS tree
   (`/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/`), whose
-  path is built by `get_pog_json`; it is not bundled in this repository.
+  path is built by `get_pog_json`; it is not bundled in this repository, so
+  CVMFS must be reachable from wherever the skimmer runs (including condor
+  workers).
 
 After JEC and AK4 jet selection, the skimmer evaluates the year-specific Run-3
 jet-veto map at every jet's eta and phi. A nonzero map value marks a vetoed
 detector region. The event fails `ak4_jetveto` if any selected jet with pT > 15
 GeV lies in such a region; otherwise it passes. This selection is applied to
 both data and MC. Eta and phi are clipped to the map range before evaluation.
+
+For 2024 the resolved payload is `POG/JME/2024_Summer24/jetvetomaps.json.gz`, 
+correction `Summer24Prompt24_RunBCDEFGHI_V1`, map type `jetvetomap`.
+This is the campaign matching the `Summer24MiniAODv6` MC and the 
+`Summer24Prompt24_V5` JEC above. 
+
+Two caveats on the implementation:
+
+- The pT > 15 GeV requirement inside `get_jetveto_event` is redundant — the same
+  threshold is already applied in `good_ak4jets`.
+- The jets tested are the lepton-cleaned ones, and no jet ID / EM-fraction cut is
+  applied, so this is close to but not literally the JERC prescription (pT > 15,
+  tight jet ID, neutral EM fraction < 0.9, no ΔR < 0.2 PF-muon overlap).
 
 ## Setup
 
