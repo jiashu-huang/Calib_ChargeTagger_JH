@@ -1,12 +1,16 @@
 # SHOPPING LIST — 2024 inputs to fill in
 
+Last update: **2026-07-24T13:25**
+
+This repo is copied from Calib_ChargeTagger, which can only process files up to 
+2023. As we are interested in studying Summer2024 MC, we should fill in our own
+data. 
+
 **All four calibration inputs (items 1–4) are now filled in** with real 2024
 values; only the bonus data-quality note (item 5) remains. Each item below records
 what was needed, what is in place, and **exactly where it lives**. The pipeline
 worked on placeholders throughout — these only ever affected calibration-grade
 correctness.
-
-Status as of 2026-07-23.
 
 ---
 

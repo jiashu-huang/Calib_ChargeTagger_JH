@@ -20,10 +20,41 @@ Details: [docs/processor.md](docs/processor.md).
 
 ## Setup
 
+**One-time, per machine / per environment**:
+
 ```bash
-micromamba activate ttbar     # or: micromamba create -f environment.yaml
-pip install -e ".[diagnostics,test]"
+micromamba create -f environment.yaml    # only if the `ttbar` env doesn't exist yet
+micromamba run -n ttbar pip install -e ".[diagnostics,test]"
 ```
+
+The install is **editable**: `vcb` and the vendored `boostedhh` are linked
+straight to `src/` in this repo, so edits to the source take effect on the next
+run with no reinstall. Re-run `pip install -e ...` only when:
+
+- the `ttbar` environment is recreated or you move to another machine,
+- the dependency lists in [pyproject.toml](pyproject.toml) change (`dependencies`
+  or the `diagnostics` / `test` extras),
+- `git pull` brings in such a change.
+
+Renaming or adding *files* under `src/` does **not** need a reinstall.
+
+**For every shell session**L You need the `ttbar` environment active befor you 
+run the code. There are two equivalent ways to get it:
+
+```bash
+# (a) activate once per terminal, then run as many commands as you like
+micromamba activate ttbar
+python -m vcb.run ...
+pytest tests/
+
+# (b) don't activate at all — prefix each command (what condor/ and AGENTS.md use)
+micromamba run -n ttbar python -m vcb.run ...
+micromamba run -n ttbar pytest tests/
+```
+
+Activation does not persist across terminals, reconnects, or condor jobs — those
+start a fresh shell, so they need (a) again or (b). Every command in this README
+assumes one of the two; they are written in the bare form for readability.
 
 > The old repo's `bbtautau`/`boostedhh` editable installs have been
 > uninstalled from the `ttbar` env — this repo's `vcb` + vendored `boostedhh`
@@ -53,34 +84,68 @@ via HTCondor: see [condor/README.md](condor/README.md).
 ## Tests
 
 ```bash
-# unit tests (fast, no data needed)
+# unit tests (7 tests, ~10 s, no input data needed)
 pytest tests/
+```
 
-# integration run: regenerates tests/outfile/ baselines (committed)
+| File | What it does |
+|---|---|
+| [tests/test_package.py](tests/test_package.py) | One smoke test: the installed distribution's version matches `vcb.__version__`. Fails if `vcb` isn't importable or the editable install is stale/missing — i.e. it catches a broken **Setup** before anything else does. |
+| [tests/test_vcb_gen_truth.py](tests/test_vcb_gen_truth.py) | Six unit tests for the gen-truth helpers in [src/vcb/processors/GenSelection.py](src/vcb/processors/GenSelection.py), run on hand-built awkward arrays (no NanoAOD file). Covers: **(1)** W decay-mode masks split hadronic vs. leptonic with τ counted as *leptonic*; **(2)** the `GenWto{UD,US,CD,CS,UB,BC}` flavor tags are unordered (q1/q2 swap-invariant) and mutually exclusive — exactly one fires per W; **(3)** gen quarks stored with mass 0 get the PDG mass back from their flavor (c → 1.27, b → 4.18 GeV; light quarks stay 0, already-non-zero masses untouched); **(4)–(6)** lepton mass, charge, and flavor come from the PDG id with the right sign convention (`11` → −1, `-11` → +1) and flavor stored as \|pdgId\|; and throughout, missing entries stay `PAD_VAL` rather than silently becoming 0. |
+| [tests/test_run.py](tests/test_run.py) | **Not a pytest test** — a standalone end-to-end script (pytest collects no tests from it). Runs the real skimmer on one NanoAOD file and regenerates the regression artifacts in `tests/outfile/`. Needs the ~1 GB fixture and takes a few minutes. |
+
+The integration run: 
+
+```bash
+# fixture is git-ignored — copy it in once
 cp /isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger/tests/data/test-input.root tests/data/
+
 python tests/test_run.py            # defaults: tests/data/test-input.root, --year 2024
 ```
 
-## 2024 status / user-input TODOs
+It produces four files in `tests/outfile/`, two of which are **committed
+baselines** — an unexplained diff in either is a bug, an expected diff should be
+reviewed and committed with the change that caused it:
 
-Placeholders are wired in and safe to run with; fill them in when the real
-numbers are available — see **[SHOPPING-LIST.md](SHOPPING-LIST.md)** for exactly
-what to get and where to put it.
+| Artifact | Committed? | Purpose |
+|---|---|---|
+| `test-output-schema.csv` | **yes** | every output branch name + ROOT type — catches accidentally added/dropped/retyped branches |
+| `test-output-0th-event.txt` | **yes** | full value dump of event 0 — catches value-level changes (e.g. the JEC V1→V5 + JER shift moved jet pT) |
+| `test-output.root` | no (git-ignored) | the skim itself |
+| `test-output_jet_pt.pdf` | no (git-ignored) | unweighted AK4 jet pT plot, via `diagnostics/plot_jet_pt.py` — an eyeball check |
 
-| Item | Interim behavior |
-|---|---|
-| 2024 luminosity | **set** to 124,000 pb⁻¹ (CMS DP-2026/003) in `boostedhh/hh_vars.py` (overall scale only) |
-| `xsecs["TTtoLNuCB"]` | placeholder computed from σ_tt×2×BR(W→ℓν)×BR(W→cb) in `boostedhh/xsecs.py` (overall scale only) |
-| 2024 pileup weights | **2023 (Summer23) puWeights used as stand-in** with a loud warning (norm-preserving) |
-| 2024 JER smearing | **applied** — nominal Summer24 JRV2 smearing via correctionlib (no longer a placeholder) |
+## 2024 calibration inputs
 
-2024 jet corrections are applied via correctionlib from the bundled CAT Summer24
-file `src/boostedhh/corrections/2024_jet_jerc.json.gz` — compound
-`Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 JER
-smearing (`jer_smear.json.gz`) on the corrected pT; both loaded bundled-first
-with a CAT cvmfs fallback (see
-[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md)).
-2022/2023 keep the bundled pickle factories.
+Calib_ChargeTagger is only up-to-date to 2023. We brought in 2024 inputs.
+Provenance for every number, including which source it came from and why: 
+[docs/2024-inputs.md](docs/2024-inputs.md).
+
+| Input | Value in place | Where |
+|---|---|---|
+| 2024 luminosity | 124,000 pb⁻¹ (124 fb⁻¹), CMS DP-2026/003 | `LUMI["2024"]` in [src/boostedhh/hh_vars.py](src/boostedhh/hh_vars.py) |
+| σ(TTtoLNuCB) | ≈0.345 pb = σ_tt(923.6, NNLO+NNLL) × 2 × BR(W→ℓν) × BR(W→cb) | [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py) |
+| 2024 pileup weights | real Summer24 `Collisions24_CDEFGHI_goldenJSON` (eras C–I, no commissioning era B) | bundled `corrections/2024_puWeights.json.gz` |
+| 2024 JEC + JER | compound `Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 smearing on the corrected pT | bundled `corrections/2024_jet_jerc.json.gz` + `jer_smear.json.gz` |
+
+Both jet files are CAT Summer24 snapshots, loaded bundled-first with a CAT cvmfs
+fallback; the pileup file comes from the LUM sibling of the same campaign
+(jsonpog-integration has no `2024_Summer24` LUM entry). Details in
+[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+2022/2023 keep the bundled pickle JEC factories.
+
+Two σ values are defensible for the cross section — theory σ_tt = 923.6 pb (used
+here, matching the sibling `TTto*` entries and the CMS convention of normalizing
+tt̄ MC to theory) or the measured 881 ± 30 pb; they agree within uncertainty and
+it's a pure overall scale, so swapping is a one-number edit. Do *not* substitute
+the gridpack/GenXsecAnalyzer xsec: the private POWHEG sample forces W→cb, so its
+generated xsec carries no `|Vcb|²` and would overcount the signal by ~2200×.
+
+### Known gaps (as of 2026-07-24)
+
+- **No jet-energy variations.** JER up/down and JES systematics aren't wired —
+  the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
+- **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is MC
+  AK4 only.
 
 ## Repo layout
 

@@ -31,8 +31,6 @@ commands from the repository root unless stated otherwise.
   [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md).
 - **`diagnostics/` are standalone scripts copied as-is** from the old repo;
   also excluded from lint.
-- Placeholder 2024 inputs (lumi, xsec, pileup, JER) are tracked in
-  [SHOPPING-LIST.md](SHOPPING-LIST.md) — update it if you resolve or add one.
 - Committed regression baselines live in `tests/outfile/`
   (`test-output-schema.csv`, `test-output-0th-event.txt`). If a change is
   *supposed* to alter the skim output, regenerate them with
