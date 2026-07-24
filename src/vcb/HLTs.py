@@ -48,6 +48,9 @@ class HLTs:
             ),
         ],
         "egamma": [
+            # "egamma" dict key is a separate namespace: a lepton-flavour bucket
+            # (muon / egamma / emu), not a PD name.
+
             # The single-electron path must stay first in this list: objects.trig_match_sel
             # resolves the electron trigger as hlts_by_type(year, "EGamma")[0]. The year
             # ranges below are exclusive, so exactly one single-e path survives per year.
@@ -55,7 +58,10 @@ class HLTs:
             HLT(
                 name="HLT_Ele32_WPTight_Gsf",
                 years=years_2022 + years_2023,
-                dataset="EGamma",
+                dataset="EGamma",   
+                # "EGamma" is the correct dataset for Ele30/Ele32. 
+                # In Run 3, CMS merged the Run 2 SingleElectron + DoubleEG + SinglePhoton 
+                # primary datasets into one PD named "EGamma".
             ),
             HLT(
                 name="HLT_Ele30_WPTight_Gsf",
