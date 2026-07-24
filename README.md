@@ -1,6 +1,6 @@
 # Calib_ChargeTagger_JH
 
-Branch creation date: 2026-07-24
+Branch name: **hlt-only-selection**, created 2026-07-24
 
 Standalone Vcb skimmer for the jet-charge-tagger calibration, targeting the
 **2024 (Summer24)** private NanoAOD production. This is a clean-room port of
