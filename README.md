@@ -59,6 +59,25 @@ smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet
 cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD 
 energies, and JES/JER variations are not written by the skimmer.
 
+### Jet-veto map
+
+Relevant files:
+
+- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py) applies
+  the resulting event selection as the `ak4_jetveto` cut.
+- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py)
+  implements `get_jetveto_event` and maps each year to its correction name.
+- The map payload is the campaign-specific correctionlib
+  `jetvetomaps.json.gz` read from the CMS JSON POG CVMFS tree
+  (`/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/`), whose
+  path is built by `get_pog_json`; it is not bundled in this repository.
+
+After JEC and AK4 jet selection, the skimmer evaluates the year-specific Run-3
+jet-veto map at every jet's eta and phi. A nonzero map value marks a vetoed
+detector region. The event fails `ak4_jetveto` if any selected jet with pT > 15
+GeV lies in such a region; otherwise it passes. This selection is applied to
+both data and MC. Eta and phi are clipped to the map range before evaluation.
+
 ## Setup
 
 **One-time, per machine / per environment**:
