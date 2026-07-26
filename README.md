@@ -34,10 +34,6 @@ of [NORMALIZATION.md](NORMALIZATION.md) §3. The two genuinely dead CLI flags
 (`--fatjet-pt-cut`, `--fatjet-bb-preselection`) were removed, and the
 regression baselines were regenerated (`nTrueInt` in, `finalWeight` out).
 
-**Still outstanding before a production run:** 10 of the 447 input NanoAODs
-have no `Events` tree and are being regenerated; one of them (`batch_082`) is
-its batch's only file.
-
 ## What the pipeline does
 
 NanoAOD → `vcb.processors.vcbSkimmer` (object selection: tight leptons with
