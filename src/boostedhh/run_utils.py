@@ -312,6 +312,17 @@ def run(
     with (pickles_dir / f"{filetag}.pkl").open("wb") as f:
         pickle.dump(out, f)
 
+    # normalization totals for the Norm tree below: (np_nominal, nevents) when
+    # the run holds exactly one year+dataset with MC totals, else None
+    norm_totals = None
+    try:
+        (year_block,) = out.values()
+        (ds_block,) = year_block.values()
+        totals = ds_block["totals"]
+        norm_totals = (float(totals["np_nominal"]), float(totals.get("nevents", 0.0)))
+    except (ValueError, KeyError, TypeError):
+        pass  # data (no np_nominal), multiple datasets, or unexpected shape
+
     if save_parquet or save_root:
         import pandas as pd
         import pyarrow as pa
@@ -353,6 +364,17 @@ def run(
                             {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
                         )
                     )
+                    # Single-batch MC runs: bundle the normalization denominator
+                    # with the events so the file is self-describing. hadd
+                    # concatenates Norm entries, so the merged file's Norm sum
+                    # IS the global denominator. Only written for num_batches
+                    # == 1 -- np_nominal covers the whole run, so stamping it
+                    # into several batch files would double-count under hadd.
+                    if num_batches == 1 and norm_totals is not None:
+                        rfile["Norm"] = {
+                            "np_nominal": np.array([norm_totals[0]], dtype=np.float64),
+                            "nevents": np.array([norm_totals[1]], dtype=np.float64),
+                        }
 
         # the per-chunk parquet scratch only exists to assemble the batched outputs
         # above; drop it when the caller does not want parquet kept

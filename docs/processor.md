@@ -23,7 +23,7 @@ The processor targets **pp → tt̄, (t → bW, W → cb̄), (t̄ → b̄W, W �
 | Parse CLI | `--skimmer vcbSkimmer` (default) is resolved to the processor class. |
 | Build fileset | `{"{year}_{files_name}": [file_path]}`, e.g. `{"2022_TT1L2Q": [...]}`. |
 | Run | `run_utils.run()` calls `vcbSkimmer.process()` per chunk (iterative executor locally). |
-| Post-process | `finalWeight = weight / np_nominal` appended to parquet/ROOT, unless `--no-write-final-weight`. |
+| Post-process | none in the skim: `finalWeight` is appended later, in place, by `condor/scripts/normalize.py` (its denominator sums over the whole sample). |
 
 Year and dataset name are recovered inside `process()` from
 `events.metadata["dataset"].split("_")` — so `--year` drives the JEC, jet-veto,
@@ -132,10 +132,13 @@ b-tag requirements are deferred to analysis time.
 ## 5. Weights
 
 For MC: `genWeight × pileup SF × ISR/FSR PS weights × (σ × L)` normalization
-(`add_weights`). `np_nominal = Σ weight` over selected events is stored per file;
-`run.py` then writes `finalWeight = weight / np_nominal`. In the Condor workflow
-the per-batch skim runs with `--no-write-final-weight` and `finalWeight` is
-recomputed globally afterward — see [`condor/README.md`](../condor/README.md).
+(`add_weights`). `np_nominal` = Σ of the no-σL partial weight over **every
+event read, before any cut** — the denominator of the finalWeight ratio
+estimator. It is stored in the totals pickle and in a single-entry `Norm` tree
+inside the skim ROOT. The skimmer never writes `finalWeight`; it is appended
+globally afterward by
+[`condor/scripts/normalize.py`](../condor/scripts/normalize.py) — see
+[`condor/README.md`](../condor/README.md).
 
 ---
 

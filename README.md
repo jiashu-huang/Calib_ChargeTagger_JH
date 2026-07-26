@@ -23,17 +23,18 @@ Two output flags were added: `--root-only` (skip the redundant parquet copy) and
 catalogued in [RUNTAG.md](RUNTAG.md), including the overlaps and the handful
 that are accepted but inert.
 
-**Three things are outstanding before a production run.** First, the regression
-baselines in `tests/outfile/` predate the pile-up fix — they still lack
-`nTrueInt` — so there is currently no verified baseline for the code on `main`;
-regenerate with `tests/test_run.py`. Second, `finalWeight` is still computed
-during the skim, which fuses a per-event quantity with a global one and carries
-the silent-bias failure mode in [NORMALIZATION.md](NORMALIZATION.md) §3; the
-agreed design moves it to a cheap second pass that appends the column in place.
-Third, 10 of the 447 input NanoAODs have no `Events` tree and are being
-regenerated; one of them (`batch_082`) is its batch's only file.
+On this branch (`second-pass-finalWeight`), normalization moved out of the
+skim: `vcb.run` writes `weight` and never `finalWeight`, each batch ROOT
+carries its own `np_nominal` in a single-entry `Norm` tree, and
+[condor/scripts/normalize.py](condor/scripts/normalize.py) appends the
+`finalWeight` branch in place afterwards — closing the silent-bias failure mode
+of [NORMALIZATION.md](NORMALIZATION.md) §3. The two genuinely dead CLI flags
+(`--fatjet-pt-cut`, `--fatjet-bb-preselection`) were removed, and the
+regression baselines were regenerated (`nTrueInt` in, `finalWeight` out).
 
-Next work happens on a branch off this point.
+**Still outstanding before a production run:** 10 of the 447 input NanoAODs
+have no `Events` tree and are being regenerated; one of them (`batch_082`) is
+its batch's only file.
 
 ## What the pipeline does
 
@@ -42,8 +43,9 @@ trigger matching, AK4 jets with JEC + jet-veto map + lepton cleaning;
 gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
 `JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
 (genWeight, pileup, PS ISR/FSR, xsec×lumi normalization) → parquet/ROOT skim +
-pickle totals → `finalWeight = weight / np_nominal` (locally in `vcb.run`, or
-globally across batches via `condor/scripts/fix_final_weight.py`).
+pickle totals → `finalWeight = weight / np_nominal` appended in a second pass
+by `condor/scripts/normalize.py` (the skimmer itself never writes it — the
+denominator sums over every batch of a campaign).
 Details: [docs/processor.md](docs/processor.md).
 
 ### Trigger lepton selection
@@ -271,9 +273,11 @@ python -m vcb.run \
 ```
 
 Outputs land in `outputs/<timestamp>/` (symlinked from `outputs/latest`):
-per-batch parquet + ROOT skims, `outfiles/<tag>.pkl` totals, and a
-`finalWeight` column/branch (disable with `--no-write-final-weight` — condor
-jobs do, then normalize globally).
+per-batch parquet + ROOT skims and `outfiles/<tag>.pkl` totals. The ROOT also
+carries a single-entry `Norm` tree holding this run's `np_nominal`, making it
+self-describing for normalization. No `finalWeight` is written — append it
+afterwards with [condor/scripts/normalize.py](condor/scripts/normalize.py),
+which must see the whole sample to know the denominator.
 
 ### Controlling the outputs
 
@@ -291,9 +295,6 @@ python -m vcb.run \
 |---|---|
 | `--root-only` | Write only the skim ROOT: no parquet, no `num_batches_<tag>.txt`, and the `outparquet/` scratch is deleted after the batches are assembled. Implies `--save-root`. `outfiles/<tag>.pkl` is still written — it carries `np_nominal`, without which the run cannot be normalized. |
 | `--output-root-location <dir>` | Send the skim ROOT file(s) to `<dir>` instead of the run output directory. Created if missing. Works with or without `--root-only`. |
-
-`--root-only` skips the `finalWeight` pass, which works by rewriting the parquet
-batches — it prints a line saying so. Normalize afterwards from the pickle.
 
 Full 2024 production (93 `batch_*` dirs under
 `Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/`)

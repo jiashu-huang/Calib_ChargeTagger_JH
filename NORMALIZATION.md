@@ -1,7 +1,15 @@
 # Normalization: where `finalWeight` should be computed
 
-**Status: proposal, not implemented.** This records a design decision to be made
-later. Nothing in this document has been applied to the code. Written 2026-07-24.
+**Status: implemented on `second-pass-finalWeight` (2026-07-26).** The analysis
+below (written 2026-07-24, when `fix_final_weight.py` still existed) led to a
+design combining Option D's pairing checks with an in-place branch append and
+recommendation #3 (self-describing batches): the skimmer never writes
+`finalWeight`; each batch ROOT carries its own `np_nominal` in a single-entry
+`Norm` tree; and [`condor/scripts/normalize.py`](condor/scripts/normalize.py)
+sums the denominator, **appends** the `finalWeight` branch in place (~3 B/event
+written, existing branches untouched), and records provenance in each file and
+in `metadata/normalization.json`. Sections below are kept as the design record;
+references to `fix_final_weight.py` describe the retired implementation.
 
 ## The question
 

@@ -184,8 +184,6 @@ class vcbSkimmer(SkimmerABC):
         save_systematics: bool = False,
         region: str = "signal",
         nano_version: str = "v12_private",
-        fatjet_pt_cut: float = None,
-        fatjet_bb_preselection: bool = False,
         prescale_factor: int = None,
     ):
         # Initialize the base Processor/Skimmer state first.
@@ -204,11 +202,8 @@ class vcbSkimmer(SkimmerABC):
         self._region = region
         # Coffea accumulator to collect outputs from process().
         self._accumulator = processor.dict_accumulator({})
-        # Options controlling fatjet preselection and optional prescale.
-        self._fatjet_bb_preselection = fatjet_bb_preselection
+        # Optional prescale: keep only events with event % N == 0.
         self._prescale_factor = prescale_factor
-        # Optional fatjet pT override.
-        self._fatjet_pt_cut = fatjet_pt_cut
 
         # Log the configuration for user visibility.
         logger.info(
@@ -416,6 +411,13 @@ class vcbSkimmer(SkimmerABC):
                 genVars = {**genVars, **vars_dict}
 
         # used for normalization to cross section below
+        #
+        # ORDERING MATTERS: this line must run BEFORE any add_selection call
+        # (all currently below, in the Selection section). At this point
+        # selection.names is empty, so gen_selected is all-True and np_nominal
+        # sums over every event read -- the denominator of the finalWeight
+        # ratio estimator. Moving any add_selection above this line silently
+        # changes every normalized yield.
         gen_selected = (
             selection.all(*selection.names)
             if len(selection.names)
