@@ -106,6 +106,22 @@ are skipped (`--force` recomputes them via a full rewrite). To normalize after
 merging instead, run with `--target merged` — hadd concatenates the per-batch
 `Norm` entries, so the merged file carries its own denominator.
 
+### 2b. Validate
+
+```bash
+micromamba run -n ttbar python condor/scripts/validate_processed.py \
+  --processed-dir "$INPUT/processed-nano/<tag>"     # add --target merged for the merge
+```
+
+Per file: schema against the committed `tests/outfile/test-output-schema.csv`,
+non-empty, required branches present, `Norm` tree, finite weights, a single
+σ×L across every event, `nTrueInt` in range, and `finalWeight == weight /
+global_np_nominal` bit-exact with matching provenance. Campaign-wide: the
+`Norm` sum equals the pickle sum, one σ×L across all files, and
+`Σ finalWeight == σL × Σ(weight_noxsec) / global_np_nominal` — the identity
+that catches a `finalWeight` written with the wrong denominator. Exit code is
+non-zero if anything fails.
+
 ### 3. Merge (optional)
 
 ```bash
@@ -138,6 +154,16 @@ that already have `finalWeight` rather than dividing twice.
   micromamba env, and the input files. Nothing is transferred.
 - `--batch-size` stays at 9999 so one job folds into exactly one ROOT file
   (the worker script asserts this).
-- Resource knobs: `--request-cpus 2 --request-memory 8G --request-disk 4G`.
+- Resource knobs (defaults, sized from a measured 5-file batch — 208,780
+  events, 104% of one core, **1.29 GB peak RSS**, 129 MB transient, ~60 s wall):
+  `--request-cpus 2 --request-memory 4G --request-disk 2G`. The skim is
+  single-threaded, so the second CPU is headroom for I/O threads, not
+  parallelism. Memory peaks at the end-of-job concatenation and therefore
+  scales with *selected* events, not input size. Disk barely matters: the job
+  writes to the shared filesystem, so condor's own accounting reported 5 KB of
+  sandbox use.
+- Condor's cgroup memory sampling can under-report a ~60 s job (it logged
+  133 MB against a directly measured 1.29 GB peak). Size from
+  `/usr/bin/time -v`, not from the job log.
 - Filters: `--batch-names batch_007 ...`, `--batch-start/--batch-end`,
   `--max-batches`, `--test` (first two).

@@ -274,14 +274,22 @@ def rewrite_final_weight(root_path: Path, global_np_nominal: float, fingerprint:
 
 
 def write_provenance(fout, global_np_nominal: float, fingerprint: str) -> None:
-    """TParameter + TNamed next to Events: which denominator, from which batch list."""
+    """
+    A single TNamed next to Events recording which denominator was used and
+    over which batch list.
+
+    Deliberately NOT a TParameter<double>: hadd *sums* TParameter objects when
+    merging, so the recorded denominator would come out multiplied by the
+    number of merged files. A TNamed's string payload is copied verbatim
+    instead, which is what provenance needs.
+    """
     import ROOT
 
-    fout.cd()  # make sure the provenance objects land in this file
-    param = ROOT.TParameter("double")("finalWeight_np_nominal", global_np_nominal)
-    param.Write("", ROOT.TObject.kOverwrite)
-    named = ROOT.TNamed("finalWeight_provenance", fingerprint)
-    named.Write("", ROOT.TObject.kOverwrite)
+    fout.cd()  # make sure the provenance object lands in this file
+    payload = json.dumps(
+        {"np_nominal": global_np_nominal, "fingerprint": fingerprint}, sort_keys=True
+    )
+    ROOT.TNamed("finalWeight_provenance", payload).Write("", ROOT.TObject.kOverwrite)
 
 
 def main() -> None:
