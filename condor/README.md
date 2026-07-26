@@ -10,7 +10,8 @@ which no single job can know. It is appended afterwards, in place, by
 
 ## Worked example: 2024 production
 
-Input: 93 `batch_*` dirs (466 files, ~65 GB, 20,032,120 events) under
+Input: 93 `batch_*` dirs (465 files, 5 per batch, ~65 GB, 19,823,340 events;
+Σ genWeight = 6.627e9) under
 
 ```
 /isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/
@@ -36,10 +37,18 @@ Defaults: `--year 2024`, `--files-name TTtoLNuCB`, `--skimmer vcbSkimmer`,
 Without `--submit`, submit later with `condor/runs/<tag>/submit_all.sh`, or
 debug a single job locally with `bash condor/runs/<tag>/batch_000/run_batch.sh`.
 
-> Input health (scanned 2026-07-26): all 466 files open, carry an `Events`
+> Input health (scanned 2026-07-26): all 465 files open, carry an `Events`
 > tree, and have the branches the skimmer needs — **0 bad, 0 missing
 > branches**. Worth re-checking after any regeneration: `--files` sets
 > `skipbadfiles=False`, so a single unreadable file aborts its whole job.
+>
+> Keep merged/derived copies **out of** the `batch_*` directories. A hadd of
+> batch_000 (`merged/batch_000.root`, 208,780 events) briefly sat inside
+> `batch_000/`, which would have made that job skim the same events twice —
+> harmless to the yield (numerator and denominator both double-count) but it
+> corrupts the statistics and doubles the runtime. `submit_batches.py` only
+> descends into directories matching `batch_<digits>`, so a sibling `merged/`
+> is safely ignored.
 
 ### What each job runs
 
