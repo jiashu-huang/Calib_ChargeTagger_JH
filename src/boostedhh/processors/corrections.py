@@ -20,7 +20,6 @@ import sys
 import awkward as ak
 import correctionlib
 import numpy as np
-import uproot
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
@@ -45,7 +44,6 @@ pog_correction_path = "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/
 pog_jsons = {
     "muon": ["MUO", "muon_Z.json.gz"],
     "electron": ["EGM", "electron.json.gz"],
-    "pileup": ["LUM", "puWeights.json.gz"],
     "fatjet_jec": ["JME", "fatJet_jerc.json.gz"],
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
@@ -75,72 +73,61 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str | None = None):
-    # clip nPU from 0 to 100
-    nPU = np.clip(nPU, 0, 99)
-    # print(list(nPU))
+"""
+Pileup weights (LUM puWeights) are read bundled-first from this repo
+(corrections/{year}_puWeights.json.gz), falling back to the CAT metadata tree on
+cvmfs -- the jsonpog-integration LUM tree stops at 2023_Summer23BPix, while the
+CAT tree covers all campaigns with content-identical payloads for 2022/2023.
+Every payload holds exactly one correction, keyed on NumTrueInteractions.
+"""
+cat_lum_path = "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM"
+cat_lum_campaigns = {
+    "2018": "Run2-2018-UL-NanoAODv9",
+    "2022": "Run3-22CDSep23-Summer22-NanoAODv12",
+    "2022EE": "Run3-22EFGSep23-Summer22EE-NanoAODv12",
+    "2023": "Run3-23CSep23-Summer23-NanoAODv12",
+    "2023BPix": "Run3-23DSep23-Summer23BPix-NanoAODv12",
+    "2024": "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+    # 2025 data exists as Run3-25Prompt-Summer24-NanoAODv15
+    # (puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz); add here once the
+    # rest of the framework supports 2025.
+}
+# per-era file names where the campaign ships several golden-JSON variants;
+# 2024 CDEFGHI = C-E reReco + F-I prompt, no commissioning era B (matches the
+# campaign name; swap in puWeights_BCDEFGHI.json.gz to include era B)
+cat_lum_filenames = {"2024": "puWeights_CDEFGHI.json.gz"}
 
-    if "Pu60" in dataset or "Pu70" in dataset:
-        # pileup profile from data
-        path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
-        pileup_profile = uproot.open(path_pileup)["pileup"]
-        pileup_profile = pileup_profile.to_numpy()[0]
-        # normalise
-        pileup_profile /= pileup_profile.sum()
 
-        # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
-        # pileup profile from MC
-        pu_name = "Pu60" if "Pu60" in dataset else "Pu70"
-        path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
-        pileup_MC = np.load(path_pileup_dataset)
+def add_pileup_weight(weights: Weights, year: str, nTrueInt: np.ndarray):
+    """
+    Pileup reweighting from the LUM puWeights correctionlib payload.
 
-        # avoid division by 0 (?)
-        pileup_MC[pileup_MC == 0.0] = 1
-        pileup_correction = pileup_profile / pileup_MC
-        # remove large MC reweighting factors to prevent artifacts
-        pileup_correction[pileup_correction > 10] = 10
-        sf = pileup_correction[nPU]
-        # no uncertainties
-        weights.add("pileup", sf)
+    ``nTrueInt`` must be NanoAOD ``Pileup_nTrueInt`` -- the true mean number of
+    interactions (the Poisson mean the data/MC profile ratio is derived in) --
+    NOT the sampled integer count ``Pileup_nPU``.
+    """
+    # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
+    # clip to the [0, 100) range covered by the puWeights binning
+    nTrueInt = np.clip(nTrueInt, 0, 99)
 
+    bundled = package_path + f"/corrections/{year}_puWeights.json.gz"
+    if pathlib.Path(bundled).is_file():
+        path = bundled
     else:
-        # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
-        values = {}
+        fname = cat_lum_filenames.get(year, "puWeights.json.gz")
+        path = f"{cat_lum_path}/{cat_lum_campaigns[year]}/latest/{fname}"
 
-        if year == "2024":
-            # No POG/LUM/2024_Summer24 on this cvmfs jsonpog-integration snapshot.
-            # Preferred: a user-supplied 2024 puWeights bundled in the repo
-            # (see SHOPPING-LIST.md). Fallback: 2023 (Summer23) weights as a
-            # PLACEHOLDER -- pileup is a norm-preserving weight, so this only
-            # reshapes distributions, not the normalization.
-            bundled_2024 = package_path + "/corrections/2024_puWeights.json.gz"
-            if pathlib.Path(bundled_2024).is_file():
-                cset = correctionlib.CorrectionSet.from_file(bundled_2024)
-                corr = list(cset.keys())[0]
-                print(f"Pileup 2024: using bundled {bundled_2024} (correction '{corr}')")
-            else:
-                print(
-                    "WARNING: 2024 pileup weights not available -- using 2023 (Summer23) "
-                    "puWeights as a PLACEHOLDER. Drop the real 2024 file in "
-                    "src/boostedhh/corrections/2024_puWeights.json.gz (see SHOPPING-LIST.md)."
-                )
-                cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", "2023"))
-                corr = "Collisions2023_366403_369802_eraBC_GoldenJson"
-        else:
-            cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-            corr = {
-                "2018": "Collisions18_UltraLegacy_goldenJSON",
-                "2022": "Collisions2022_355100_357900_eraBCD_GoldenJson",
-                "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
-                "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
-                "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
-            }[year]
-        # evaluate and clip up to 10 to avoid large weights
-        values["nominal"] = np.clip(cset[corr].evaluate(nPU, "nominal"), 0, 10)
-        values["up"] = np.clip(cset[corr].evaluate(nPU, "up"), 0, 10)
-        values["down"] = np.clip(cset[corr].evaluate(nPU, "down"), 0, 10)
+    cset = correctionlib.CorrectionSet.from_file(path)
+    # each LUM payload holds exactly one correction
+    corr = list(cset.keys())[0]
+    print(f"Pileup {year}: using {path} (correction '{corr}')")
 
-        weights.add("pileup", values["nominal"], values["up"], values["down"])
+    # evaluate and clip up to 10 to avoid large weights
+    values = {
+        var: np.clip(cset[corr].evaluate(nTrueInt, var), 0, 10)
+        for var in ("nominal", "up", "down")
+    }
+    weights.add("pileup", values["nominal"], values["up"], values["down"])
 
 
 def get_vpt(genpart, check_offshell=False):

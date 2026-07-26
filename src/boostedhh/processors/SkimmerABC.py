@@ -17,8 +17,6 @@ from coffea import processor
 
 from boostedhh.hh_vars import LUMI
 
-from . import corrections
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -65,17 +63,6 @@ class SkimmerABC(processor.ProcessorABC):
         table = pa.Table.from_pandas(pddf)
         if len(table) != 0:  # skip dataframes with empty entries
             pq.write_table(table, local_dir / fname)
-
-    def pileup_cutoff(self, events, year, cutoff: float = 4):
-        pweights = corrections.get_pileup_weight(year, events.Pileup.nPU.to_numpy())
-        pw_pass = (
-            (pweights["nominal"] <= cutoff)
-            * (pweights["up"] <= cutoff)
-            * (pweights["down"] <= cutoff)
-        )
-        logging.info(f"Passing pileup weight cut: {np.sum(pw_pass)} out of {len(events)} events")
-        events = events[pw_pass]
-        return events
 
     def get_dataset_norm(self, year, dataset):
         """

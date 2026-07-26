@@ -160,8 +160,12 @@ class vcbSkimmer(SkimmerABC):
             "event": "event",
             "luminosityBlock": "luminosityBlock",
         },
+        # Both the sampled count (nPU) and the Poisson mean (nTrueInt, the
+        # variable the pileup weights are derived in) are stored, so future
+        # weight-file updates can be applied as a post-processing rescale.
         "Pileup": {
             "nPU",
+            "nTrueInt",
         },
     }
 
@@ -667,7 +671,9 @@ class vcbSkimmer(SkimmerABC):
         weights.add("genweight", gen_weights)
 
         # 3) Add standard MC corrections/variations.
-        add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        # nTrueInt (the Poisson mean mu), NOT the sampled count nPU -- the
+        # puWeights corrections are functions of NumTrueInteractions.
+        add_pileup_weight(weights, year, events.Pileup.nTrueInt.to_numpy())
         add_ps_weight(weights, events.PSWeight)
 
         logger.debug("weights", extra=weights._weights.keys())

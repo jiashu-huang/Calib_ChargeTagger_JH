@@ -23,8 +23,25 @@ git submodule and is not pip-installed from upstream.
 - `run_utils.py` — `--year` choices extended with `"2024"`.
 - `processors/corrections.py` — 2024 wiring: `get_pog_json` year→dir map,
   Summer24 jet-veto key, correctionlib-based 2024 JEC in `JECs`
-  (no pickle factories exist for 2024), 2024 pileup fallback.
+  (no pickle factories exist for 2024).
 - `xsecs.py` — added `xsecs["TTtoLNuCB"]`.
+- **Pileup overhaul (2026-07-24)** — `add_pileup_weight` rewritten:
+  - takes `Pileup_nTrueInt` (the Poisson mean the LUM weights are derived in);
+    upstream fed it `Pileup_nPU`, the sampled count, which mis-weights events
+    and costs effective statistics;
+  - sources puWeights bundled-first (`corrections/{year}_puWeights.json.gz`)
+    with a fallback to the CAT metadata LUM tree on cvmfs
+    (`cat_lum_campaigns` map) — the jsonpog-integration LUM tree stops at
+    `2023_Summer23BPix` and its 2022/2023 payloads are content-identical to
+    CAT's anyway; the `"pileup"` entry left `pog_jsons`;
+  - reads the payload's single correction key, dropping the hardcoded per-year
+    correction-name map and the 2023-placeholder fallback for 2024;
+  - removed with it: the dead `Pu60`/`Pu70` histogram branch (its data file
+    `MyDataPileupHistogram2022FG.root` was never vendored, and
+    `"Pu60" in dataset` raised `TypeError` on the `dataset=None` default),
+    `SkimmerABC.pileup_cutoff` (called nonexistent `get_pileup_weight`),
+    `corrections/makePUReWeightJSON.py`, `corrections/puWeightsJSON.sh`, and
+    `corrections/data/pileup/`.
 
 ## What was deliberately NOT vendored
 

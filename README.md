@@ -118,6 +118,93 @@ Two caveats on the implementation:
   applied, so this is close to but not literally the JERC prescription (pT > 15,
   tight jet ID, neutral EM fraction < 0.9, no ΔR < 0.2 PF-muon overlap).
 
+### Pile-up
+
+Relevant files (line numbers as of the current commit):
+
+- [`src/boostedhh/corrections/2024_puWeights.json.gz`](src/boostedhh/corrections/2024_puWeights.json.gz)
+  is **the source of the pile-up information** — a bundled correctionlib payload
+  holding one correction, `Collisions24_CDEFGHI_goldenJSON`, with inputs
+  `(NumTrueInteractions: real, weights: string ∈ {nominal, up, down})` → `weight`.
+- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L78-L143)
+  (lines 78–143) implements `add_pileup_weight`; the 2024 branch that loads the
+  bundled file is at [lines 110–128](src/boostedhh/processors/corrections.py#L110-L128),
+  and other years resolve a CVMFS path via `get_pog_json("pileup", year)`
+  ([lines 48, 60–75](src/boostedhh/processors/corrections.py#L60-L75)).
+- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py#L648-L744)
+  calls `add_pileup_weight` inside `add_weights` (line 670) and copies the raw
+  pile-up counters into the skim (`skim_vars["Pileup"]` at lines 163–165, filled
+  at lines 526–530, merged at line 558).
+- [`src/boostedhh/hh_vars.py`](src/boostedhh/hh_vars.py#L41) (line 41) lists
+  `"pileup"` in `norm_preserving_weights`, which is what keeps it shape-only.
+- Provenance of the bundled file — era choice, snapshot pin, md5 — is in
+  [the corrections' README](src/boostedhh/corrections/README.md#L142-L191); the
+  CVMFS directory it was copied from is recorded in [PU.md](PU.md).
+
+The payload is **not** taken from the `jsonpog-integration` tree used for the
+jet-veto map: that tree's LUM entries stop at `2023_Summer23BPix`. It comes from
+the CAT metadata tree,
+`/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz`
+— the LUM sibling of the same campaign as the 2024 JEC/JER file — pinned to the
+`2026-04-15` snapshot and committed to the repo so condor workers need no network
+access. Era set `CDEFGHI` matches the campaign name (C–E reReco + F–I prompt, no
+commissioning era B). `add_pileup_weight` reads the *first* correction key in the
+file, so swapping in `puWeights_BCDEFGHI.json.gz` needs no code change. If the
+bundled file is missing, the 2024 path falls back to the 2023 Summer23 eraBC
+weights as a placeholder and prints a loud `WARNING`.
+
+Pile-up enters the output in two independent ways.
+* As per-event counters. For MC the skimmer copies NanoAOD `Pileup_nPU` into the
+branch `nPU`, and `PV_npvs` into `nPV`, for every retained event; for data `nPU` is
+filled with `PAD_VAL` (−99999) and only `nPV` is real. These are pass-through
+observables — nothing selects on them — so downstream code can re-derive or
+validate the reweighting.
+* As an event weight. `add_weights` evaluates the correction on the per-event
+count (clipped to `[0, 99]`) for `nominal`, `up`, and `down`, clips each returned
+weight to `[0, 10]`, and adds all three to the coffea `Weights` container as
+`"pileup"`. It is then folded multiplicatively into `weight` (together with
+`genweight`, the ISR/FSR PS weights, and the σ×L normalization) and into
+`weight_noxsec`, and is written out on its own as `single_weight_pileup`. Because
+`"pileup"` is in `norm_preserving_weights`, it is also part of the partial weight
+summed into `totals["np_nominal"]`; since `finalWeight = weight / np_nominal`
+divides by that same sum, pile-up reweighting reshapes nPU-dependent distributions
+without moving the overall normalization. The `up`/`down` variations live in the
+`Weights` object but are only written (as `weight_pileupUp`/`Down` plus
+`np_pileupUp`/`Down` totals) when the skimmer runs with `--save-systematics`, which
+is off by default — hence the committed baseline schema carries
+`single_weight_pileup` but no pile-up variation branches.
+
+Four caveats on the implementation:
+
+- **The correction is evaluated on the wrong variable.** Its input is
+  `NumTrueInteractions`, i.e. NanoAOD `Pileup_nTrueInt` — the *mean* μ of the
+  Poisson the bunch crossing was sampled from, a float. The skimmer passes
+  `events.Pileup.nPU`, the integer number of interactions actually drawn from that
+  Poisson, so it is μ convolved with counting noise. On the test fixture (200k
+  events) the two share a mean (45.43 vs 45.42) but `nPU` is *broader*
+  (σ = 11.7 vs 9.5, with σ(nPU − nTrueInt) = 6.76 ≈ √45.4) and tracks `nTrueInt`
+  at a correlation of only 0.82. Evaluating a ratio defined in μ on that draw
+  mis-weights 51% of events by more than 25% and costs effective statistics
+  (N_eff/N = 0.44, vs 0.74 with `nTrueInt`). The mean weight is 1.33 rather than
+  1.00, but that inflation cancels in `finalWeight` because pile-up is
+  norm-preserving — so this is a shape and statistical-power problem, not a yield
+  problem. Nothing errors: the payload is 100 unit-wide bins with `flow: clamp`,
+  so an integer input lands in a valid bin and returns a plausible number.
+  `Pileup_nTrueInt` is present in the input NanoAOD, so the fix is one word at the
+  call site.
+- `single_weight_pileup` is not the bare pile-up weight. The σ×L normalization
+  loop multiplies *every* entry of `weights_dict`, including the `single_weight_*`
+  diagnostics (e.g. 72688.09 in the committed event-0 dump). Divide by
+  `weight_norm` to recover the actual scale factor.
+- **`SkimmerABC.pileup_cutoff` (lines 69–78) is dead code.** It calls
+  `corrections.get_pileup_weight`, which does not exist in the vendored
+  `corrections` module; nothing in this repo calls it, and it would raise if
+  anything did.
+- The 2024 sample takes the correctionlib path exclusively. The 2022-era 
+  machinery uses `"Pu60"/"Pu70"` dataset branch of `add_pileup_weight` (data histogram ÷ `.npy` MC profile), together with [`makePUReWeightJSON.py`](src/boostedhh/corrections/makePUReWeightJSON.py)
+  and [`puWeightsJSON.sh`](src/boostedhh/corrections/puWeightsJSON.sh) from 
+  vendored `boostedhh`.
+
 ## Setup
 
 **One-time, per machine / per environment**:
