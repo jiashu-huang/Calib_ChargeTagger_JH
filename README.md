@@ -7,6 +7,34 @@ the `boostedhh` framework **vendored** under [src/boostedhh](src/boostedhh)
 (see [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md)) and the analysis
 code renamed `bbtautau` → `vcb`. Lineage: [docs/history.md](docs/history.md).
 
+## State of the repo (2026-07-26)
+
+The skimmer is **feature-complete for 2024 MC and not yet run in production**.
+All four calibration inputs are real Summer24 values — luminosity 124 fb⁻¹,
+σ(TTtoLNuCB) ≈ 0.345 pb, `Collisions24_CDEFGHI_goldenJSON` pile-up weights, and
+Summer24 V5 JEC + JRV2 JER — with no placeholders left
+([docs/2024-inputs.md](docs/2024-inputs.md)). Trigger-lepton selection, lepton
+cleaning, and the jet-veto map are in place. Pile-up reweighting was corrected
+to evaluate on `Pileup_nTrueInt` rather than `Pileup_nPU`, and `nTrueInt` is now
+an output branch so future weight updates are a post-processing rescale.
+
+Two output flags were added: `--root-only` (skip the redundant parquet copy) and
+`--output-root-location` (send the skim ROOT elsewhere). Every CLI flag is
+catalogued in [RUNTAG.md](RUNTAG.md), including the overlaps and the handful
+that are accepted but inert.
+
+**Three things are outstanding before a production run.** First, the regression
+baselines in `tests/outfile/` predate the pile-up fix — they still lack
+`nTrueInt` — so there is currently no verified baseline for the code on `main`;
+regenerate with `tests/test_run.py`. Second, `finalWeight` is still computed
+during the skim, which fuses a per-event quantity with a global one and carries
+the silent-bias failure mode in [NORMALIZATION.md](NORMALIZATION.md) §3; the
+agreed design moves it to a cheap second pass that appends the column in place.
+Third, 10 of the 447 input NanoAODs have no `Events` tree and are being
+regenerated; one of them (`batch_082`) is its batch's only file.
+
+Next work happens on a branch off this point.
+
 ## What the pipeline does
 
 NanoAOD → `vcb.processors.vcbSkimmer` (object selection: tight leptons with
@@ -126,20 +154,18 @@ Relevant files (line numbers as of the current commit):
   is **the source of the pile-up information** — a bundled correctionlib payload
   holding one correction, `Collisions24_CDEFGHI_goldenJSON`, with inputs
   `(NumTrueInteractions: real, weights: string ∈ {nominal, up, down})` → `weight`.
-- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L78-L143)
-  (lines 78–143) implements `add_pileup_weight`; the 2024 branch that loads the
-  bundled file is at [lines 110–128](src/boostedhh/processors/corrections.py#L110-L128),
-  and other years resolve a CVMFS path via `get_pog_json("pileup", year)`
-  ([lines 48, 60–75](src/boostedhh/processors/corrections.py#L60-L75)).
-- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py#L648-L744)
-  calls `add_pileup_weight` inside `add_weights` (line 670) and copies the raw
-  pile-up counters into the skim (`skim_vars["Pileup"]` at lines 163–165, filled
-  at lines 526–530, merged at line 558).
+- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L101)
+  (line 101) implements `add_pileup_weight`; the bundled-first / CAT-cvmfs
+  lookup it uses is at [lines 76–98](src/boostedhh/processors/corrections.py#L76-L98).
+- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py#L676)
+  calls `add_pileup_weight` inside `add_weights` (line 676) and copies the raw
+  pile-up counters into the skim (`skim_vars["Pileup"]` at lines 166–168, filled
+  at lines 531–534).
 - [`src/boostedhh/hh_vars.py`](src/boostedhh/hh_vars.py#L41) (line 41) lists
   `"pileup"` in `norm_preserving_weights`, which is what keeps it shape-only.
 - Provenance of the bundled file — era choice, snapshot pin, md5 — is in
-  [the corrections' README](src/boostedhh/corrections/README.md#L142-L191); the
-  CVMFS directory it was copied from is recorded in [PU.md](PU.md).
+  [the corrections' README](src/boostedhh/corrections/README.md); the CVMFS
+  directory it was copied from is recorded in [PU.md](PU.md).
 
 The payload is **not** taken from the `jsonpog-integration` tree used for the
 jet-veto map: that tree's LUM entries stop at `2023_Summer23BPix`. It comes from
@@ -148,62 +174,47 @@ the CAT metadata tree,
 — the LUM sibling of the same campaign as the 2024 JEC/JER file — pinned to the
 `2026-04-15` snapshot and committed to the repo so condor workers need no network
 access. Era set `CDEFGHI` matches the campaign name (C–E reReco + F–I prompt, no
-commissioning era B). `add_pileup_weight` reads the *first* correction key in the
-file, so swapping in `puWeights_BCDEFGHI.json.gz` needs no code change. If the
-bundled file is missing, the 2024 path falls back to the 2023 Summer23 eraBC
-weights as a placeholder and prints a loud `WARNING`.
+commissioning era B). Every year resolves the same way: bundled
+`corrections/<year>_puWeights.json.gz` first, else the CAT campaign directory on
+cvmfs. `add_pileup_weight` reads the *first* correction key in the file, so
+swapping in `puWeights_BCDEFGHI.json.gz` needs no code change.
 
 Pile-up enters the output in two independent ways.
-* As per-event counters. For MC the skimmer copies NanoAOD `Pileup_nPU` into the
-branch `nPU`, and `PV_npvs` into `nPV`, for every retained event; for data `nPU` is
-filled with `PAD_VAL` (−99999) and only `nPV` is real. These are pass-through
-observables — nothing selects on them — so downstream code can re-derive or
-validate the reweighting.
-* As an event weight. `add_weights` evaluates the correction on the per-event
-count (clipped to `[0, 99]`) for `nominal`, `up`, and `down`, clips each returned
-weight to `[0, 10]`, and adds all three to the coffea `Weights` container as
-`"pileup"`. It is then folded multiplicatively into `weight` (together with
-`genweight`, the ISR/FSR PS weights, and the σ×L normalization) and into
-`weight_noxsec`, and is written out on its own as `single_weight_pileup`. Because
-`"pileup"` is in `norm_preserving_weights`, it is also part of the partial weight
-summed into `totals["np_nominal"]`; since `finalWeight = weight / np_nominal`
-divides by that same sum, pile-up reweighting reshapes nPU-dependent distributions
-without moving the overall normalization. The `up`/`down` variations live in the
-`Weights` object but are only written (as `weight_pileupUp`/`Down` plus
-`np_pileupUp`/`Down` totals) when the skimmer runs with `--save-systematics`, which
-is off by default — hence the committed baseline schema carries
-`single_weight_pileup` but no pile-up variation branches.
+* As per-event counters. For MC the skimmer copies NanoAOD `Pileup_nPU` and
+`Pileup_nTrueInt` into the branches `nPU` and `nTrueInt`, and `PV_npvs` into `nPV`,
+for every retained event; for data both pile-up branches are filled with `PAD_VAL`
+(−99999) and only `nPV` is real. Nothing selects on them, so downstream code can
+re-derive or validate the reweighting — and because `nTrueInt` is stored, a future
+weight-file update is a post-processing rescale rather than a re-skim.
+* As an event weight. `add_weights` evaluates the correction on `nTrueInt`
+(clipped to `[0, 99]`) for `nominal`, `up`, and `down`, clips each returned weight
+to `[0, 10]`, and adds all three to the coffea `Weights` container as `"pileup"`.
+It is then folded multiplicatively into `weight` (together with `genweight`, the
+ISR/FSR PS weights, and the σ×L normalization) and into `weight_noxsec`, and is
+written out on its own as `single_weight_pileup`. Because `"pileup"` is in
+`norm_preserving_weights`, it is also part of the partial weight summed into
+`totals["np_nominal"]`; since `finalWeight = weight / np_nominal` divides by that
+same sum, pile-up reweighting reshapes pile-up-dependent distributions without
+moving the overall normalization. The `up`/`down` variations live in the `Weights`
+object but are only written (as `weight_pileupUp`/`Down` plus `np_pileupUp`/`Down`
+totals) when the skimmer runs with `--save-systematics`, which is off by default —
+hence the committed baseline schema carries `single_weight_pileup` but no pile-up
+variation branches.
 
-Four caveats on the implementation:
+The correction is a function of `NumTrueInteractions` = `Pileup_nTrueInt`, the
+*mean* μ of the Poisson each bunch crossing was sampled from — **not**
+`Pileup_nPU`, the integer actually drawn from it. Upstream `boostedhh` passed
+`nPU`; we pass `nTrueInt`. On the test fixture the two share a mean (45.4) but
+`nPU` is broader (σ = 11.7 vs 9.5) and tracks `nTrueInt` at a correlation of only
+0.82, so the old call mis-weighted 51% of events by >25% and cost effective
+statistics (N_eff/N = 0.44 → 0.74). It never errored — the payload is 100
+unit-wide bins with `flow: clamp`, so an integer input still landed in a valid bin.
+Yields were unaffected either way, pile-up being norm-preserving.
 
-- **The correction is evaluated on the wrong variable.** Its input is
-  `NumTrueInteractions`, i.e. NanoAOD `Pileup_nTrueInt` — the *mean* μ of the
-  Poisson the bunch crossing was sampled from, a float. The skimmer passes
-  `events.Pileup.nPU`, the integer number of interactions actually drawn from that
-  Poisson, so it is μ convolved with counting noise. On the test fixture (200k
-  events) the two share a mean (45.43 vs 45.42) but `nPU` is *broader*
-  (σ = 11.7 vs 9.5, with σ(nPU − nTrueInt) = 6.76 ≈ √45.4) and tracks `nTrueInt`
-  at a correlation of only 0.82. Evaluating a ratio defined in μ on that draw
-  mis-weights 51% of events by more than 25% and costs effective statistics
-  (N_eff/N = 0.44, vs 0.74 with `nTrueInt`). The mean weight is 1.33 rather than
-  1.00, but that inflation cancels in `finalWeight` because pile-up is
-  norm-preserving — so this is a shape and statistical-power problem, not a yield
-  problem. Nothing errors: the payload is 100 unit-wide bins with `flow: clamp`,
-  so an integer input lands in a valid bin and returns a plausible number.
-  `Pileup_nTrueInt` is present in the input NanoAOD, so the fix is one word at the
-  call site.
-- `single_weight_pileup` is not the bare pile-up weight. The σ×L normalization
-  loop multiplies *every* entry of `weights_dict`, including the `single_weight_*`
-  diagnostics (e.g. 72688.09 in the committed event-0 dump). Divide by
-  `weight_norm` to recover the actual scale factor.
-- **`SkimmerABC.pileup_cutoff` (lines 69–78) is dead code.** It calls
-  `corrections.get_pileup_weight`, which does not exist in the vendored
-  `corrections` module; nothing in this repo calls it, and it would raise if
-  anything did.
-- The 2024 sample takes the correctionlib path exclusively. The 2022-era 
-  machinery uses `"Pu60"/"Pu70"` dataset branch of `add_pileup_weight` (data histogram ÷ `.npy` MC profile), together with [`makePUReWeightJSON.py`](src/boostedhh/corrections/makePUReWeightJSON.py)
-  and [`puWeightsJSON.sh`](src/boostedhh/corrections/puWeightsJSON.sh) from 
-  vendored `boostedhh`.
+One caveat on the implementation: `single_weight_pileup` is not the bare pile-up
+weight. The σ×L normalization loop multiplies *every* entry of `weights_dict`,
+including the `single_weight_*` diagnostics. Divide by `weight_norm` to recover
+the actual scale factor.
 
 ## Setup
 
@@ -263,6 +274,26 @@ Outputs land in `outputs/<timestamp>/` (symlinked from `outputs/latest`):
 per-batch parquet + ROOT skims, `outfiles/<tag>.pkl` totals, and a
 `finalWeight` column/branch (disable with `--no-write-final-weight` — condor
 jobs do, then normalize globally).
+
+### Controlling the outputs
+
+The parquet and ROOT skims hold the same events. When only the ROOT is wanted:
+
+```bash
+python -m vcb.run \
+  --year 2024 \
+  --files /path/to/<file>_CMSSW_15_CHARGE_NanoAOD.root \
+  --root-only --output-root-location /where/the/roots/go \
+  --chunksize 100000 --maxchunks 0
+```
+
+| Flag | Effect |
+|---|---|
+| `--root-only` | Write only the skim ROOT: no parquet, no `num_batches_<tag>.txt`, and the `outparquet/` scratch is deleted after the batches are assembled. Implies `--save-root`. `outfiles/<tag>.pkl` is still written — it carries `np_nominal`, without which the run cannot be normalized. |
+| `--output-root-location <dir>` | Send the skim ROOT file(s) to `<dir>` instead of the run output directory. Created if missing. Works with or without `--root-only`. |
+
+`--root-only` skips the `finalWeight` pass, which works by rewriting the parquet
+batches — it prints a line saying so. Normalize afterwards from the pickle.
 
 Full 2024 production (93 `batch_*` dirs under
 `Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/`)
@@ -327,7 +358,7 @@ it's a pure overall scale, so swapping is a one-number edit. Do *not* substitute
 the gridpack/GenXsecAnalyzer xsec: the private POWHEG sample forces W→cb, so its
 generated xsec carries no `|Vcb|²` and would overcount the signal by ~2200×.
 
-### Known gaps (as of 2026-07-24)
+### Known gaps (as of 2026-07-26)
 
 - **No jet-energy variations.** JER up/down and JES systematics aren't wired —
   the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.

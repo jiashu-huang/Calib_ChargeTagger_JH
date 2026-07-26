@@ -91,12 +91,39 @@ correctness.
 - **Impact:** MC jet pT resolution (shape) plus a JES shift from V1→V5. Jet-pT
   baselines move — refresh with `tests/test_run.py`.
 
-## 5. (Bonus) corrupt production file
+## 5. (Bonus) corrupt production files
 
-- `…/charge_Run3_2024_150X_v1/batch_001/d33939a7-a4df-4985-ba24-d69f5c18125d_CMSSW_15_CHARGE_NanoAOD.root`
-  has **no `Events` tree** (dead 119 MB file). The batch_001 condor job will
-  fail on it. Regenerate the file, or delete the line from the generated
-  `condor/runs/<tag>/batch_001/input_list.txt` before submitting.
+Scanned all 447 files under `charge_Run3_2024_150X_v1` on **2026-07-26**
+(open + check for an `Events` tree). **437 are good, 10 are dead** — they open
+but contain no `Events` tree. Every readable file has all the branches the
+skimmer needs (`Pileup_nTrueInt`, `Pileup_nPU`, `JetQk_QkCharge05/10`,
+`Jet_PflavCharge`): **0 files missing branches**. Total readable: **18,823,970
+events**.
+
+| Batch | Dead file | Files in batch | Usable |
+|---|---|---|---|
+| batch_021 | `5e5e0349-c2f4-4d1b-a7ff-dd0e8026f620` | 3 | 2 |
+| batch_036 | `e582ecfd-b9bb-4e88-a106-2094e6aeedd8` | 2 | 1 |
+| batch_041 | `11283c4c-5c8e-4301-b924-c1e9bdcfcd5c` | 2 | 1 |
+| batch_074 | `007b32a6-17e5-4996-bd2f-ff23f5808332` | 5 | 4 |
+| batch_076 | `2affec19-d4f1-445c-a869-22d2db628f95` | 5 | 4 |
+| batch_081 | `778698cf-f3ff-4d4f-9232-52cf5e78fba6` | 2 | 1 |
+| **batch_082** | `37bfe028-5ad2-43ff-9901-2ab84804141f` | **1** | **0** |
+| batch_086 | `8f1af746-cba8-4da2-b17a-4ebde013ce52` | 4 | 3 |
+| batch_087 | `f05b3147-0f94-4796-86dd-9be2ef727213` | 5 | 4 |
+| batch_091 | `8f6f2de9-5309-426e-8dbe-161db05bdf79` | 2 | 1 |
+
+These are being regenerated (in condor production as of 2026-07-26). Until they
+land, those ten condor jobs fail: the worker only checks that inputs *exist*
+([calib_batch_exec.sh:77-82](../condor/templates/calib_batch_exec.sh#L77)), and
+`--files` sets `skipbadfiles=False`, so one unreadable file kills the whole job.
+Note **batch_082 has a single file and it is the dead one** — that batch can
+produce nothing and must be dropped, not just filtered.
+
+> The file named here previously,
+> `batch_001/d33939a7-a4df-4985-ba24-d69f5c18125d`, was regenerated on
+> 2026-07-24 and now skims cleanly (43,800 events, verified). It is no longer a
+> problem.
 
 ---
 

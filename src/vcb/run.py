@@ -151,7 +151,9 @@ def _default_naming_tag(args, fileset: dict) -> str:
     return f"{args.starti}-{args.endi}"
 
 
-def _add_final_weight_outputs(filetag: str, year: str, save_root: bool, outdir: Path) -> None:
+def _add_final_weight_outputs(
+    filetag: str, year: str, save_root: bool, outdir: Path, root_dir: Path | None = None
+) -> None:
     """
     Add a finalWeight column/branch to local batch parquet/root outputs.
 
@@ -236,7 +238,7 @@ def _add_final_weight_outputs(filetag: str, year: str, save_root: bool, outdir: 
             continue
 
         batch_idx = parquet_path.stem.rsplit("_batch_", 1)[-1]
-        root_path = outdir / f"nano_skim_{filetag}_batch_{batch_idx}.root"
+        root_path = (root_dir or outdir) / f"nano_skim_{filetag}_batch_{batch_idx}.root"
         if not root_path.exists():
             print(f"Skipping ROOT update for batch {batch_idx}: missing {root_path}")
             continue
@@ -272,7 +274,9 @@ def main(args):
     )
 
     # Select output formats by processor type (skimmer always saves both).
-    save_parquet = {"skimmer": True}[args.processor]
+    # --root-only drops the parquet copy of the same events; the ROOT skim is
+    # then the only event-data output.
+    save_parquet = {"skimmer": True}[args.processor] and not args.root_only
     save_root = {"skimmer": True}[args.processor]
 
     # By default, skip bad files unless we are explicitly running on data.
@@ -341,6 +345,10 @@ def main(args):
         run_outdir.mkdir(parents=True, exist_ok=True)
         print(f"Writing outputs to: {run_outdir.resolve()}")
 
+        root_outdir = Path(args.output_root_location) if args.output_root_location else None
+        if root_outdir is not None:
+            print(f"Writing skim ROOT file(s) to: {root_outdir.resolve()}")
+
         # Local execution via Coffea's iterative executor.
         run_utils.run(
             p,
@@ -353,12 +361,21 @@ def main(args):
             filetag=filetag,
             batch_size=args.batch_size,
             outdir=run_outdir,
+            root_dir=root_outdir,
         )
 
         if args.write_final_weight and args.processor == "skimmer":
-            _add_final_weight_outputs(
-                filetag, str(args.year), save_root and args.save_root, run_outdir
-            )
+            if args.root_only:
+                # finalWeight is added by rewriting the parquet batches, which
+                # --root-only does not produce.
+                print(
+                    "Skipping finalWeight export: --root-only writes no parquet. "
+                    "Normalize afterwards with np_nominal from outfiles/<tag>.pkl."
+                )
+            else:
+                _add_final_weight_outputs(
+                    filetag, str(args.year), save_root and args.save_root, run_outdir, root_outdir
+                )
 
         # Update the "latest" symlink to point to this run's output directory.
         # outputs/ may not exist yet when --outdir points somewhere else.
@@ -415,7 +432,30 @@ if __name__ == "__main__":
             "to output parquet files and ROOT branches."
         ),
     )
+    parser.add_argument(
+        "--root-only",
+        action="store_true",
+        help=(
+            "Write only the skim ROOT file: no parquet, no num_batches text file, and the "
+            "intermediate outparquet/ scratch is removed. Implies --save-root and disables "
+            "--write-final-weight. The totals pickle (outfiles/<tag>.pkl) is still written."
+        ),
+    )
+    parser.add_argument(
+        "--output-root-location",
+        type=str,
+        default=None,
+        help=(
+            "Directory for the skim ROOT file(s). Created if missing. "
+            "Defaults to the run output directory (--outdir)."
+        ),
+    )
     args = parser.parse_args()
+
+    # --root-only is meaningless without ROOT output, so turn it on rather than
+    # making the user pass both flags.
+    if args.root_only:
+        args.save_root = True
 
     # Normalize "year" argument to a single value if a one-element list is passed.
     if isinstance(args.year, list):

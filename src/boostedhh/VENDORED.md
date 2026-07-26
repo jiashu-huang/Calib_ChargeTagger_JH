@@ -20,7 +20,11 @@ git submodule and is not pip-installed from upstream.
 - `hh_vars.py` — trimmed: HH sample dictionaries and SF tables dropped; only
   symbols imported by `boostedhh.utils`/`run_utils` and the `vcb` package kept.
   2024 added to `years` and `LUMI`.
-- `run_utils.py` — `--year` choices extended with `"2024"`.
+- `run_utils.py` — `--year` choices extended with `"2024"`; `run()` gained a
+  `root_dir` argument (skim ROOT files can land outside the run output
+  directory), writes `num_batches_<tag>.txt` only when parquet is kept, and
+  deletes the `outparquet/` scratch when it is not. Together these back the
+  `--output-root-location` / `--root-only` flags in `vcb.run`.
 - `processors/corrections.py` — 2024 wiring: `get_pog_json` year→dir map,
   Summer24 jet-veto key, correctionlib-based 2024 JEC in `JECs`
   (no pickle factories exist for 2024).

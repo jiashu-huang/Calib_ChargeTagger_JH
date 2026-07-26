@@ -232,18 +232,25 @@ def run(
     executor: str = "iterative",
     batch_size: int = 20,
     outdir: Path | None = None,
+    root_dir: Path | None = None,
 ):
     """
     Run processor without fancy dask (outputs then need to be accumulated manually)
 
     batch_size (int): used to combine a ``batch_size`` number of outputs into one parquet / root
     outdir (Path | None): directory to write outputs to; defaults to current working directory
+    root_dir (Path | None): directory for the skim ROOT files; defaults to ``outdir``
     """
     add_mixins(nanoevents)  # update nanoevents schema
 
     # resolve output directory
     local_dir = Path(outdir).resolve() if outdir is not None else Path().resolve()
     local_dir.mkdir(parents=True, exist_ok=True)
+
+    # skim ROOT files may be sent elsewhere than the rest of the run's outputs
+    root_out_dir = Path(root_dir).resolve() if root_dir is not None else local_dir
+    if save_root:
+        root_out_dir.mkdir(parents=True, exist_ok=True)
 
     # outputs are saved here as pickles
     pickles_dir = local_dir / "outfiles"
@@ -315,8 +322,9 @@ def run(
         parquet_files = list(path.glob("*.parquet"))
 
         num_batches = int(np.ceil(len(parquet_files) / batch_size))
-        with (local_dir / f"num_batches_{filetag}.txt").open("w") as f:
-            f.write(f"{num_batches}")
+        if save_parquet:
+            with (local_dir / f"num_batches_{filetag}.txt").open("w") as f:
+                f.write(f"{num_batches}")
 
         # need to combine all the files from these processors before transferring to EOS
         # otherwise it will complain about too many small files
@@ -337,7 +345,7 @@ def run(
                 import awkward as ak
 
                 with uproot.recreate(
-                    local_dir / f"nano_skim_{filetag}_batch_{i}.root", compression=uproot.LZ4(4)
+                    root_out_dir / f"nano_skim_{filetag}_batch_{i}.root", compression=uproot.LZ4(4)
                 ) as rfile:
                     rfile["Events"] = ak.Array(
                         # take only top-level column names in multiindex df
@@ -345,3 +353,8 @@ def run(
                             {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
                         )
                     )
+
+        # the per-chunk parquet scratch only exists to assemble the batched outputs
+        # above; drop it when the caller does not want parquet kept
+        if not save_parquet:
+            os.system(f"rm -rf {local_parquet_dir}")

@@ -12,6 +12,9 @@ num_batches_*.txt
 # condor campaign run dirs (generated JDLs, worker scripts, logs)
 condor/runs/*/
 
+# working plan (design records like NORMALIZATION.md ARE committed)
+PLAN.md
+
 # test fixtures + generated plots (baselines .csv/.txt ARE committed)
 tests/data/
 tests/outfile/*.pdf

@@ -181,14 +181,15 @@ machine has no `POG/LUM/2024_Summer24` — its LUM tree stops at
 reason as `2024_jet_jerc.json.gz`).
 
 **How the code uses it.** `add_pileup_weight` in
-[`../processors/corrections.py`](../processors/corrections.py) loads this file for
-`year == "2024"` through `correctionlib`, preferring the bundled repo copy. It
-takes the first (only) correction key and evaluates `nominal` / `up` / `down` on
-the per-event `nPU` (`NumTrueInteractions`, clipped to `[0, 99]`), clipping each
-resulting weight to `[0, 10]`. If the bundled file is absent it falls back to the
-2023 Summer23 eraBC weights as a placeholder with a loud warning. Pileup is
-norm-preserving, so this reshapes nPU-dependent distributions without changing the
-overall normalization.
+[`../processors/corrections.py`](../processors/corrections.py) loads this file
+through `correctionlib`, preferring the bundled repo copy and otherwise falling
+back to the CAT campaign directory on cvmfs. It takes the first (only) correction
+key and evaluates `nominal` / `up` / `down` on the per-event `Pileup_nTrueInt`
+(`NumTrueInteractions`, clipped to `[0, 99]`), clipping each resulting weight to
+`[0, 10]`. Note this is `nTrueInt`, the Poisson *mean*, not the sampled count
+`nPU` that upstream `boostedhh` passed. Pileup is norm-preserving, so this
+reshapes pile-up-dependent distributions without changing the overall
+normalization.
 
 [cloudpickle]: https://github.com/cloudpipe/cloudpickle
 [coffea]: https://github.com/scikit-hep/coffea
