@@ -240,6 +240,24 @@ def main() -> int:
 
     rep.check(len(sigma_lumi_seen) == 1, "one sigma*L across all files", str(sigma_lumi_seen))
 
+    # The files examined must together account for exactly the denominator
+    # their finalWeight was divided by. Catches the numerator/denominator
+    # mismatch of NORMALIZATION.md section 3 in its subtlest form: merging only
+    # part of a normalized campaign, where every per-file check still passes
+    # but the yield silently comes out low.
+    if global_den and totals_np:
+        rel = abs(totals_np - global_den) / max(abs(global_den), 1e-300)
+        rep.check(
+            rel < 1e-9,
+            "Norm sum over examined files == global_np_nominal",
+            f"{totals_np:,.4f} vs {global_den:,.4f}"
+            + (
+                "  -- these files are not the set finalWeight was normalized against"
+                if rel >= 1e-9
+                else ""
+            ),
+        )
+
     if global_den and totals_fw and sigma_lumi_seen:
         sigma_lumi = next(iter(sigma_lumi_seen))
         acceptance = totals_fw / sigma_lumi
