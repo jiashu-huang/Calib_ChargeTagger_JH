@@ -8,7 +8,7 @@ which no single job can know. It is appended afterwards, in place, by
 
 ## Worked example: 2024 production
 
-Input: 93 `batch_*` dirs (445 files, ~62 GB) under
+Input: 93 `batch_*` dirs (466 files, ~65 GB, 20,032,120 events) under
 
 ```
 /isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/
@@ -34,9 +34,46 @@ Defaults: `--year 2024`, `--files-name TTtoLNuCB`, `--skimmer vcbSkimmer`,
 Without `--submit`, submit later with `condor/runs/<tag>/submit_all.sh`, or
 debug a single job locally with `bash condor/runs/<tag>/batch_000/run_batch.sh`.
 
-> Known data issue (2026-07-14): `batch_001/d33939a7-...root` in the 2024
-> production has no `Events` tree (empty file); its job will fail. Either
-> regenerate that file or drop it from `input_list.txt`.
+> Input health (scanned 2026-07-26): all 466 files open, carry an `Events`
+> tree, and have the branches the skimmer needs — **0 bad, 0 missing
+> branches**. Worth re-checking after any regeneration: `--files` sets
+> `skipbadfiles=False`, so a single unreadable file aborts its whole job.
+
+### What each job runs
+
+`submit_batches.py` renders one worker script per batch from
+[templates/calib_batch_exec.sh](templates/calib_batch_exec.sh). With the
+defaults above, every job executes:
+
+```bash
+micromamba run -n ttbar python -u -m vcb.run \
+  --processor skimmer --skimmer vcbSkimmer \
+  --year 2024 \
+  --files <this batch's *.root>  --files-name TTtoLNuCB \
+  --naming-tag batch_NNN \
+  --save-root \
+  --chunksize 1000000 --maxchunks 0 --batch-size 9999 \
+  --outdir condor/runs/<tag>/batch_NNN/work
+```
+
+| Where it comes from | Value | Why |
+|---|---|---|
+| `--naming-tag` | `batch_NNN` | names the outputs; the worker renames them to `<tag>/roots/batch_NNN.root` and `<tag>/pickles/batch_NNN.pkl`, which is the pairing `normalize.py` relies on |
+| `--files-name` | `TTtoLNuCB` | must match a key in `xsecs`, else the run silently normalizes to `weight_norm = 1` |
+| `--batch-size` | `9999` | forces one ROOT per job; the worker asserts exactly one and fails otherwise |
+| `--maxchunks` | `0` | no cap — process the whole batch |
+| `--chunksize` | `1000000` | events per coffea chunk |
+| no `finalWeight` flag | — | the skimmer cannot write it; see step 2 |
+
+Condor resources come from the JDL: `request_cpus = 2`,
+`request_memory = 8G`, `request_disk = 4G`, `getenv = true`, `universe =
+vanilla`. Nothing is transferred — workers read the shared filesystem
+directly.
+
+The campaign `--tag` is the only identifier you choose. It names both
+`condor/runs/<tag>/` (JDLs, worker scripts, logs, `campaign.json`) and
+`<input-root>/processed-nano/<tag>/`. Both must not already exist, so a tag is
+single-use.
 
 ### 2. Global finalWeight
 
@@ -58,7 +95,7 @@ are skipped (`--force` recomputes them via a full rewrite). To normalize after
 merging instead, run with `--target merged` — hadd concatenates the per-batch
 `Norm` entries, so the merged file carries its own denominator.
 
-### 3. Merge
+### 3. Merge (optional)
 
 ```bash
 # hadd comes with the ROOT install in the ttbar env (or activate CMSSW)
@@ -66,6 +103,23 @@ python condor/scripts/merge_processed.py \
   --processed-dir "$INPUT/processed-nano/<tag>"
 # -> <processed-dir>/merged/total.root
 ```
+
+**This step is convenience, not correctness.** After step 2 every batch ROOT
+already carries a `finalWeight` computed with the *global* denominator, so the
+93 files are immediately usable as they are — `TChain` them, or hand the
+directory to uproot, and the yields come out right. `hadd` preserves
+`finalWeight`, the `Norm` tree (one entry per batch, so the merged file's sum
+is the global denominator) and the provenance objects, so merging after
+normalizing is safe and self-consistent.
+
+One thing to keep straight: `finalWeight` is normalized to the **whole
+campaign**, not to the file it lives in. Summing it over all 93 batches gives
+the predicted yield; summing over one batch gives *that batch's share* of the
+yield, not a full-sample estimate. Analyse a subset only if you mean to.
+
+If you would rather merge first and normalize once, swap the order and run
+`normalize.py --target merged`. Do not do both — the second pass skips files
+that already have `finalWeight` rather than dividing twice.
 
 ## Notes
 
