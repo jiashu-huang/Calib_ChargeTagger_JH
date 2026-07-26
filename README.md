@@ -1,5 +1,7 @@
 # Calib_ChargeTagger_JH
 
+Branch name: **second-pass-finalWeight**, created 2026-07-26
+
 Standalone Vcb skimmer for the jet-charge-tagger calibration, targeting the
 **2024 (Summer24)** private NanoAOD production. This is a clean-room port of
 the Vcb pipeline from `Vcb/Calib_ChargeTagger` (an LPC-HH/bbtautau fork) with
