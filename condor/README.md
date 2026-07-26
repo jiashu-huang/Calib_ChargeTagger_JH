@@ -1,5 +1,7 @@
 # HTCondor batch processing
 
+Last update: **2026-07-26**
+
 One Condor job per `batch_*` input directory. Each job runs the `vcb` skimmer
 on all ROOT files in its batch and writes one skimmed ROOT + one totals pickle.
 The skimmer never writes `finalWeight` — its denominator sums over every batch,
