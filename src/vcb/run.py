@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import inspect
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -210,6 +211,13 @@ def main(args):
         run_utils.run_dask(p, fileset, args)
     else:
         if args.naming_tag is not None:
+            if args.file_tag is not None:
+                warnings.warn(
+                    f"Both --naming-tag ({args.naming_tag!r}) and --file-tag "
+                    f"({args.file_tag!r}) given; --naming-tag wins and --file-tag "
+                    "is ignored.",
+                    stacklevel=2,
+                )
             filetag = args.naming_tag
         elif args.file_tag is not None:
             filetag = args.file_tag
