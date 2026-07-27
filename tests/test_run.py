@@ -4,6 +4,11 @@ Run Calib_ChargeTagger_JH on a single .root file and produce:
   2. tests/outfile/test-output-0th-event.txt — 0th event dump      (committed baseline)
   3. tests/outfile/test-output-schema.csv    — variable name + type (committed baseline)
   4. tests/outfile/test-output_jet_pt.pdf    — unweighted AK4 jet pT plot (git-ignored)
+  5. tests/outfile/test-output_trigger_lepton_pt_flavor.pdf
+                                             — trigger lepton pT by flavor (git-ignored)
+  6. tests/outfile/test-jet-tagger-roundtrip.txt
+                                             — input/output jet tagger check (committed
+                                               baseline); a FAIL exits non-zero
 
 Usage:
     micromamba run -n ttbar python tests/test_run.py [path-to-input.root] [--year YEAR]
@@ -166,6 +171,44 @@ def make_jet_pt_plot() -> None:
     print(f"  Maximum jet pT: {result['max_pt']:.3f} GeV")
 
 
+def make_trigger_lepton_pt_plot() -> None:
+    """Step 5: plot the trigger lepton pT, split by trigger lepton flavor."""
+    sys.path.insert(0, str(PROJECT_ROOT / "diagnostics"))
+    from plot_trigger_lepton_pt_flavor import plot_trigger_lepton_pt_flavor
+
+    result = plot_trigger_lepton_pt_flavor(
+        OUTFILE_DIR / "test-output.root",
+        OUTFILE_DIR / "test-output_trigger_lepton_pt_flavor.pdf",
+    )
+    weight = result["weight_branch"] or "unweighted (1.0 / event)"
+    print(f"Trigger lepton pT plot: {result['output_pdf']}")
+    print(f"  Weight: {weight}")
+    for label, s in result["per_flavor"].items():
+        print(f"  {label}: {s['n_events']} events, sum of weights {s['sum_weights']:.6g}")
+    print(f"  No trigger lepton (PAD_VAL flavor): {result['n_no_trigger_lepton']}")
+
+
+def check_jet_tagger_roundtrip(input_file: Path, year: str) -> bool:
+    """Step 6: verify every saved jet carries its input jet's tagger scores."""
+    sys.path.insert(0, str(PROJECT_ROOT / "diagnostics"))
+    from check_jet_tagger_roundtrip import check_jet_tagger_roundtrip as run_check
+
+    result = run_check(
+        output_file=OUTFILE_DIR / "test-output.root",
+        input_file=input_file,
+        report_path=OUTFILE_DIR / "test-jet-tagger-roundtrip.txt",
+        year=year,
+    )
+    print(f"Jet tagger round-trip report: {result['report']}")
+    print(f"  Events checked: {result['events_checked']}")
+    print(f"  Jet slots matched: {result['slots_matched']} / {result['slots_filled']}")
+    print(f"  Tagger comparisons: {result['comparisons']}, differing: "
+          f"{result['comparisons_differing']}")
+    print(f"  Unexplained absent input jets: {result['missing_counts']['UNEXPLAINED']}")
+    print(f"  VERDICT: {'PASS' if result['passed'] else 'FAIL'}")
+    return bool(result["passed"])
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -192,11 +235,16 @@ def main() -> None:
     dump_0th_event()
     make_schema_csv()
     make_jet_pt_plot()
+    make_trigger_lepton_pt_plot()
+    roundtrip_passed = check_jet_tagger_roundtrip(input_file, args.year)
 
     print("\nDone. Files in tests/outfile/:")
     for p in sorted(OUTFILE_DIR.iterdir()):
-        if p.name.startswith("test-output"):
+        if p.name.startswith(("test-output", "test-jet-tagger")):
             print(f"  {p.name}")
+
+    if not roundtrip_passed:
+        sys.exit("\nFAILED: the jet tagger round-trip check found problems; see the report above.")
 
 
 if __name__ == "__main__":

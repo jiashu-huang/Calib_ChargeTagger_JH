@@ -1,0 +1,45 @@
+AK4 jet tagger round-trip check: skim output vs. NanoAOD input
+==============================================================================
+output file : tests/outfile/test-output.root
+input files : 1 file(s)
+              tests/data/test-input.root
+tree        : Events
+fields      : ak4JetParTNegvsAll, ak4JetParTPosvsAll, ak4JetParTPosvsNeg, ak4JetbtagPNetB, ak4JetbtagPNetCvB, ak4JetbtagPNetCvNotB
+mode        : JEC/JER recomputed for year 2024 -- dropped jets get an exact reason
+
+Events
+------------------------------------------------------------------------------
+  in the output file                 : 62158
+  in the input file                  : 208780
+  matched to an input event          : 62158
+  NOT found in the input file        : 0
+  with no trigger lepton (PAD_VAL)   : 2149   (no jet cleaning applied)
+  saved nJets != jets passing the cuts: 0
+
+Saved jet slots
+------------------------------------------------------------------------------
+  filled slots checked               : 338817
+  matched to an input jet            : 338817   (max dR 0)
+  with NO input jet match            : 0
+  saved pT != recomputed pT          : 0
+
+Tagger value comparisons (6 fields x matched slot)
+------------------------------------------------------------------------------
+  comparisons made                   : 2032902
+  identical                          : 2032902
+  DIFFERING                          : 0
+
+Input jets absent from the output
+------------------------------------------------------------------------------
+  total                              : 121726
+    lepton_cleaned                   : 60016   (dR <= 0.4 of the trigger lepton)
+    pt_below_threshold               : 52664   (corrected pT <= 15.0 GeV)
+    eta_out_of_range                 : 2223   (|eta| >= 4.7)
+    truncated_beyond_8_slots         : 6823   (passed selection, event had > 8 selected jets)
+    UNEXPLAINED                      : 0   (no known reason -- investigate)
+
+  A jet can fail several cuts at once; it is counted under the first
+  reason in the list above that applies to it.
+
+==============================================================================
+VERDICT: PASS
