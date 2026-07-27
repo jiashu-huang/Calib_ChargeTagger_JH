@@ -32,7 +32,10 @@ python condor/submit_batches.py --input-root "$INPUT" --tag prod_$(date +%Y%m%d)
 Defaults: `--year 2024`, `--files-name TTtoLNuCB`, `--skimmer vcbSkimmer`,
 `--mamba-env ttbar`. Generated JDLs/worker scripts land in
 `condor/runs/<tag>/` (git-ignored); outputs in
-`<input-root>/processed-nano/<tag>/{roots,pickles,metadata}/`.
+`<input-root>/processed-nano/<tag>/{roots,pickles,metadata}/` by default, or
+wherever `--processed-dir <dir>` points (the 2026-07-26 production wrote to
+`MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-processed/prod_20260726/`, keeping
+skims out of the input tree).
 
 Without `--submit`, submit later with `condor/runs/<tag>/submit_all.sh`, or
 debug a single job locally with `bash condor/runs/<tag>/batch_000/run_batch.sh`.
@@ -77,14 +80,20 @@ micromamba run -n ttbar python -u -m vcb.run \
 | no `finalWeight` flag | — | the skimmer cannot write it; see step 2 |
 
 Condor resources come from the JDL: `request_cpus = 2`,
-`request_memory = 8G`, `request_disk = 4G`, `getenv = true`, `universe =
+`request_memory = 4G`, `request_disk = 2G`, `getenv = true`, `universe =
 vanilla`. Nothing is transferred — workers read the shared filesystem
 directly.
 
 The campaign `--tag` is the only identifier you choose. It names both
-`condor/runs/<tag>/` (JDLs, worker scripts, logs, `campaign.json`) and
-`<input-root>/processed-nano/<tag>/`. Both must not already exist, so a tag is
-single-use.
+`condor/runs/<tag>/` (JDLs, worker scripts, logs, `campaign.json`) and the
+processed-output directory. Both must not already exist, so a tag is
+single-use — the tag is the one key tying scripts, logs, and outputs
+together, and `campaign.json` inside the run dir records every path and
+parameter it was generated with.
+
+**Tag convention:** `test_<YYYYMMDD>[_<HHMM>]` for trial runs (delete the run
+dir *and* its processed outputs once superseded), `prod_<YYYYMMDD>` for real
+productions (keep both).
 
 ### 2. Global finalWeight
 

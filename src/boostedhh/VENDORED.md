@@ -71,4 +71,4 @@ diff -r /tmp/boostedhh/src/boostedhh src/boostedhh
 ```
 
 Do **not** auto-format or lint this directory (ruff excludes it via
-`pyproject.toml` / `.pre-commit-config.yaml`).
+`pyproject.toml`).

@@ -242,7 +242,7 @@ def main() -> int:
 
     # The files examined must together account for exactly the denominator
     # their finalWeight was divided by. Catches the numerator/denominator
-    # mismatch of NORMALIZATION.md section 3 in its subtlest form: merging only
+    # mismatch of docs/normalization.md section 3 in its subtlest form: merging only
     # part of a normalized campaign, where every per-file check still passes
     # but the yield silently comes out low.
     if global_den and totals_np:

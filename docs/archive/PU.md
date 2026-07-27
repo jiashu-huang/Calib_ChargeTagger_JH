@@ -1,3 +1,8 @@
+> **Archived 2026-07-27.** Exploration notes from finding the 2024 pile-up
+> payload on CVMFS. Superseded by
+> [`src/boostedhh/corrections/README.md`](../../src/boostedhh/corrections/README.md),
+> which records the chosen file, snapshot pin, md5, and era rationale.
+
 # Pile up (PU)
 
 Pile up information of 2024 can be found at

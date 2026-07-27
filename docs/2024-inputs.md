@@ -1,16 +1,13 @@
-# SHOPPING LIST — 2024 inputs to fill in
+# 2024 calibration inputs — provenance
 
-Last update: **2026-07-24T13:25**
+Last update: **2026-07-27**
 
-This repo is copied from Calib_ChargeTagger, which can only process files up to 
-2023. As we are interested in studying Summer2024 MC, we should fill in our own
-data. 
-
-**All four calibration inputs (items 1–4) are now filled in** with real 2024
-values; only the bonus data-quality note (item 5) remains. Each item below records
-what was needed, what is in place, and **exactly where it lives**. The pipeline
-worked on placeholders throughout — these only ever affected calibration-grade
-correctness.
+This repo is copied from Calib_ChargeTagger, which could only process files up
+to 2023. This document records, for each of the four 2024 calibration inputs,
+what was needed, what is in place, and **exactly where it lives** — plus a note
+on input-file health (item 5). **All four inputs are filled in** with real 2024
+values. The pipeline worked on placeholders throughout — these only ever
+affected calibration-grade correctness.
 
 ---
 
@@ -21,14 +18,14 @@ correctness.
   LumiPOG TWiki "LumiRecommendationsRun3" page).
 - **Set (2026-07-23):** `LUMI["2024"] = 124000.0` pb⁻¹ (124 fb⁻¹), from
   CMS DP-2026/003 (<https://cds.cern.ch/record/2952191>).
-- **Location:** [src/boostedhh/hh_vars.py](src/boostedhh/hh_vars.py) — the
+- **Location:** [src/boostedhh/hh_vars.py](../src/boostedhh/hh_vars.py) — the
   `LUMI["2024"]` entry at the top of the `LUMI` dict.
 - **Impact:** pure overall scale of `weight`/`finalWeight`.
 
 ## 2. σ(TTtoLNuCB) cross section  (done)
 
 - **Done (2026-07-23):** kept `923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)`
-  ≈ 0.345 pb in [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py); removed the
+  ≈ 0.345 pb in [src/boostedhh/xsecs.py](../src/boostedhh/xsecs.py); removed the
   `TODO`, verified the value, and documented the reasoning inline. This is the
   **physical** σ of the `(ℓν)(cb)` final state.
 - **σ_tt = 923.6 pb (NNLO+NNLL SM)**, *not* the measured 881 ± 30 pb
@@ -50,7 +47,7 @@ correctness.
 
 - **Done (2026-07-23):** bundled the real 2024 Summer24 pileup weights at
   `src/boostedhh/corrections/2024_puWeights.json.gz`. `add_pileup_weight` in
-  [src/boostedhh/processors/corrections.py](src/boostedhh/processors/corrections.py)
+  [src/boostedhh/processors/corrections.py](../src/boostedhh/processors/corrections.py)
   now picks it up automatically (first correction key,
   `Collisions24_CDEFGHI_goldenJSON`), evaluates nominal/up/down, and the 2023
   stand-in `WARNING` is gone — **no code change was needed**.
@@ -64,7 +61,7 @@ correctness.
   era B) — matches the campaign name, the snapshot's `changes.md`, and the
   cms-talk request. To include era B instead, swap in `puWeights_BCDEFGHI.json.gz`
   from the same directory (no code change). Provenance in
-  [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+  [src/boostedhh/corrections/README.md](../src/boostedhh/corrections/README.md).
 - **Impact:** nPU-dependent event weights (shape only); normalization unaffected
   (pileup is norm-preserving).
 
@@ -74,7 +71,7 @@ correctness.
   (PtResolution + ScaleFactor + the generic `JERSmear` hybrid formula) on the
   JEC-corrected pT, applied via correctionlib in `JECs._jer_smear_2024` /
   `JECs._apply_correctionlib_jec_2024`
-  ([src/boostedhh/processors/corrections.py](src/boostedhh/processors/corrections.py)).
+  ([src/boostedhh/processors/corrections.py](../src/boostedhh/processors/corrections.py)).
   The old "no JER" warning is gone.
 - **JEC bumped V1 → V5** at the same time, to match the JRV2 JER (both are
   co-derived in the CAT Summer24 bundle). jsonpog-integration is no longer used
@@ -84,21 +81,29 @@ correctness.
   (V5 JEC + JRV2 JER, CAT 2026-07-16 snapshot) and `jer_smear.json.gz`
   (`JERSmear`, 2025-11-03); loaded bundled-first with a CAT cvmfs fallback.
   Provenance in
-  [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+  [src/boostedhh/corrections/README.md](../src/boostedhh/corrections/README.md).
 - **Not wired (future):** JER up/down + JES variations (`…_SFUncertainty`) — the
   Vcb skimmer consumes no jet-energy variations (`jec_shifted_jetvars` unused);
   2024 **data** L2L3Residual JEC and AK8 remain no-ops.
 - **Impact:** MC jet pT resolution (shape) plus a JES shift from V1→V5. Jet-pT
   baselines move — refresh with `tests/test_run.py`.
 
-## 5. (Bonus) corrupt production files
+## 5. (Bonus) corrupt production files  (resolved)
 
-Scanned all 447 files under `charge_Run3_2024_150X_v1` on **2026-07-26**
-(open + check for an `Events` tree). **437 are good, 10 are dead** — they open
-but contain no `Events` tree. Every readable file has all the branches the
+**Resolved 2026-07-26:** the ten dead files listed below were regenerated, and
+a rescan of the full input set found **465 files, 0 bad, 0 missing branches,
+19,823,340 events** — see the input-health note in
+[condor/README.md](../condor/README.md). The record of what was found is kept
+below because the failure mode (a file that opens but has no `Events` tree,
+which kills its whole condor job since `--files` sets `skipbadfiles=False`)
+is worth re-checking after any future regeneration.
+
+Original scan, 2026-07-26: all 447 files under `charge_Run3_2024_150X_v1`
+(open + check for an `Events` tree). **437 were good, 10 dead** — they opened
+but contained no `Events` tree. Every readable file had all the branches the
 skimmer needs (`Pileup_nTrueInt`, `Pileup_nPU`, `JetQk_QkCharge05/10`,
-`Jet_PflavCharge`): **0 files missing branches**. Total readable: **18,823,970
-events**.
+`Jet_PflavCharge`): **0 files missing branches**. Total readable at the time:
+**18,823,970 events**.
 
 | Batch | Dead file | Files in batch | Usable |
 |---|---|---|---|
@@ -113,12 +118,13 @@ events**.
 | batch_087 | `f05b3147-0f94-4796-86dd-9be2ef727213` | 5 | 4 |
 | batch_091 | `8f6f2de9-5309-426e-8dbe-161db05bdf79` | 2 | 1 |
 
-These are being regenerated (in condor production as of 2026-07-26). Until they
-land, those ten condor jobs fail: the worker only checks that inputs *exist*
+All ten were regenerated on 2026-07-26 and the rescan came back clean. While
+they were dead, those ten condor jobs failed outright: the worker only checks
+that inputs *exist*
 ([calib_batch_exec.sh:77-82](../condor/templates/calib_batch_exec.sh#L77)), and
-`--files` sets `skipbadfiles=False`, so one unreadable file kills the whole job.
-Note **batch_082 has a single file and it is the dead one** — that batch can
-produce nothing and must be dropped, not just filtered.
+`--files` sets `skipbadfiles=False`, so one unreadable file kills the whole
+job. (At the time, **batch_082's only file was the dead one**, so that batch
+could produce nothing at all.)
 
 > The file named here previously,
 > `batch_001/d33939a7-a4df-4985-ba24-d69f5c18125d`, was regenerated on

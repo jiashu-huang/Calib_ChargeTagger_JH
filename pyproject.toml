@@ -68,7 +68,7 @@ testpaths = ["tests"]
 src = ["src"]
 line-length = 100
 # src/boostedhh is vendored upstream code -- keep it byte-diffable, don't lint it.
-# diagnostics/ are standalone debug scripts copied as-is from the old repo.
+# diagnostics/ are standalone debug scripts (mostly copied from the old repo).
 extend-exclude = ["src/boostedhh", "diagnostics"]
 
 [tool.ruff.lint]

@@ -1,3 +1,9 @@
+> **Archived 2026-07-27.** Exploration notes from surveying the CAT metadata
+> tree for 2024 JER/JEC payloads. Superseded by
+> [`src/boostedhh/corrections/README.md`](../../src/boostedhh/corrections/README.md)
+> (provenance of the bundled files) and [`2024-inputs.md`](../2024-inputs.md)
+> (what was chosen and why).
+
 # Jet energy resolution (JER)
 
 Date: 2026-07-23
