@@ -27,11 +27,13 @@ distills the four original logs — `LOG.md`, `BRANCH_LOG.md`, `AI_LOG.md`, and
 
 ---
 
-## ⚠️ Known discrepancies / pending 2024 work
+## Known discrepancies found at port time (all since resolved)
 
-As of **2026-07-14**, the committed and working-tree code targets **2022** MC.
-Before running on the new 2024 samples under `Vcb/MC/`, the following gaps must
-be resolved (discovered during a pre-run review, not yet fixed):
+As of **2026-07-14**, the committed and working-tree code targeted **2022** MC.
+A pre-run review found the following gaps. **All three have since been fixed**
+— the electron trigger is year-dependent (Ele30 for 2024), `--year 2024` is
+fully wired (JEC/JER, jet-veto, pile-up, lumi), and the integration test runs
+on a 2024 fixture. The list is kept as a record of what the port was missing:
 
 1. **Electron trigger is 2022-only.** `vcbSkimmer.py` hard-codes
    `HLT_Ele32_WPTight_Gsf` and `objects.HLT_ELE32_LEPTON_PT = 35.0`. The intended

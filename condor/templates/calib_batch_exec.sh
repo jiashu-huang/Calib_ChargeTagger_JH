@@ -108,8 +108,7 @@ mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
     --chunksize "$CHUNKSIZE" \
     --maxchunks "$MAXCHUNKS" \
     --batch-size "$BATCH_SIZE" \
-    --outdir "$WORK_DIR" \
-    --no-write-final-weight
+    --outdir "$WORK_DIR"
 
 shopt -s nullglob
 ROOT_OUTPUTS=("$WORK_DIR"/nano_skim_"$BATCH_ID"_batch_*.root)
@@ -126,12 +125,15 @@ if [ "${#ROOT_OUTPUTS[@]}" -ne 1 ]; then
   exit 1
 fi
 
+# Pickle first, ROOT second: normalization pairs each ROOT with its pickle, so
+# "a ROOT exists" must imply "its pickle exists" even if the job dies between
+# the two moves. Do not swap this order.
 if [ "$KEEP_INTERMEDIATE" -eq 1 ]; then
-  cp -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
   cp -f "$PICKLE_OUTPUT" "$OUTPUT_PICKLES_DIR/$BATCH_ID.pkl"
+  cp -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
 else
-  mv -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
   mv -f "$PICKLE_OUTPUT" "$OUTPUT_PICKLES_DIR/$BATCH_ID.pkl"
+  mv -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
   rm -f "$WORK_DIR"/out_"$BATCH_ID"_batch_*.parquet || true
   rm -f "$WORK_DIR"/num_batches_"$BATCH_ID".txt || true
   rm -rf "$WORK_DIR"/outparquet || true

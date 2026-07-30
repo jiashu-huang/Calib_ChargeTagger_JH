@@ -1,13 +1,21 @@
 # Normalization: where `finalWeight` should be computed
 
-**Status: proposal, not implemented.** This records a design decision to be made
-later. Nothing in this document has been applied to the code. Written 2026-07-24.
+**Status: implemented on `second-pass-finalWeight` (2026-07-26).** The analysis
+below (written 2026-07-24, when `fix_final_weight.py` still existed) led to a
+design combining Option D's pairing checks with an in-place branch append and
+recommendation #3 (self-describing batches): the skimmer never writes
+`finalWeight`; each batch ROOT carries its own `np_nominal` in a single-entry
+`Norm` tree; and [`condor/scripts/normalize.py`](../condor/scripts/normalize.py)
+sums the denominator, **appends** the `finalWeight` branch in place (~3 B/event
+written, existing branches untouched), and records provenance in each file and
+in `metadata/normalization.json`. Sections below are kept as the design record;
+references to `fix_final_weight.py` describe the retired implementation.
 
 ## The question
 
 `finalWeight` is what turns a skimmed MC event into a predicted number of real
 collisions. Today it is computed by a second pass over the condor outputs
-([`condor/scripts/fix_final_weight.py`](condor/scripts/fix_final_weight.py))
+(`condor/scripts/fix_final_weight.py`, since retired)
 which rewrites all 93 batch ROOT files in place. That pass is a global
 dependency across otherwise-independent jobs, and it has a silent failure mode.
 This document works out what the alternatives are.
@@ -98,7 +106,7 @@ root_paths   = sorted(roots_dir.glob("*.root"))
 
 It records `num_pickles` and `num_roots` in `metadata/global_final_weight.json`
 but does not compare them. Meanwhile the worker
-([`condor/templates/calib_batch_exec.sh`](condor/templates/calib_batch_exec.sh))
+([`condor/templates/calib_batch_exec.sh`](../condor/templates/calib_batch_exec.sh))
 moves its two outputs non-atomically, **ROOT first**:
 
 ```bash
@@ -121,7 +129,7 @@ distinction).
 ### Option A — normalize at merge time  ← recommended
 
 Batch ROOTs stay raw (`weight`, no `finalWeight`).
-[`merge_processed.py`](condor/scripts/merge_processed.py) computes the
+[`merge_processed.py`](../condor/scripts/merge_processed.py) computes the
 denominator from exactly the batches it is merging and writes `finalWeight` into
 `merged/total.root` as it goes. `fix_final_weight.py` is retired.
 
@@ -222,9 +230,9 @@ glance at *which* batches failed rather than only *how many*.
 
 ## 8. Related
 
-- [`condor/README.md`](condor/README.md) — current workflow
-- [`README.md`](README.md) — the pile-up section, for the weight chain
-  `genweight × pileup × ISR × FSR × σL`
+- [`condor/README.md`](../condor/README.md) — current workflow
+- [`processor.md`](processor.md) — the weights and pile-up sections, for the
+  weight chain `genweight × pileup × ISR × FSR × σL`
 - Known issue: `single_weight_*` diagnostic branches also carry the σ×L factor
   (an ordering accident in `add_weights` step 11); unrelated to this decision but
   in the same code path.

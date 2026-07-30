@@ -24,7 +24,11 @@ git submodule and is not pip-installed from upstream.
   `root_dir` argument (skim ROOT files can land outside the run output
   directory), writes `num_batches_<tag>.txt` only when parquet is kept, and
   deletes the `outparquet/` scratch when it is not. Together these back the
-  `--output-root-location` / `--root-only` flags in `vcb.run`.
+  `--output-root-location` / `--root-only` flags in `vcb.run`. Single-batch MC
+  runs additionally write a one-entry `Norm` tree (`np_nominal`, `nevents`)
+  next to `Events`, making each skim ROOT self-describing for the
+  `normalize.py` second pass (hadd concatenates `Norm`, so a merged file's
+  `Norm` sum is the global denominator).
 - `processors/corrections.py` — 2024 wiring: `get_pog_json` year→dir map,
   Summer24 jet-veto key, correctionlib-based 2024 JEC in `JECs`
   (no pickle factories exist for 2024).
@@ -67,4 +71,4 @@ diff -r /tmp/boostedhh/src/boostedhh src/boostedhh
 ```
 
 Do **not** auto-format or lint this directory (ruff excludes it via
-`pyproject.toml` / `.pre-commit-config.yaml`).
+`pyproject.toml`).

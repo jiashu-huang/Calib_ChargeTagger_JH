@@ -7,33 +7,32 @@ the `boostedhh` framework **vendored** under [src/boostedhh](src/boostedhh)
 (see [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md)) and the analysis
 code renamed `bbtautau` → `vcb`. Lineage: [docs/history.md](docs/history.md).
 
-## State of the repo (2026-07-26)
+## State of the repo (2026-07-27)
 
-The skimmer is **feature-complete for 2024 MC and not yet run in production**.
-All four calibration inputs are real Summer24 values — luminosity 124 fb⁻¹,
-σ(TTtoLNuCB) ≈ 0.345 pb, `Collisions24_CDEFGHI_goldenJSON` pile-up weights, and
-Summer24 V5 JEC + JRV2 JER — with no placeholders left
-([docs/2024-inputs.md](docs/2024-inputs.md)). Trigger-lepton selection, lepton
-cleaning, and the jet-veto map are in place. Pile-up reweighting was corrected
-to evaluate on `Pileup_nTrueInt` rather than `Pileup_nPU`, and `nTrueInt` is now
-an output branch so future weight updates are a post-processing rescale.
+**Feature-complete and production-validated on 2024 MC.** The full 2024
+TTtoLNuCB campaign (93 `batch_*` dirs) has been skimmed via HTCondor and
+normalized. All four calibration inputs are real Summer24 values — luminosity
+124 fb⁻¹, σ(TTtoLNuCB) ≈ 0.345 pb, `Collisions24_CDEFGHI_goldenJSON` pile-up
+weights, and Summer24 V5 JEC + JRV2 JER — with no placeholders left
+([docs/2024-inputs.md](docs/2024-inputs.md)).
 
-Two output flags were added: `--root-only` (skip the redundant parquet copy) and
-`--output-root-location` (send the skim ROOT elsewhere). Every CLI flag is
-catalogued in [RUNTAG.md](RUNTAG.md), including the overlaps and the handful
-that are accepted but inert.
+Normalization is deliberately a **second pass**: the skimmer writes `weight`
+and never `finalWeight`; each batch ROOT carries its own `np_nominal` in a
+single-entry `Norm` tree, and
+[condor/scripts/normalize.py](condor/scripts/normalize.py) appends the
+`finalWeight` branch in place afterwards. Why it is built this way:
+[docs/normalization.md](docs/normalization.md).
 
-**Three things are outstanding before a production run.** First, the regression
-baselines in `tests/outfile/` predate the pile-up fix — they still lack
-`nTrueInt` — so there is currently no verified baseline for the code on `main`;
-regenerate with `tests/test_run.py`. Second, `finalWeight` is still computed
-during the skim, which fuses a per-event quantity with a global one and carries
-the silent-bias failure mode in [NORMALIZATION.md](NORMALIZATION.md) §3; the
-agreed design moves it to a cheap second pass that appends the column in place.
-Third, 10 of the 447 input NanoAODs have no `Events` tree and are being
-regenerated; one of them (`batch_082`) is its batch's only file.
+Known gaps:
 
-Next work happens on a branch off this point.
+- **The committed 2024 outputs predate the MET fix (2026-07-29).** They carry
+  PF MET copied straight from NanoAOD, inconsistent with their own recorrected
+  jets by a median ~8.5 GeV. Both samples need a re-skim before the outputs are
+  used for training or data/MC — see [MET: PUPPI, not PF](#met-puppi-not-pf-2024).
+- **No jet-energy variations.** JER up/down and JES systematics aren't wired —
+  the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
+- **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is
+  MC AK4 only.
 
 ## What the pipeline does
 
@@ -42,179 +41,24 @@ trigger matching, AK4 jets with JEC + jet-veto map + lepton cleaning;
 gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
 `JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
 (genWeight, pileup, PS ISR/FSR, xsec×lumi normalization) → parquet/ROOT skim +
-pickle totals → `finalWeight = weight / np_nominal` (locally in `vcb.run`, or
-globally across batches via `condor/scripts/fix_final_weight.py`).
-Details: [docs/processor.md](docs/processor.md).
+pickle totals → `finalWeight = weight / np_nominal` appended in a second pass
+by `condor/scripts/normalize.py` (the skimmer itself never writes it — the
+denominator sums over every batch of a campaign).
 
-### Trigger lepton selection
+## Documentation map
 
-Relevant files: 
-- leptons in [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py),
-- HLTs in [`src/vcb/HLTs.py`](src/vcb/HLTs.py),
-- Reconciling two single-lepton HLTS: [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py), 
-  done through the main processing method for each chunk.
-
-Each retained event is assigned one leading trigger lepton.  The lepton must
-pass the offline selection, be matched to the object for the HLT path that
-fired, and lie above that path's activation threshold. 
-
-For 2024, `HLT_Ele30_WPTight_Gsf` selects an electron with pT ≥ 32 GeV and
-|η| < 2.5, while `HLT_IsoMu24` selects a muon with pT ≥ 26 GeV and |η| < 2.4.
-If both single-lepton paths fire, a trigger-ready muon is preferred; otherwise
-use a trigger-ready electron; otherwise discard the event. 
-
-This single per-event lepton is used for the trigger-lepton output branches and
-AK4 jet cleaning.
-
-### Jet energy correction (JEC)
-
-Relevant files:
-
-- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py) creates
-  `JECs(year)` and applies it to AK4 jets before jet selection.
-- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py)
-  implements `JECs` and its `get_jec_jets` correction path.
-- [`src/boostedhh/corrections/`](src/boostedhh/corrections/) contains the bundled
-  inputs: `jec_compiled_py311.pkl.gz` for 2022--2023 and
-  `2024_jet_jerc.json.gz` plus `jer_smear.json.gz` for 2024. Their versions and
-  provenance are recorded in [the corrections' README](src/boostedhh/corrections/README.md).
-
-For every jet, the code first derives raw pT and mass from NanoAOD `rawFactor`
-and attaches event rho (and, for MC, matched-generator-jet information). 
-For 2024 MC AK4 jets, correctionlib evaluates the Summer24 V5 `L1L2L3Res` 
-compound correction on raw pT/mass, then applies nominal JRV2 hybrid JER 
-smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet 
-cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD 
-energies, and JES/JER variations are not written by the skimmer.
-
-### Lepton cleaning
-
-Relevant files:
-
-- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py)
-  chooses the one trigger lepton per event and passes it as the cleaning
-  electron or muon collection for AK4 jets.
-- [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py) implements
-  `good_ak4jets`, including the lepton--jet overlap requirement.
-
-Jet cleaning uses *only* the selected per-event trigger lepton, not every
-reconstructed lepton. If both single-lepton paths fire, it prefers a
-trigger-matched muon above the IsoMu24 activation threshold; otherwise it uses
-the selected electron for the fired single-electron path. 
-
-`good_ak4jets` retains jets only when their ΔR from every supplied cleaning 
-electron and muon is greater than 0.4. Jets within ΔR < 0.4 of that trigger 
-lepton are removed before the jet-veto map and subsequent selections.
-
-### Jet-veto map
-
-Relevant files (line numbers as of the current commit):
-
-- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py) applies
-  the resulting event selection as the `ak4_jetveto` cut (see lines 369–379, 388–395, 589–591).
-- [`src/vcb/processors/objects.py`](src/vcb/processors/objects.py#L84-L89)
-  (lines 84–89) defines which jets reach the veto: `pt > 15`, `|eta| < 4.7`, and
-  ΔR > 0.4 from the selected trigger-lepton candidates.
-- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L573-L599)
-  (lines 573–599) implements `get_jetveto_event`; the year → correction-name map
-  is at [lines 588–594](src/boostedhh/processors/corrections.py#L588-L594), and
-  the CVMFS path is built by `get_pog_json`
-  ([lines 60–75](src/boostedhh/processors/corrections.py#L60-L75)).
-- The map payload is the campaign-specific correctionlib
-  `jetvetomaps.json.gz` read from the CMS JSON POG CVMFS tree
-  (`/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/`), whose
-  path is built by `get_pog_json`; it is not bundled in this repository, so
-  CVMFS must be reachable from wherever the skimmer runs (including condor
-  workers).
-
-After JEC and AK4 jet selection, the skimmer evaluates the year-specific Run-3
-jet-veto map at every jet's eta and phi. A nonzero map value marks a vetoed
-detector region. The event fails `ak4_jetveto` if any selected jet with pT > 15
-GeV lies in such a region; otherwise it passes. This selection is applied to
-both data and MC. Eta and phi are clipped to the map range before evaluation.
-
-For 2024 the resolved payload is `POG/JME/2024_Summer24/jetvetomaps.json.gz`, 
-correction `Summer24Prompt24_RunBCDEFGHI_V1`, map type `jetvetomap`.
-This is the campaign matching the `Summer24MiniAODv6` MC and the 
-`Summer24Prompt24_V5` JEC above. 
-
-Two caveats on the implementation:
-
-- The pT > 15 GeV requirement inside `get_jetveto_event` is redundant — the same
-  threshold is already applied in `good_ak4jets`.
-- The jets tested are the lepton-cleaned ones, and no jet ID / EM-fraction cut is
-  applied, so this is close to but not literally the JERC prescription (pT > 15,
-  tight jet ID, neutral EM fraction < 0.9, no ΔR < 0.2 PF-muon overlap).
-
-### Pile-up
-
-Relevant files (line numbers as of the current commit):
-
-- [`src/boostedhh/corrections/2024_puWeights.json.gz`](src/boostedhh/corrections/2024_puWeights.json.gz)
-  is **the source of the pile-up information** — a bundled correctionlib payload
-  holding one correction, `Collisions24_CDEFGHI_goldenJSON`, with inputs
-  `(NumTrueInteractions: real, weights: string ∈ {nominal, up, down})` → `weight`.
-- [`src/boostedhh/processors/corrections.py`](src/boostedhh/processors/corrections.py#L101)
-  (line 101) implements `add_pileup_weight`; the bundled-first / CAT-cvmfs
-  lookup it uses is at [lines 76–98](src/boostedhh/processors/corrections.py#L76-L98).
-- [`src/vcb/processors/vcbSkimmer.py`](src/vcb/processors/vcbSkimmer.py#L676)
-  calls `add_pileup_weight` inside `add_weights` (line 676) and copies the raw
-  pile-up counters into the skim (`skim_vars["Pileup"]` at lines 166–168, filled
-  at lines 531–534).
-- [`src/boostedhh/hh_vars.py`](src/boostedhh/hh_vars.py#L41) (line 41) lists
-  `"pileup"` in `norm_preserving_weights`, which is what keeps it shape-only.
-- Provenance of the bundled file — era choice, snapshot pin, md5 — is in
-  [the corrections' README](src/boostedhh/corrections/README.md); the CVMFS
-  directory it was copied from is recorded in [PU.md](PU.md).
-
-The payload is **not** taken from the `jsonpog-integration` tree used for the
-jet-veto map: that tree's LUM entries stop at `2023_Summer23BPix`. It comes from
-the CAT metadata tree,
-`/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz`
-— the LUM sibling of the same campaign as the 2024 JEC/JER file — pinned to the
-`2026-04-15` snapshot and committed to the repo so condor workers need no network
-access. Era set `CDEFGHI` matches the campaign name (C–E reReco + F–I prompt, no
-commissioning era B). Every year resolves the same way: bundled
-`corrections/<year>_puWeights.json.gz` first, else the CAT campaign directory on
-cvmfs. `add_pileup_weight` reads the *first* correction key in the file, so
-swapping in `puWeights_BCDEFGHI.json.gz` needs no code change.
-
-Pile-up enters the output in two independent ways.
-* As per-event counters. For MC the skimmer copies NanoAOD `Pileup_nPU` and
-`Pileup_nTrueInt` into the branches `nPU` and `nTrueInt`, and `PV_npvs` into `nPV`,
-for every retained event; for data both pile-up branches are filled with `PAD_VAL`
-(−99999) and only `nPV` is real. Nothing selects on them, so downstream code can
-re-derive or validate the reweighting — and because `nTrueInt` is stored, a future
-weight-file update is a post-processing rescale rather than a re-skim.
-* As an event weight. `add_weights` evaluates the correction on `nTrueInt`
-(clipped to `[0, 99]`) for `nominal`, `up`, and `down`, clips each returned weight
-to `[0, 10]`, and adds all three to the coffea `Weights` container as `"pileup"`.
-It is then folded multiplicatively into `weight` (together with `genweight`, the
-ISR/FSR PS weights, and the σ×L normalization) and into `weight_noxsec`, and is
-written out on its own as `single_weight_pileup`. Because `"pileup"` is in
-`norm_preserving_weights`, it is also part of the partial weight summed into
-`totals["np_nominal"]`; since `finalWeight = weight / np_nominal` divides by that
-same sum, pile-up reweighting reshapes pile-up-dependent distributions without
-moving the overall normalization. The `up`/`down` variations live in the `Weights`
-object but are only written (as `weight_pileupUp`/`Down` plus `np_pileupUp`/`Down`
-totals) when the skimmer runs with `--save-systematics`, which is off by default —
-hence the committed baseline schema carries `single_weight_pileup` but no pile-up
-variation branches.
-
-The correction is a function of `NumTrueInteractions` = `Pileup_nTrueInt`, the
-*mean* μ of the Poisson each bunch crossing was sampled from — **not**
-`Pileup_nPU`, the integer actually drawn from it. Upstream `boostedhh` passed
-`nPU`; we pass `nTrueInt`. On the test fixture the two share a mean (45.4) but
-`nPU` is broader (σ = 11.7 vs 9.5) and tracks `nTrueInt` at a correlation of only
-0.82, so the old call mis-weighted 51% of events by >25% and cost effective
-statistics (N_eff/N = 0.44 → 0.74). It never errored — the payload is 100
-unit-wide bins with `flow: clamp`, so an integer input still landed in a valid bin.
-Yields were unaffected either way, pile-up being norm-preserving.
-
-One caveat on the implementation: `single_weight_pileup` is not the bare pile-up
-weight. The σ×L normalization loop multiplies *every* entry of `weights_dict`,
-including the `single_weight_*` diagnostics. Divide by `weight_norm` to recover
-the actual scale factor.
+| Document | What it covers |
+|---|---|
+| [docs/processor.md](docs/processor.md) | How the skimmer works internally: object selection, the per-event trigger lepton, JEC/JER, jet-veto map, gen truth, cutflow, weights, pile-up |
+| [docs/cli.md](docs/cli.md) | Every `python -m vcb.run` flag — defaults, overlaps, and the inert ones inherited from `boostedhh` |
+| [condor/README.md](condor/README.md) | Batch production on HTCondor: submit, normalize, validate, merge |
+| [docs/normalization.md](docs/normalization.md) | Design record: why `finalWeight` is a second pass, the failure mode it closes |
+| [docs/2024-inputs.md](docs/2024-inputs.md) | Provenance of the four 2024 calibration inputs (lumi, σ, pile-up, JEC/JER) |
+| [docs/tests.md](docs/tests.md) | Test suite details and the jet-tagger round-trip check |
+| [docs/history.md](docs/history.md) | Lineage back to the old `Calib_ChargeTagger` repo |
+| [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) | Bundled correction payloads: origin, snapshot pins, md5s |
+| [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md) | What "vendored" means here and the local deltas vs upstream |
+| [AGENTS.md](AGENTS.md) | Operating notes: environment, ground rules, pre-commit checks |
 
 ## Setup
 
@@ -236,7 +80,7 @@ run with no reinstall. Re-run `pip install -e ...` only when:
 
 Renaming or adding *files* under `src/` does **not** need a reinstall.
 
-**For every shell session**L You need the `ttbar` environment active befor you 
+**For every shell session**: you need the `ttbar` environment active before you
 run the code. There are two equivalent ways to get it:
 
 ```bash
@@ -271,13 +115,13 @@ python -m vcb.run \
 ```
 
 Outputs land in `outputs/<timestamp>/` (symlinked from `outputs/latest`):
-per-batch parquet + ROOT skims, `outfiles/<tag>.pkl` totals, and a
-`finalWeight` column/branch (disable with `--no-write-final-weight` — condor
-jobs do, then normalize globally).
+per-batch parquet + ROOT skims and `outfiles/<tag>.pkl` totals. The ROOT also
+carries a single-entry `Norm` tree holding this run's `np_nominal`, making it
+self-describing for normalization. No `finalWeight` is written — append it
+afterwards with [condor/scripts/normalize.py](condor/scripts/normalize.py),
+which must see the whole sample to know the denominator.
 
-### Controlling the outputs
-
-The parquet and ROOT skims hold the same events. When only the ROOT is wanted:
+When only the ROOT skim is wanted:
 
 ```bash
 python -m vcb.run \
@@ -292,8 +136,8 @@ python -m vcb.run \
 | `--root-only` | Write only the skim ROOT: no parquet, no `num_batches_<tag>.txt`, and the `outparquet/` scratch is deleted after the batches are assembled. Implies `--save-root`. `outfiles/<tag>.pkl` is still written — it carries `np_nominal`, without which the run cannot be normalized. |
 | `--output-root-location <dir>` | Send the skim ROOT file(s) to `<dir>` instead of the run output directory. Created if missing. Works with or without `--root-only`. |
 
-`--root-only` skips the `finalWeight` pass, which works by rewriting the parquet
-batches — it prints a line saying so. Normalize afterwards from the pickle.
+Every other flag — including the overlapping tag flags and the inert ones
+inherited from `boostedhh` — is catalogued in [docs/cli.md](docs/cli.md).
 
 Full 2024 production (93 `batch_*` dirs under
 `Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/`)
@@ -304,39 +148,20 @@ via HTCondor: see [condor/README.md](condor/README.md).
 ```bash
 # unit tests (7 tests, ~10 s, no input data needed)
 pytest tests/
+
+# integration run: skims the ~1 GB fixture, regenerates the committed baselines
+# in tests/outfile/, and runs the jet-tagger round-trip check (~ minutes)
+python tests/test_run.py
 ```
 
-| File | What it does |
-|---|---|
-| [tests/test_package.py](tests/test_package.py) | One smoke test: the installed distribution's version matches `vcb.__version__`. Fails if `vcb` isn't importable or the editable install is stale/missing — i.e. it catches a broken **Setup** before anything else does. |
-| [tests/test_vcb_gen_truth.py](tests/test_vcb_gen_truth.py) | Six unit tests for the gen-truth helpers in [src/vcb/processors/GenSelection.py](src/vcb/processors/GenSelection.py), run on hand-built awkward arrays (no NanoAOD file). Covers: **(1)** W decay-mode masks split hadronic vs. leptonic with τ counted as *leptonic*; **(2)** the `GenWto{UD,US,CD,CS,UB,BC}` flavor tags are unordered (q1/q2 swap-invariant) and mutually exclusive — exactly one fires per W; **(3)** gen quarks stored with mass 0 get the PDG mass back from their flavor (c → 1.27, b → 4.18 GeV; light quarks stay 0, already-non-zero masses untouched); **(4)–(6)** lepton mass, charge, and flavor come from the PDG id with the right sign convention (`11` → −1, `-11` → +1) and flavor stored as \|pdgId\|; and throughout, missing entries stay `PAD_VAL` rather than silently becoming 0. |
-| [tests/test_run.py](tests/test_run.py) | **Not a pytest test** — a standalone end-to-end script (pytest collects no tests from it). Runs the real skimmer on one NanoAOD file and regenerates the regression artifacts in `tests/outfile/`. Needs the ~1 GB fixture and takes a few minutes. |
-
-The integration run: 
-
-```bash
-# fixture is git-ignored — copy it in once
-cp /isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger/tests/data/test-input.root tests/data/
-
-python tests/test_run.py            # defaults: tests/data/test-input.root, --year 2024
-```
-
-It produces four files in `tests/outfile/`, two of which are **committed
-baselines** — an unexplained diff in either is a bug, an expected diff should be
-reviewed and committed with the change that caused it:
-
-| Artifact | Committed? | Purpose |
-|---|---|---|
-| `test-output-schema.csv` | **yes** | every output branch name + ROOT type — catches accidentally added/dropped/retyped branches |
-| `test-output-0th-event.txt` | **yes** | full value dump of event 0 — catches value-level changes (e.g. the JEC V1→V5 + JER shift moved jet pT) |
-| `test-output.root` | no (git-ignored) | the skim itself |
-| `test-output_jet_pt.pdf` | no (git-ignored) | unweighted AK4 jet pT plot, via `diagnostics/plot_jet_pt.py` — an eyeball check |
+Three files in `tests/outfile/` are **committed baselines**
+(`test-output-schema.csv`, `test-output-0th-event.txt`,
+`test-jet-tagger-roundtrip.txt`): an unexplained diff in any of them is a bug;
+an expected diff should be reviewed and committed with the change that caused
+it. What each artifact catches, the fixture location, and how the round-trip
+check works: [docs/tests.md](docs/tests.md).
 
 ## 2024 calibration inputs
-
-Calib_ChargeTagger is only up-to-date to 2023. We brought in 2024 inputs.
-Provenance for every number, including which source it came from and why: 
-[docs/2024-inputs.md](docs/2024-inputs.md).
 
 | Input | Value in place | Where |
 |---|---|---|
@@ -344,26 +169,39 @@ Provenance for every number, including which source it came from and why:
 | σ(TTtoLNuCB) | ≈0.345 pb = σ_tt(923.6, NNLO+NNLL) × 2 × BR(W→ℓν) × BR(W→cb) | [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py) |
 | 2024 pileup weights | real Summer24 `Collisions24_CDEFGHI_goldenJSON` (eras C–I, no commissioning era B) | bundled `corrections/2024_puWeights.json.gz` |
 | 2024 JEC + JER | compound `Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 smearing on the corrected pT | bundled `corrections/2024_jet_jerc.json.gz` + `jer_smear.json.gz` |
+| 2024 MET | **PUPPI**, rebuilt Type-1 from `RawPuppiMET` so it matches the recorrected jets | `MET_COLLECTION` in [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), `JECs.type1_met_2024` |
 
-Both jet files are CAT Summer24 snapshots, loaded bundled-first with a CAT cvmfs
-fallback; the pileup file comes from the LUM sibling of the same campaign
-(jsonpog-integration has no `2024_Summer24` LUM entry). Details in
+Provenance for every number — which source it came from and why:
+[docs/2024-inputs.md](docs/2024-inputs.md) and
 [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
-2022/2023 keep the bundled pickle JEC factories.
 
-Two σ values are defensible for the cross section — theory σ_tt = 923.6 pb (used
-here, matching the sibling `TTto*` entries and the CMS convention of normalizing
-tt̄ MC to theory) or the measured 881 ± 30 pb; they agree within uncertainty and
-it's a pure overall scale, so swapping is a one-number edit. Do *not* substitute
-the gridpack/GenXsecAnalyzer xsec: the private POWHEG sample forces W→cb, so its
-generated xsec carries no `|Vcb|²` and would overcount the signal by ~2200×.
+### MET: PUPPI, not PF (2024)
 
-### Known gaps (as of 2026-07-26)
+Per JME guidance, 2024 uses **`PuppiMET`**, not `PFMET`. `METPt`/`METPhi` in
+the skim are PUPPI from 2026-07-29 onward; earlier outputs are PF.
 
-- **No jet-energy variations.** JER up/down and JES systematics aren't wired —
-  the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
-- **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is MC
-  AK4 only.
+This is forced by the jets, not a preference: `events.Jet` in this NanoAOD *is*
+the PUPPI collection (hence the `AK4PFPuppi` JEC), and raw PF MET sums
+unweighted PF candidates while a PUPPI jet is built from pileup-weighted ones.
+Propagating our jets onto PF MET would subtract energy that was never in the
+total. Measured on the test fixture, our Type-1 shift reproduces NanoAOD's
+`PuppiMET` shift exactly (corr 1.000, rms 0.17 GeV) but its `PFMET` shift only
+loosely (corr 0.74) — the two are built from different jets.
+
+MET is also now **rebuilt**, not copied. It is minus the vector sum of the
+event, so recorrecting jets to V5 + JRV2 invalidates the MET NanoAOD shipped
+(which carries the NanoAOD-era JEC and no JER smearing at all).
+`JECs.type1_met_2024` recomputes it from raw MET as
+`MET_raw − Σ(pT_L1L2L3Res − pT_L1)`, over jets above 15 GeV with EM fraction
+below 0.9 and muons subtracted. The L1 reference matters: L1 removes pileup
+energy that really is in the event and must stay in MET. Effect on the test
+fixture: median **8.5 GeV** vector shift (~13% of median MET), of which ~8.7
+is the V1→V5 recalibration and ~3.8 the previously-absent JER smearing.
+
+> ⚠️ Do **not** substitute the gridpack/GenXsecAnalyzer cross section: the
+> private POWHEG sample forces W→cb, so its generated xsec carries no `|Vcb|²`
+> and would overcount the signal by ~2200×. Details in
+> [docs/2024-inputs.md](docs/2024-inputs.md) item 2.
 
 ## Repo layout
 
@@ -372,6 +210,6 @@ src/vcb/                 analysis package (run.py, HLTs.py, processors/)
 src/boostedhh/           vendored framework (do not auto-format; see VENDORED.md)
 condor/                  batch submission + post-processing scripts
 tests/                   pytest units + integration script + committed baselines
-diagnostics/             plotting / event-dump helper scripts (not part of the package)
-docs/                    processor description, lineage, archived patch
+diagnostics/             plotting / checking helper scripts (not part of the package)
+docs/                    processor, CLI, normalization, tests, history + archive/
 ```

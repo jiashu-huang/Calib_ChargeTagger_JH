@@ -160,9 +160,27 @@ def parse_args() -> argparse.Namespace:
         default=9999,
         help="run.py batch size; keep this large so one Condor job yields one ROOT file.",
     )
-    parser.add_argument("--request-cpus", type=int, default=2, help="Condor CPU request.")
-    parser.add_argument("--request-memory", default="8G", help="Condor memory request.")
-    parser.add_argument("--request-disk", default="4G", help="Condor disk request.")
+    # Defaults sized from a measured 5-file batch (208,780 events, 2026-07-26):
+    # 104% of one core, 1.29 GB peak RSS, 129 MB of transient files, ~60 s wall.
+    parser.add_argument(
+        "--request-cpus",
+        type=int,
+        default=2,
+        help="Condor CPU request. The skim is single-threaded (measured 104%% of "
+        "one core); 2 is headroom for the uproot/ROOT I/O threads.",
+    )
+    parser.add_argument(
+        "--request-memory",
+        default="4G",
+        help="Condor memory request. Measured peak RSS 1.29 GB on a 5-file batch; "
+        "the peak is the end-of-job concatenation, so it scales with selected events.",
+    )
+    parser.add_argument(
+        "--request-disk",
+        default="2G",
+        help="Condor disk request. Nearly irrelevant here (measured 5 KB of condor "
+        "scratch) because the job writes to the shared filesystem, not the sandbox.",
+    )
     parser.add_argument(
         "--keep-intermediate",
         action="store_true",

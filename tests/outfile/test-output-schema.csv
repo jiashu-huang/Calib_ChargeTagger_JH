@@ -325,7 +325,6 @@ electronsNumlMatchedTop10,Long64_t
 electronsNumlMatchedTop11,Long64_t
 electronsNumlMatchedTop12,Long64_t
 event,ULong64_t
-finalWeight,Double_t
 ht,Float_t
 luminosityBlock,UInt_t
 muonsNumlMatchedTop10,Long64_t
@@ -336,6 +335,7 @@ nJets,Long64_t
 nMuons,Long64_t
 nPU,Int_t
 nPV,UChar_t
+nTrueInt,Float_t
 run,UInt_t
 scale_weights0,Double_t
 scale_weights1,Double_t
