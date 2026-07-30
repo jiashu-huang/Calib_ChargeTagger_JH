@@ -237,9 +237,19 @@ def get_scale_weights(events):
 # corrections/README.md. jsonpog-integration is NOT used for 2024: its snapshot
 # ships only a V1 JEC and a Summer23BPix JRV1 JER stand-in.
 JEC_2024_MC_COMPOUND = "Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi"
+# L1 (pileup offset) alone, needed to propagate the JEC to MET: the Type-1
+# prescription subtracts the L1-corrected jet, not the raw jet, because the
+# pileup energy L1 removes is genuinely in the event and must stay in MET.
+JEC_2024_MC_L1 = "Summer24Prompt24_V5_MC_L1FastJet_AK4PFPuppi"
 JER_2024_MC_RESO = "Summer24Prompt24_JRV2_MC_PtResolution_AK4PFPuppi"
 JER_2024_MC_SF = "Summer24Prompt24_JRV2_MC_ScaleFactor_AK4PFPuppi"
 JER_2024_SMEAR = "JERSmear"
+
+# Standard CMS Type-1 MET jet acceptance (JetMETCorrections/Type1MET): only
+# jets above this corrected pT and below this EM fraction contribute. The EM
+# cut avoids double-counting jets that are really electrons/photons.
+TYPE1_MET_MIN_PT = 15.0
+TYPE1_MET_MAX_EMEF = 0.9
 
 # Bundled-first, cvmfs-fallback sources for the 2024 jet corrections.
 JEC_JER_2024_BUNDLED = package_path + "/corrections/2024_jet_jerc.json.gz"
@@ -347,6 +357,12 @@ class JECs:
             jets["pt"] = jets.pt * smear
             jets["mass"] = jets.mass * smear
             factor = factor * smear
+        else:
+            smear = ak.ones_like(jets.pt)
+        # Kept on the jet so `type1_met_2024` can reuse the same per-jet smear
+        # when propagating to MET, rather than re-drawing the stochastic term
+        # (the JERSmear hashprng would give a different number on a second call).
+        jets["jer_smear"] = ak.values_astype(smear, np.float32)
 
         # rawFactor must be consistent with the recorrected energies. Guard the
         # division: a jet whose (rare) stochastic JER smear clamps to 0 has
@@ -400,6 +416,79 @@ class JECs:
         )
         smear = np.maximum(smear, 0.0)
         return ak.unflatten(ak.values_astype(smear, np.float32), nj)
+
+    def type1_met_2024(self, raw_met: ak.Array, jets: JetArray):
+        """
+        Rebuild Type-1 corrected MET from *raw* MET so it is consistent with the
+        jet energies this class just produced (Summer24 V5 JEC + JRV2 smearing).
+
+        MET is not an independent measurement -- it is minus the vector sum of
+        everything reconstructed. Re-deriving jet energies therefore invalidates
+        the MET that shipped with NanoAOD, which was built from the NanoAOD-era
+        JEC and carries no JER smearing at all.
+
+        Type-1 replaces the raw jet contribution to MET with the corrected one::
+
+            MET_T1 = MET_raw - sum_jets ( pT_L1L2L3Res - pT_L1 )
+
+        The subtraction is what keeps the books balanced: raising a jet's energy
+        must lower MET by the same amount. The reference point is the L1-corrected
+        jet rather than the raw jet because L1 removes pileup energy, which is
+        really in the event and must stay in MET.
+
+        Only jets above ``TYPE1_MET_MIN_PT`` with EM fraction below
+        ``TYPE1_MET_MAX_EMEF`` contribute, and muons are removed from the jet
+        first (``muonSubtrFactor``) since muon momenta come from the tracker and
+        muon system and must not be rescaled by a jet correction.
+
+        ``jets`` must be the full corrected collection straight out of
+        ``get_jec_jets`` -- before lepton cleaning or any analysis pT cut, since
+        Type-1 sums over all jets in the event.
+
+        Returns an ``ak.Array`` with ``pt``/``phi`` fields, or None if the 2024
+        correctionlib payload is unavailable (caller keeps the input MET).
+        """
+        if self.correctionlib_cset is None:
+            return None
+        if "jer_smear" not in ak.fields(jets):
+            # get_jec_jets bailed out (e.g. a nano_version that disables JECs), so
+            # the jets are untouched NanoAOD and their MET is already consistent.
+            print("WARNING: jets carry no 2024 JEC; leaving MET as-is.")
+            return None
+
+        l1_corr = self.correctionlib_cset[JEC_2024_MC_L1]
+        full_corr = self.correctionlib_cset.compound[JEC_2024_MC_COMPOUND]
+
+        j, nj = ak.flatten(jets), ak.num(jets)
+
+        # Raw jet pT with muons removed, which is what both corrections below
+        # are evaluated on -- matching CMSSW's Type1METProducer.
+        pt_raw_ms = np.array(j.pt_raw * (1.0 - j.muonSubtrFactor), dtype=np.float64)
+        area = np.array(j.area, dtype=np.float64)
+        eta = np.array(j.eta, dtype=np.float64)
+        phi = np.array(j.phi, dtype=np.float64)
+        rho = np.array(j.event_rho, dtype=np.float64)
+
+        pt_l1 = pt_raw_ms * l1_corr.evaluate(area, eta, pt_raw_ms, rho)
+        # Same per-jet JER smear that was applied to the jet itself, so MET and
+        # the saved jets describe one consistent event.
+        pt_full = (
+            pt_raw_ms
+            * full_corr.evaluate(area, eta, pt_raw_ms, rho, phi)
+            * np.array(j.jer_smear, dtype=np.float64)
+        )
+
+        emef = np.array(j.neEmEF + j.chEmEF, dtype=np.float64)
+        contributes = (pt_full > TYPE1_MET_MIN_PT) & (emef < TYPE1_MET_MAX_EMEF)
+        dpt = np.where(contributes, pt_full - pt_l1, 0.0)
+
+        dx = ak.sum(ak.unflatten(dpt * np.cos(phi), nj), axis=1)
+        dy = ak.sum(ak.unflatten(dpt * np.sin(phi), nj), axis=1)
+
+        met_x = raw_met.pt * np.cos(raw_met.phi) - dx
+        met_y = raw_met.pt * np.sin(raw_met.phi) - dy
+
+        return ak.zip({"pt": np.hypot(met_x, met_y), "phi": np.arctan2(met_y, met_x)})
 
     def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
         """add variables needed for JECs"""

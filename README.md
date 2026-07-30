@@ -25,6 +25,10 @@ single-entry `Norm` tree, and
 
 Known gaps:
 
+- **The committed 2024 outputs predate the MET fix (2026-07-29).** They carry
+  PF MET copied straight from NanoAOD, inconsistent with their own recorrected
+  jets by a median ~8.5 GeV. Both samples need a re-skim before the outputs are
+  used for training or data/MC — see [MET: PUPPI, not PF](#met-puppi-not-pf-2024).
 - **No jet-energy variations.** JER up/down and JES systematics aren't wired —
   the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
 - **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is
@@ -165,10 +169,34 @@ check works: [docs/tests.md](docs/tests.md).
 | σ(TTtoLNuCB) | ≈0.345 pb = σ_tt(923.6, NNLO+NNLL) × 2 × BR(W→ℓν) × BR(W→cb) | [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py) |
 | 2024 pileup weights | real Summer24 `Collisions24_CDEFGHI_goldenJSON` (eras C–I, no commissioning era B) | bundled `corrections/2024_puWeights.json.gz` |
 | 2024 JEC + JER | compound `Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 smearing on the corrected pT | bundled `corrections/2024_jet_jerc.json.gz` + `jer_smear.json.gz` |
+| 2024 MET | **PUPPI**, rebuilt Type-1 from `RawPuppiMET` so it matches the recorrected jets | `MET_COLLECTION` in [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), `JECs.type1_met_2024` |
 
 Provenance for every number — which source it came from and why:
 [docs/2024-inputs.md](docs/2024-inputs.md) and
 [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+
+### MET: PUPPI, not PF (2024)
+
+Per JME guidance, 2024 uses **`PuppiMET`**, not `PFMET`. `METPt`/`METPhi` in
+the skim are PUPPI from 2026-07-29 onward; earlier outputs are PF.
+
+This is forced by the jets, not a preference: `events.Jet` in this NanoAOD *is*
+the PUPPI collection (hence the `AK4PFPuppi` JEC), and raw PF MET sums
+unweighted PF candidates while a PUPPI jet is built from pileup-weighted ones.
+Propagating our jets onto PF MET would subtract energy that was never in the
+total. Measured on the test fixture, our Type-1 shift reproduces NanoAOD's
+`PuppiMET` shift exactly (corr 1.000, rms 0.17 GeV) but its `PFMET` shift only
+loosely (corr 0.74) — the two are built from different jets.
+
+MET is also now **rebuilt**, not copied. It is minus the vector sum of the
+event, so recorrecting jets to V5 + JRV2 invalidates the MET NanoAOD shipped
+(which carries the NanoAOD-era JEC and no JER smearing at all).
+`JECs.type1_met_2024` recomputes it from raw MET as
+`MET_raw − Σ(pT_L1L2L3Res − pT_L1)`, over jets above 15 GeV with EM fraction
+below 0.9 and muons subtracted. The L1 reference matters: L1 removes pileup
+energy that really is in the event and must stay in MET. Effect on the test
+fixture: median **8.5 GeV** vector shift (~13% of median MET), of which ~8.7
+is the V1→V5 recalibration and ~3.8 the previously-absent JER smearing.
 
 > ⚠️ Do **not** substitute the gridpack/GenXsecAnalyzer cross section: the
 > private POWHEG sample forces W→cb, so its generated xsec carries no `|Vcb|²`

@@ -23,8 +23,10 @@ Jet handling in this processor:
 - Remove jets within `DeltaR < 0.4` of the selected trigger lepton used for
   the single-lepton path, so the overlap veto is applied only against the
   prompt electron / muon rather than all reconstructed leptons.
-- Rebuild `PFMET` from the corrected AK4 jets when the MET factory is available
-  for data; otherwise keep the input `PFMET`.
+- Rebuild MET from the corrected AK4 jets so it stays consistent with them:
+  2022/2023 via the coffea MET factory, 2024 via an explicit Type-1 recompute
+  from raw MET (`JECs.type1_met_2024`). Data keeps the input MET, since 2024
+  data jets are not recorrected either.
 - Do not apply any b-tag working point at skimmer level and do not use AK8 jets
   or JMSR in this processor.
 - Save up to 8 selected AK4 jets to the parquet output, including kinematics,
@@ -101,6 +103,20 @@ VCB_MET_FILTERS = [
     "ecalBadCalibFilter",
     "hfNoisyHitsFilter",
 ]
+
+# MET collection written to the skim, and the raw collection the 2024 Type-1
+# rebuild starts from. These must be the same flavour as the jets: raw PF MET
+# sums unweighted PF candidates while a PUPPI jet is built from pileup-weighted
+# ones, so crossing them subtracts energy that was never in the total.
+#
+# PUPPI is not a preference here, it is what `events.Jet` is. Measured on
+# tests/data/test-input.root: rebuilding the Type-1 shift from events.Jet with
+# NanoAOD's own jet pT reproduces NanoAOD's PuppiMET shift exactly (corr 1.000,
+# rms 0.17 GeV) but its PFMET shift only loosely (corr 0.74). PFMET is built
+# from a different jet collection, so propagating our PUPPI jets onto it is not
+# a valid correction. This changed from PFMET on 2026-07-29.
+MET_COLLECTION = "PuppiMET"
+RAW_MET_COLLECTION = "RawPuppiMET"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -377,10 +393,27 @@ class vcbSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
 
+        # MET must be rebuilt from the jets we just recorrected -- it is minus the
+        # vector sum of the event, so new jet energies mean a new MET. Done here,
+        # before good_ak4jets(), because Type-1 sums over every jet in the event,
+        # not just the cleaned analysis ones.
+        met = events[MET_COLLECTION]
         if JEC_loader.met_factory is not None:
-            met = JEC_loader.met_factory.build(events.PFMET, jets, {}) if isData else events.PFMET
-        else:
-            met = events.PFMET
+            # 2022/2023: coffea pickle factory (unchanged behaviour).
+            met = JEC_loader.met_factory.build(met, jets, {}) if isData else met
+        elif not isData:
+            # 2024: no pickle factory, and CorrectedMETFactory cannot be used --
+            # it requires MetUnclustEnUpDeltaX/Y, which NanoAODv15 does not ship
+            # (it has ptUnclusteredUp/Down instead). Rebuild Type-1 explicitly.
+            if RAW_MET_COLLECTION in events.fields:
+                type1_met = JEC_loader.type1_met_2024(events[RAW_MET_COLLECTION], jets)
+                if type1_met is not None:
+                    met = type1_met
+            else:
+                logger.warning(
+                    f"{RAW_MET_COLLECTION} not in NanoAOD; keeping {MET_COLLECTION} "
+                    "uncorrected (it will be inconsistent with the recorrected jets)."
+                )
 
         print("* ak4 JECs:\t", f"{time.time() - start:.2f}")
 
