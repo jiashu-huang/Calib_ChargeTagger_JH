@@ -32,9 +32,11 @@ Jet handling in this processor:
   exactly 15 GeV is not selected.
 - Require the Run-3 AK4 PUPPI *Tight* jet ID, recomputed from the PF energy
   fractions and multiplicities by `objects.ak4_jet_id` because our NanoAOD
-  ships no `Jet_jetId` branch. TightLepVeto is deliberately not used: the
-  DeltaR cleaning below already removes lepton-fake jets, while the extra
-  `muEF`/`chEmEF` cuts would eat real semileptonic heavy-flavour jets.
+  ships no `Jet_jetId` branch. TightLepVeto is deliberately not used *for the
+  analysis jets*: the DeltaR cleaning below already removes lepton-fake jets,
+  while the extra `muEF`/`chEmEF` cuts would eat real semileptonic
+  heavy-flavour jets. The jet-veto map is a separate question and does use
+  TightLepVeto, per JERC (`objects.jetveto_candidate_jets`).
 - Remove jets within `DeltaR < 0.4` of the selected trigger lepton used for
   the single-lepton path, so the overlap veto is applied only against the
   prompt electron / muon rather than all reconstructed leptons.
@@ -53,7 +55,11 @@ Jet handling in this processor:
   indexed over the *unfiltered* jets; `objects.attach_jet_charge` handles the
   match and guards the assumption it rests on.
 - Derive event-level jet quantities such as `ht` and `nJets`, and apply the
-  AK4 jet-veto map event selection.
+  AK4 jet-veto map event selection. The map is evaluated on JERC's "minimal
+  selection" taken off the *uncleaned* corrected collection (pT > 15,
+  TightLepVeto ID, `chEmEF + neEmEF < 0.9`), not on the analysis jets, because
+  a lepton-overlapping jet still contributes to the Type-1 MET this repo
+  rebuilds -- and spurious MET is what the veto exists to prevent.
 
 MC weights in this processor:
 - `genWeight`, pile-up, and ISR/FSR parton-shower weights, plus the
@@ -558,6 +564,11 @@ class vcbSkimmer(SkimmerABC):
         # the raw-NanoAOD dependency in one place.
         jets = objects.attach_jet_charge(jets, events)
 
+        # The jet-veto map is evaluated on the *uncleaned* collection (see
+        # `objects.jetveto_candidate_jets`), so keep a handle on it before
+        # `good_ak4jets` throws the lepton-overlapping jets away.
+        jetveto_jets = objects.jetveto_candidate_jets(jets)
+
         jets = objects.good_ak4jets(
             jets,
             self._nano_version,
@@ -766,8 +777,10 @@ class vcbSkimmer(SkimmerABC):
         # RUN3_MET_FILTERS). All must be present in the input; a missing one raises.
         add_selection("met_filters", met_filter_mask(events, year), *selection_args)
 
-        # jet veto maps
-        cut_jetveto = get_jetveto_event(jets, year)
+        # Jet veto maps. `jetveto_jets` is JERC's minimal selection off the
+        # uncleaned collection, NOT the analysis jets -- see
+        # `objects.jetveto_candidate_jets` for why the two differ.
+        cut_jetveto = get_jetveto_event(jetveto_jets, year)
         add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         # # >=2 AK8 jets passing selections

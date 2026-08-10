@@ -1,23 +1,29 @@
 # Jet veto map — findings and deferred work
 
-**Status:** investigation complete, no code changed. Written 2026-08-05.
+**Status:** written 2026-08-05; candidate-jet definition settled and the code
+changed to match on 2026-08-10 (§2a).
 
 The jet-veto-map implementation was reviewed against the pinned CAT payload in
-`~/cat-snapshot` and against JERC's own recommendations. **The current
-implementation is correct and needs no fix.** What follows is (a) the evidence
-that settles the event-vs-jet-level question that `PROVENANCE.md` and
-[docs/processor.md](docs/processor.md#4-jet-veto-map) both record as open, (b)
-the measured cost of the veto, and (c) a deferred proposal plus the exact steps
-for the study JERC asks for before that cost can be reduced.
+`~/cat-snapshot` and against JERC's own recommendations. **The event-level veto
+is correct and needs no fix.** The one thing that did need fixing was *which
+jets* the map is evaluated on: JERC prescribes its own "minimal selection", and
+we were feeding it the analysis jets. That is now
+`objects.jetveto_candidate_jets` — see §2a.
+
+What follows is (a) the evidence that settles the event-vs-jet-level question
+that `PROVENANCE.md` and [docs/processor.md](docs/processor.md#4-jet-veto-map)
+both record as open, (b) the measured cost of the veto, (c) the candidate-jet
+recipe and what conforming to it cost, and (d) a deferred proposal plus the
+exact steps for the study JERC asks for before that cost can be reduced.
 
 ---
 
 ## 1. Verdict
 
 `get_jetveto_event` ([src/boostedhh/processors/corrections.py:649](src/boostedhh/processors/corrections.py#L649))
-rejects the **event** when any selected jet lands in a vetoed region. That is
-JERC's recommendation, not — as the docs currently claim — a stricter reading
-inherited from `boostedhh`.
+rejects the **event** when any candidate jet lands in a vetoed region. That is
+JERC's recommendation, not — as the docs used to claim, before this note — a
+stricter reading inherited from `boostedhh`.
 
 From the JERC recommendations page, Jet Veto Maps section
 (<https://cms-jerc.web.cern.ch/Recommendations/>, CERN SSO):
@@ -67,7 +73,7 @@ without the studies in §5.
 
 A second, independent argument against Option A specific to this repo: MET is
 rebuilt as PUPPI Type-1 summing over **every** jet in the event
-([vcbSkimmer.py:411](src/vcb/processors/vcbSkimmer.py#L411)), so dropping a jet
+([vcbSkimmer.py:549](src/vcb/processors/vcbSkimmer.py#L549)), so dropping a jet
 from the analysis collection would leave its mismeasured energy in MET
 regardless. Object-level veto would pay the full price JERC's rationale warns
 about while additionally punching a hole in the χ² fit.
@@ -99,7 +105,8 @@ All numbers from `tests/data/test-input.root` (TTtoLNuCB, 208 780 events),
 reproducing `good_ak4jets` + `ak4_jet_id`. **Caveat:** raw NanoAOD pT (no
 JEC/JER) and all leptons above 26/32 GeV as a proxy for the resolved trigger
 lepton, so each figure carries a few tenths of a percent of slop. Unweighted —
-redo with `finalWeight` before quoting anywhere external.
+redo with `finalWeight` before quoting anywhere external. (§2a repeats the
+comparison that matters through the real processor, without the proxies.)
 
 ```
 A repo as-is (pt>15, |eta|<4.7, tightID, dR>0.4 lep)   vetoed jets  2.95%   events lost 16.81%
@@ -175,9 +182,102 @@ below 30 GeV.
 
 ---
 
+## 2a. Candidate-jet definition — settled, code changed
+
+The collapsed *"Click for recommendations …"* panel on the JERC page, listed as
+open item 1 in an earlier revision of this note, has now been read. Under
+**Run 3** it says:
+
+> The safest procedure would be to **veto events if ANY jet with a minimal
+> selection lies in the veto regions**.
+>
+> The "minimal selection" would be ([old recommendations](https://cms-talk.web.cern.ch/t/updated-jet-selection-criterion-for-jet-veto-map/130527)):
+>
+> - jet pT > 15 GeV
+> - `tightLepVeto` jet ID (in v15 NanoAOD, the `Jet_jetId` branch is not
+>   available. To apply jet ID selections manually, please refer to the JetID
+>   page).
+> - (jet charged EM fraction + jet neutral EM fraction) < 0.9
+>
+> The selection on EM fraction is motivated from Type-1 MET correction.
+
+Two things follow, and both were previously recorded the other way round.
+
+**It confirms the event-level veto a second time**, now in the panel's own
+words, and it says nothing about a PF-muon ΔR < 0.2 removal — that came from the
+older derivation recipe and is not part of the analysis-side minimal selection.
+The three bullets above are the whole of it.
+
+**The jet ID is required, and it is not the analysis one.** We were feeding the
+map `good_ak4jets` output: lepton-cleaned, Tight ID, no EM-fraction cut. The
+recipe wants the *uncleaned* collection with TightLepVeto and EMfrac < 0.9.
+`objects.jetveto_candidate_jets` now implements exactly the three bullets, and
+[vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py) passes its output to
+`get_jetveto_event`. The reasoning for each difference is in that function's
+docstring; the short version is that the veto's purpose is spurious MET, this
+repo's MET is Type-1 over *every* jet in the event, so the veto has to see every
+jet too — including the ones ΔR cleaning removes.
+
+### What it cost
+
+Through the real processor this time: JEC + JER applied, the actual resolved
+trigger lepton, `ak4_jet_id` rather than a proxy. Denominator is the 70 797
+events of `tests/data/test-input.root` that pass every cut *other* than
+`ak4_jetveto`. genWeight-weighted numbers differ by ≤ 0.01 pp throughout, so
+only the unweighted ones are quoted.
+
+```
+jets fed to the map                                        event loss
+  JERC minimal selection            (new code)               15.85%
+  cleaned analysis jets, Tight ID   (old code)               15.77%
+  minimal selection, no EMfrac cut                           15.86%
+  minimal selection, no jet ID                               18.81%
+  uncleaned, EMfrac cut, no jet ID                           17.97%
+  uncleaned, Tight ID + EMfrac cut                           17.30%
+  cleaned analysis jets + TightLepVeto + EMfrac              15.74%
+```
+
+Per-jet veto probability barely moves: 3.149 % of the old candidate jets,
+3.126 % of the new ones.
+
+Event by event, old vs new, among those 70 797:
+
+```
+kept by both                59 551
+kept by old, dropped by new      79
+dropped by old, kept by new      24
+dropped by both             11 143
+```
+
+**0.08 pp, 103 events out of 70 797 disagreeing in either direction.** The two
+definitions nearly coincide because ΔR > 0.4 lepton cleaning plus Tight ID
+removes very nearly the same jets as TightLepVeto does. That is a coincidence of
+the current lepton selection, though — nothing in the old code enforced it — and
+it is why the recipe is now applied literally rather than approximated.
+
+The one number that is *not* small is the jet ID: 15.85 % → 18.81 % if the
+candidate list is kinematics-only. Fake jets are exactly what dead and noisy
+towers produce, so the regions the map vetoes are precisely where ID-failing
+jets concentrate. Any future reading of the recipe that quietly drops the ID
+costs ~3 pp of acceptance.
+
+The 24 events newly kept contain an analysis jet inside a vetoed region (it
+fails TightLepVeto or the EM-fraction cut, so it no longer vetoes). At 0.03 % of
+the sample this is not worth taking the union of the two definitions for, which
+would cost 15.88 %.
+
+### Production impact
+
+The skims in `prod_20260726` / `prod_lnu2q_20260728` were produced with the old
+definition. The difference is 0.08 pp of events, uncorrelated with anything the
+calibration measures. Not worth a re-skim on its own; fold it in whenever the
+next re-skim happens for another reason.
+
+---
+
 ## 3. Deferred proposal — save the decision, don't bake in the cut
 
-[vcbSkimmer.py:643](src/vcb/processors/vcbSkimmer.py#L643) applies the veto as a
+[vcbSkimmer.py:783](src/vcb/processors/vcbSkimmer.py#L783) applies the veto as a
 hard cut at the loosest preselection, i.e. the most expensive row of the table
 above, and writes nothing that would let anyone revisit it. Everywhere else the
 skimmer defers analysis choices on purpose (no b-tag cut — "deferred to analysis
@@ -205,13 +305,11 @@ happens for any other reason, fold this in then.
 
 ## 4. Still open
 
-1. **Candidate-jet definition.** The standard JERC recipe adds
-   `chEmEF + neEmEF < 0.9` and removal of jets overlapping a PF muon within
-   ΔR < 0.2. Neither is applied; the repo's cleaning is ΔR > 0.4 against the
-   single resolved trigger lepton only, so a jet overlapping any other muon can
-   still veto the event. Together worth 1.1 pp (row A → row D). **Unconfirmed** —
-   the wording lives behind the collapsed "Click for recommendations …" panel on
-   the JERC page, which has not been read. Read it before acting.
+1. ~~**Candidate-jet definition.**~~ **Done 2026-08-10 — see §2a.** The panel was
+   read, the recipe is pT > 15 + TightLepVeto + EMfrac < 0.9 on the uncleaned
+   collection, and the code now implements it. There is no PF-muon ΔR < 0.2
+   removal in the analysis-side recipe; that belonged to the map *derivation*.
+   Cost: +0.08 pp of event loss.
 2. **[cms-talk 57850/3](https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3/57850/3)**
    (rverma), cited as reference [4] in the JERC reply as the detailed
    discussion. Not read.
@@ -223,20 +321,18 @@ happens for any other reason, fold this in then.
    supply-chain concern, not a physics one: bundle the 313 kB payload alongside
    the others in `src/boostedhh/corrections/`, or route it through `CAT_BASE`
    the way `add_pileup_weight` does.
-4. **Doc corrections.** Three places record this as unresolved and lean the
-   wrong way: [docs/processor.md:291](docs/processor.md#L291) ("the stricter
-   reading, inherited from `boostedhh`"),
-   [docs/2024-inputs.md:195](docs/2024-inputs.md#L195) ("Open question"), and the
-   `PROVENANCE.md` open item in `~/cat-snapshot`. Also stale line references in
-   `docs/processor.md`: `get_jetveto_event` is at
-   [corrections.py:649](src/boostedhh/processors/corrections.py#L649)–673, not
-   573–599; the year map at 664–670, not 588–594; `get_pog_json` at 58–73.
+4. **Doc corrections.** `docs/processor.md` and `docs/2024-inputs.md` were both
+   fixed on 2026-08-10 — the "stricter reading, inherited from `boostedhh`" and
+   "Open question" passages are gone, and the stale line references into
+   `corrections.py` are corrected. **Still stale:** the `PROVENANCE.md` open item
+   in `~/cat-snapshot`, which is outside this repo.
 5. **JERC offered a meeting slot** to discuss this in detail. For a calibration
    analysis eating a 16.8 % hit, worth taking.
 
-Minor: the `pt > 15` inside `get_jetveto_event` duplicates `good_ak4jets`;
-`CorrectionSet.from_file` is re-read every chunk; JER smearing makes the
-15 GeV threshold crossing seed-dependent at the sub-permille level.
+Minor: the `pt > 15` inside `get_jetveto_event` duplicates the one in
+`jetveto_candidate_jets`; `CorrectionSet.from_file` is re-read every chunk; JER
+smearing makes the 15 GeV threshold crossing seed-dependent at the sub-permille
+level.
 
 ---
 

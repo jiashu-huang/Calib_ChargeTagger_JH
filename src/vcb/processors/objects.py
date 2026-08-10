@@ -8,8 +8,10 @@ kept (trig_match_sel, single_ele_lepton_pt, good_electrons, good_muons,
 good_ak4jets, delta_r). AK8/tau/VBF/CA-mass helpers from the old repo are
 dropped. Added here: electron_supercluster_eta / in_ecal_crack, backing the
 ECAL crack veto in good_electrons (also reused by lepton_sf.py, so the veto
-and the scale factors share one eta convention), and ak4_jet_id, which
-recomputes the Run-3 AK4 PUPPI jet ID that our NanoAOD does not ship.
+and the scale factors share one eta convention), ak4_jet_id, which recomputes
+the Run-3 AK4 PUPPI jet ID that our NanoAOD does not ship, and
+jetveto_candidate_jets, which builds the jet list JERC's jet-veto map is
+evaluated on (deliberately not the analysis jets).
 """
 
 from __future__ import annotations
@@ -98,6 +100,13 @@ JET_ID_ETA_TRACKER = 2.6
 JET_ID_ETA_TRANSITION = 2.7
 JET_ID_ETA_HF = 3.0
 
+# EM-fraction ceiling on the jets the jet-veto map is evaluated on, from JERC's
+# "minimal selection" (see jetveto_candidate_jets). Numerically the same as
+# `corrections.TYPE1_MET_MAX_EMEF`, and for the same reason -- JERC motivates
+# the cut from the Type-1 MET correction -- but kept separate so a change to one
+# recipe cannot silently move the other.
+JETVETO_MAX_EMEF = 0.9
+
 # Jet charge Qk, from the CMSSW_15_CHARGE fork's JetChargeTableProducer. The
 # producer's own sentinels, which are NOT the skimmer's PAD_VAL: a jet with no
 # constituent above the 0.95 GeV candidate cut is -999, zero jet pT is -998,
@@ -179,6 +188,10 @@ def ak4_jet_id(jets: JetArray, wp: str = "tight") -> ak.Array:
     semileptonic heavy-flavour jets (b -> mu + X inside the cone) -- precisely
     the jets whose soft lepton carries the charge information this analysis is
     calibrating a tagger on. That is the "possible bias" in our case.
+
+    That exception is about which jets the analysis *keeps*. The jet-veto map
+    decides which events to *drop*, and there JERC names TightLepVeto outright,
+    so jetveto_candidate_jets() calls this with wp="tightlepveto".
     """
     if wp not in ("tight", "tightlepveto"):
         raise ValueError(f"unknown AK4 jet ID working point {wp!r}; use 'tight' or 'tightlepveto'")
@@ -232,6 +245,51 @@ def ak4_jet_id(jets: JetArray, wp: str = "tight") -> ak.Array:
             ak.where(abs_eta < JET_ID_ETA_HF, hetohf, forward),
         ),
     )
+
+
+def jetveto_candidate_jets(jets: JetArray) -> JetArray:
+    """
+    The jets the Run-3 jet-veto map is evaluated on, per JERC's "minimal
+    selection" (<https://cms-jerc.web.cern.ch/Recommendations/>, Jet Veto Maps
+    -> Run 3): ``pT > 15 GeV``, the *TightLepVeto* jet ID, and
+    ``chEmEF + neEmEF < 0.9``.
+
+    This is deliberately **not** the analysis jet collection, and the three
+    differences all follow from what the veto is for. JERC's stated purpose is
+    to reject events where a jet in a dead/noisy region injects spurious MET,
+    so the candidate list must be the jets that can put energy into MET:
+
+    - **No lepton cleaning.** ``good_ak4jets`` drops jets within ΔR < 0.4 of the
+      trigger lepton, but this analysis rebuilds MET as PUPPI Type-1 over
+      *every* jet in the event (``JECs.type1_met_2024``), so a jet removed from
+      the analysis collection still contributes its mismeasured energy to MET.
+      The veto has to see it.
+    - **TightLepVeto, not Tight.** ``ak4_jet_id``'s docstring explains why the
+      *analysis* jets use Tight: TightLepVeto would eat genuine semileptonic
+      heavy-flavour jets, whose soft lepton carries the charge information this
+      analysis calibrates. That argument is about which jets we *keep*; here we
+      are only deciding which jets may *throw the event away*, and JERC names
+      TightLepVeto. The jet ID is not a detail -- dropping it entirely costs
+      ~3 percentage points of acceptance, because fake jets are exactly what the
+      vetoed hot/cold regions produce.
+    - **EM-fraction cut.** JERC motivates it from the Type-1 MET correction, and
+      it is the same ``TYPE1_MET_MAX_EMEF = 0.9`` this repo already applies when
+      rebuilding MET: a jet that is mostly EM energy is not propagated into MET,
+      so it cannot inject the spurious MET the veto exists to prevent.
+
+    Net effect versus feeding the analysis jets in (measured on
+    ``tests/data/test-input.root``, after every other cut): 15.85 % event loss
+    instead of 15.77 %. The two nearly coincide because ΔR > 0.4 cleaning plus
+    Tight ID removes almost the same jets as TightLepVeto -- but that agreement
+    is a coincidence of this lepton selection, not something the code enforces,
+    which is why the recipe is now applied literally. See ``JERC.md``.
+    """
+    minimal = (
+        (jets.pt > 15.0)
+        & ak4_jet_id(jets, wp="tightlepveto")
+        & ((jets.chEmEF + jets.neEmEF) < JETVETO_MAX_EMEF)
+    )
+    return jets[minimal]
 
 
 def single_ele_lepton_pt(year: str) -> float:

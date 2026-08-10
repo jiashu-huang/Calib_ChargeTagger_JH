@@ -30,6 +30,7 @@ from vcb.processors.objects import (
     attach_jet_charge,
     electron_supercluster_eta,
     in_ecal_crack,
+    jetveto_candidate_jets,
 )
 
 JSONPOG_JME = Path("/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME")
@@ -323,6 +324,64 @@ class TestAK4JetIDBehaviour(unittest.TestCase):
             ]
         )
         self.assertEqual(ak.to_list(ak4_jet_id(jets)), [[True, False], [], [False]])
+
+
+class TestJetVetoCandidateJets(unittest.TestCase):
+    """
+    JERC's "minimal selection" for the jet-veto map: pT > 15, TightLepVeto ID,
+    chEmEF + neEmEF < 0.9. Each of the three is load-bearing -- dropping the ID
+    alone moves the event loss by ~3 percentage points on the 2024 fixture --
+    so each gets its own assertion here.
+    """
+
+    GOOD = {
+        "pt": 30.0,
+        "eta": 1.0,
+        "phi": 0.0,
+        "chHEF": 0.5,
+        "neHEF": 0.3,
+        "chEmEF": 0.1,
+        "neEmEF": 0.1,
+        "muEF": 0.05,
+        "chMultiplicity": 10,
+        "neMultiplicity": 8,
+    }
+
+    def kept(self, **overrides) -> bool:
+        return len(ak.flatten(jetveto_candidate_jets(self._one(**overrides)).pt)) == 1
+
+    def _one(self, **overrides):
+        fields = {**self.GOOD, **overrides}
+        return as_jet_array({k: np.array([v]) for k, v in fields.items()})
+
+    def test_a_good_jet_is_a_candidate(self):
+        self.assertTrue(self.kept())
+
+    def test_pt_threshold_is_strict(self):
+        self.assertFalse(self.kept(pt=14.9))
+        self.assertFalse(self.kept(pt=15.0))
+        self.assertTrue(self.kept(pt=15.1))
+
+    def test_requires_tightlepveto_not_merely_tight(self):
+        """muEF = 0.9 passes Tight and fails TightLepVeto; the veto uses the latter."""
+        self.assertTrue(bool(ak.flatten(ak4_jet_id(self._one(muEF=0.9)))[0]))
+        self.assertFalse(self.kept(muEF=0.9))
+
+    def test_em_fraction_ceiling(self):
+        """The sum, not either fraction alone -- neEmEF < 0.9 is already in the ID."""
+        self.assertFalse(self.kept(chEmEF=0.85, neEmEF=0.2))
+        self.assertTrue(self.kept(chEmEF=0.6, neEmEF=0.2))
+
+    def test_preserves_jagged_structure(self):
+        """get_jetveto_event reduces this per event, so empty events must survive."""
+        jets = ak.Array(
+            [
+                [{**self.GOOD}, {**self.GOOD, "pt": 10.0}],
+                [],
+                [{**self.GOOD, "muEF": 0.9}],
+            ]
+        )
+        self.assertEqual(ak.to_list(jetveto_candidate_jets(jets).pt), [[30.0], [], []])
 
 
 class TestAttachJetCharge(unittest.TestCase):

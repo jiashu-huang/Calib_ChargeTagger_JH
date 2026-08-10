@@ -246,16 +246,17 @@ Items 1–4 were the original set; item 5 (lepton scale factors) was added on
   re-reco 2024 CDE will be available"*. Our campaign is
   `24CDEReprocessingFGHIPrompt-Summer24`, so a re-reco CDE update could revise
   them. Re-check before the calibration is finalised.
-- **Impact:** 3.1% of otherwise-selected jets are removed (10,523 on the test
-  fixture), so `nJets` / `ht` / the saved jet slots all move. The event count
-  moves *up* ~0.3%, because the jet-veto map now sees only ID-passing jets.
-  Jet and event baselines both need refreshing with `tests/test_run.py`.
-- **⚠️ Open question — jet ID before or after the veto map?** That +0.3% comes
-  entirely from the ordering, and the ordering is our choice: the Run-3 veto-map
-  announcement ([cms-talk 18444](https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444))
-  says nothing about jet ID being a precondition. Settle it against
-  <https://cms-jerc.web.cern.ch/Recommendations/>; see the caveats in
-  [docs/processor.md](processor.md#4-jet-veto-map).
+- **Impact:** 3.1% of otherwise-selected jets are removed (9,824 on the test
+  fixture), so `nJets` / `ht` / the saved jet slots all move. Jet and event
+  baselines both need refreshing with `tests/test_run.py`.
+- **Jet ID before or after the veto map? — settled 2026-08-10.** The JERC
+  recommendations page (<https://cms-jerc.web.cern.ch/Recommendations/>, Jet
+  Veto Maps → Run 3) prescribes its own candidate list for the map: pT > 15,
+  **TightLepVeto** ID, `chEmEF + neEmEF < 0.9`, off the uncleaned collection.
+  The veto now uses exactly that (`objects.jetveto_candidate_jets`) rather than
+  the analysis jets, so the ordering is no longer our choice to make. The ID is
+  required, and it matters: without it the veto costs ~3 pp more acceptance.
+  See [docs/processor.md](processor.md#4-jet-veto-map) and [JERC.md](../JERC.md).
 
 ## 7. (Bonus) corrupt production files  (resolved)
 

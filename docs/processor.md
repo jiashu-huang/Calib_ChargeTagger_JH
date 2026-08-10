@@ -322,6 +322,12 @@ Design notes:
   information this analysis calibrates a tagger on. That is the "possible
   bias" in our case. Measured cost on `tests/data/test-input.root`: 0.4 % of
   b-jets and 1.0 % of c-jets (pT > 20, \|η\| < 2.5).
+  The exception applies to the *analysis* jets only. The jet-veto map decides
+  which events to discard, not which jets to keep, and JERC names TightLepVeto
+  there outright — so `jetveto_candidate_jets` uses it
+  ([section 4](#4-jet-veto-map)). Both working points are implemented by the
+  same `ak4_jet_id` and both are validated against JME's payload in
+  `tests/test_objects.py`.
 - **Explicit cuts, not a correctionlib call.** The payload bins on `int`-typed
   multiplicity inputs, and correctionlib 2.5.0 (the pinned version) raises
   `std::get: wrong index for variant` on an `int` `Binning` node — only the two
@@ -333,10 +339,10 @@ Design notes:
   so the fractions are invariant under JEC. The ID is applied after
   `get_jec_jets` alongside the other cuts.
 
-Effect on `tests/data/test-input.root` (208 780 events): 10 523 jets that pass
-pT / η / cleaning fail the ID, ≈ 3.1 % of the otherwise-selected jets. Because
-the jet-veto map is evaluated on this same collection, the event yield moves
-too — see [section 4](#4-jet-veto-map).
+Effect on `tests/data/test-input.root` (208 780 events): 9 824 jets that pass
+pT / η / cleaning fail the ID, ≈ 3.1 % of the otherwise-selected jets. The
+jet-veto map applies this same helper at its TightLepVeto working point, to its
+own candidate list — see [section 4](#4-jet-veto-map).
 
 ### MET
 
@@ -376,56 +382,89 @@ Relevant files (line numbers as of the current commit):
 - [`src/vcb/processors/vcbSkimmer.py`](../src/vcb/processors/vcbSkimmer.py)
   applies the resulting event selection as the `ak4_jetveto` cut.
 - [`src/vcb/processors/objects.py`](../src/vcb/processors/objects.py) —
-  `good_ak4jets` defines which jets reach the veto: `pt > 15`, `|eta| < 4.7`,
-  ΔR > 0.4 from the selected trigger-lepton candidates, and the tight jet ID.
-- [`src/boostedhh/processors/corrections.py`](../src/boostedhh/processors/corrections.py#L573-L599)
-  (lines 573–599) implements `get_jetveto_event`; the year → correction-name
-  map is at [lines 588–594](../src/boostedhh/processors/corrections.py#L588-L594),
+  `jetveto_candidate_jets` defines which jets reach the veto: JERC's "minimal
+  selection" of `pt > 15`, the **TightLepVeto** jet ID and
+  `chEmEF + neEmEF < 0.9`, applied to the *uncleaned* corrected collection.
+  These are not the analysis jets `good_ak4jets` returns.
+- [`src/boostedhh/processors/corrections.py`](../src/boostedhh/processors/corrections.py#L649-L675)
+  (lines 649–675) implements `get_jetveto_event`; the year → correction-name
+  map is at [lines 664–671](../src/boostedhh/processors/corrections.py#L664-L671),
   and the CVMFS path is built by `get_pog_json`
-  ([lines 60–75](../src/boostedhh/processors/corrections.py#L60-L75)).
+  ([lines 58–73](../src/boostedhh/processors/corrections.py#L58-L73)).
 - The map payload is the campaign-specific correctionlib
   `jetvetomaps.json.gz` read from the CMS JSON POG CVMFS tree
   (`/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/`). It is
   **not bundled** in this repository, so CVMFS must be reachable from wherever
   the skimmer runs (including condor workers).
 
-After JEC and AK4 jet selection, the skimmer evaluates the year-specific Run-3
-jet-veto map at every jet's eta and phi. A nonzero map value marks a vetoed
-detector region. The event fails `ak4_jetveto` if any selected jet with
-pT > 15 GeV lies in such a region; otherwise it passes. This selection is
-applied to both data and MC. Eta and phi are clipped to the map range before
-evaluation.
+After JEC, the skimmer evaluates the year-specific Run-3 jet-veto map at the eta
+and phi of every candidate jet. A nonzero map value marks a vetoed detector
+region. The event fails `ak4_jetveto` if any candidate jet lies in such a
+region; otherwise it passes. This selection is applied to both data and MC. Eta
+and phi are clipped to the map range before evaluation.
 
 For 2024 the resolved payload is `POG/JME/2024_Summer24/jetvetomaps.json.gz`,
 correction `Summer24Prompt24_RunBCDEFGHI_V1`, map type `jetvetomap` — the
 campaign matching the `Summer24MiniAODv6` MC and the `Summer24Prompt24_V5` JEC
 above.
 
-Caveats on the implementation:
+### Candidate jets — JERC's "minimal selection"
 
-- The pT > 15 GeV requirement inside `get_jetveto_event` is redundant — the
-  same threshold is already applied in `good_ak4jets`.
-- **We reject the event; the announcement says reject the jet.** The Run-3
-  release post ([cms-talk 18444](https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444))
-  words it as *"Analysers should use `jetvetomap` to reject **jets** that fall
-  into the vetoed regions"*, and specifies an event-level veto only for the
-  2022 EE+ leak map (`jetvetomap_eep`, JEC-corrected pT > 30 GeV), which does
-  not apply to 2024. `get_jetveto_event` drops the whole event instead — the
-  stricter reading, inherited from `boostedhh`.
-- ⚠️ **The jets tested are the lepton-cleaned, tight-jet-ID ones — and that
-  ordering is our choice, not a verified requirement.** Since the jet ID
-  arrived (see [section 2](#jet-id--objectsak4_jet_id)) a jet that fails it no
-  longer vetoes its event, which *raised* the pass rate: **+0.3 %** at
-  `ak4_jetveto` and +0.3 % at the last cut on
-  `tests/data/test-input.root` (measured when `1lep` was still that cut). The rationale is that a noise jet should not
-  be able to veto an otherwise-good event, and that the map is meant for jets
-  whose energy the JECs actually describe. But cms-talk 18444 is silent on
-  whether jet ID is a precondition, so this is **unconfirmed**. The living
-  document to settle it against is the JERC recommendations page,
-  <https://cms-jerc.web.cern.ch/Recommendations/> — not yet checked. If it
-  turns out the veto should see all jets regardless of ID, move the
-  `get_jetveto_event` call ahead of the ID cut.
-- No neutral-EM-fraction cut is applied to the jets entering the veto.
+The map is evaluated on the jets JERC prescribes, not on the analysis
+collection. From the JERC recommendations page (Jet Veto Maps → Run 3), the
+*safest procedure* is to "veto events if **ANY** jet with a minimal selection
+lies in the veto regions", where the minimal selection is
+
+- jet pT > 15 GeV,
+- the `tightLepVeto` jet ID (which our NanoAOD has no branch for, hence
+  `objects.ak4_jet_id(wp="tightlepveto")` — see
+  [section 2](#jet-id--objectsak4_jet_id)),
+- `chEmEF + neEmEF < 0.9`, motivated by the Type-1 MET correction.
+
+Three consequences worth spelling out, because each differs from the analysis
+jet definition:
+
+- **Event level, not jet level — and that is now confirmed.** Earlier revisions
+  of this document flagged the event-level veto as a stricter reading inherited
+  from `boostedhh`, on the strength of the Run-3 release post
+  ([cms-talk 18444](https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444))
+  saying "reject **jets**". The recommendations page supersedes it: rejecting
+  the event is the recommendation, to prevent spurious MET. JERC allows a
+  jet-level veto only for analyses that use neither MET nor jet multiplicity —
+  we use both. See [`JERC.md`](../JERC.md).
+- **No lepton cleaning.** The candidates come off the uncleaned collection, so a
+  jet within ΔR < 0.4 of the trigger lepton still vetoes. It has to: MET is
+  rebuilt as PUPPI Type-1 over *every* jet in the event, so a jet dropped from
+  the analysis collection still puts its mismeasured energy into MET, which is
+  exactly the failure mode the veto exists to prevent.
+- **TightLepVeto here, Tight for the analysis jets.** The exception this
+  analysis takes for `good_ak4jets` (section 2 — TightLepVeto would eat genuine
+  semileptonic heavy-flavour jets, whose soft lepton carries the charge
+  information being calibrated) is about which jets to *keep*. Which jets may
+  *throw the event away* is a separate question, and JERC names TightLepVeto.
+
+Measured on `tests/data/test-input.root`, on events passing every other cut
+(unweighted; genWeight-weighted moves each number by ≤ 0.01 pp):
+
+| Jets fed to the map | Event loss |
+|---|---|
+| JERC minimal selection (**current code**) | **15.85 %** |
+| previous code: cleaned analysis jets, Tight ID | 15.77 % |
+| minimal selection without the EM-fraction cut | 15.86 % |
+| minimal selection without the jet ID | 18.81 % |
+
+So switching to the recipe costs 0.08 pp: 79 events that used to pass now fail,
+24 that used to fail now pass, out of 70 797. The old and new definitions nearly
+coincide because ΔR > 0.4 cleaning plus Tight ID happens to remove almost the
+same jets as TightLepVeto — but that is a coincidence of the current lepton
+selection, not something the code enforced. The jet ID is the load-bearing part
+of the recipe: dropping it costs ~3 pp, because fake jets are precisely what the
+vetoed hot and cold regions produce.
+
+Remaining caveat: the pT > 15 GeV requirement inside `get_jetveto_event`
+duplicates the one in `jetveto_candidate_jets`. Harmless — it is the same
+threshold, and it keeps `get_jetveto_event` correct if ever called with a
+looser collection.
 
 ---
 
