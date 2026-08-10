@@ -191,3 +191,57 @@ Branch `lep-overlap` at `a763acb`; working tree dirty. Latest committed change
 `2026-03-12`; latest local file edits `2026-05-27`. The committed state is a
 working, documented skimmer; the newest operational (Condor, `--outdir`) and
 truth-level improvements sit uncommitted in the working tree.
+
+### 2026-08-09 — `1lep` tightened to require a trigger lepton
+
+The event selection asked for `nMuons + nElectrons ≥ 1`, but the lepton scale
+factors, the `TriggerLepton*` branches and the AK4 jet ΔR cleaning all key off
+the **trigger** lepton — trigger-matched and above the path's offline plateau
+cut. The two are not the same requirement, so **3.5 %** of written events
+(2 144 / 61 774 on `tests/data/test-input.root`) had `TriggerLeptonFlav =
+PAD_VAL`: no lepton kinematics, a silent 1.0 lepton SF, and jets never cleaned
+against the lepton. `docs/processor.md` §2 already claimed such events were
+discarded; the cutflow never enforced it.
+
+Fixed by adding a `trigger_lepton` cut (`use_trigger_electron |
+use_trigger_muon`) after `1lep`, which is kept purely so the cutflow shows what
+the tightening costs. 96.8 % of the removed events had their only good lepton
+*below* the plateau cut — on the trigger turn-on, where the tag-and-probe
+trigger SF is not the measured quantity — 2.2 % had no good lepton of the fired
+flavour, and 1.0 % had an unmatched lepton above threshold.
+`tests/test_run.py` now fails if any written event lacks a trigger lepton.
+
+**Productions skimmed before this date** (`prod_20260726`,
+`prod_lnu2q_20260728`) still contain the 3.5 %; cut them at analysis time with
+`TriggerLeptonFlav > 0` or re-skim. Cutflow denominators are unaffected —
+`np_nominal` is evaluated before any `add_selection` call.
+
+### 2026-08-09 — Trigger-lepton choice made symmetric
+
+Follow-up to the above, in the same block of `vcbSkimmer.process`. When **both**
+single-lepton paths fired and no trigger-matched muon existed, the code fell
+back to the leading *good* electron above 32 GeV — **not** required to be
+trigger-matched — while the electron-only branch did require a match. So the
+same event was judged by a different standard depending on whether `IsoMu24`
+happened to also fire, and an unmatched electron could collect an
+`electron_trigger` SF measured on matched ones.
+
+The fallback now uses the trigger-matched collection like every other branch,
+which collapses the four masks to two:
+
+```python
+use_trigger_muon     = hlt_single_mu  & trigger_muon_ready
+use_trigger_electron = hlt_single_ele & trigger_electron_ready & ~use_trigger_muon
+```
+
+algebraically identical to the old expressions with the fallback tightened
+(`use_trigger_muon`'s `both_single_lep_triggers` term was already dead:
+`((mu & ~ele) | (both & ready)) & ready` reduces to `mu & ready`). Dropped with
+it: `leading_electrons`, `fallback_trigger_electron_ready`,
+`both_single_lep_triggers`, and the `ak.concatenate` that stitched the two
+electron branches together.
+
+**No event changed on the fixture** — both fired in only 95 / 59 630 events
+(0.2 %), 43 of which took the fallback, and in all 43 the chosen electron was
+trigger-matched anyway. This closed a latent inconsistency, not an observed
+bias, so pre-existing skims need no reprocessing on this account.

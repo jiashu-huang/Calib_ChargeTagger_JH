@@ -7,14 +7,17 @@ the `boostedhh` framework **vendored** under [src/boostedhh](src/boostedhh)
 (see [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md)) and the analysis
 code renamed `bbtautau` → `vcb`. Lineage: [docs/history.md](docs/history.md).
 
-## State of the repo (2026-07-27)
+## State of the repo (2026-08-04)
 
 **Feature-complete and production-validated on 2024 MC.** The full 2024
 TTtoLNuCB campaign (93 `batch_*` dirs) has been skimmed via HTCondor and
-normalized. All four calibration inputs are real Summer24 values — luminosity
+normalized. All calibration inputs are real Summer24 values — luminosity
 124 fb⁻¹, σ(TTtoLNuCB) ≈ 0.345 pb, `Collisions24_CDEFGHI_goldenJSON` pile-up
-weights, and Summer24 V5 JEC + JRV2 JER — with no placeholders left
-([docs/2024-inputs.md](docs/2024-inputs.md)).
+weights, Summer24 V5 JEC + JRV2 JER, and the EGM/MUO lepton reco/ID/isolation/
+trigger scale factors — with no placeholders left
+([docs/2024-inputs.md](docs/2024-inputs.md)). The lepton SFs — and the ECAL
+crack veto they motivated — landed after that production, so a re-skim is
+needed to pick them up.
 
 Normalization is deliberately a **second pass**: the skimmer writes `weight`
 and never `finalWeight`; each batch ROOT carries its own `np_nominal` in a
@@ -37,7 +40,8 @@ Known gaps:
 ## What the pipeline does
 
 NanoAOD → `vcb.processors.vcbSkimmer` (object selection: tight leptons with
-trigger matching, AK4 jets with JEC + jet-veto map + lepton cleaning;
+trigger matching, AK4 jets with JEC + tight jet ID + jet-veto map + lepton
+cleaning;
 gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
 `JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
 (genWeight, pileup, PS ISR/FSR, xsec×lumi normalization) → parquet/ROOT skim +
@@ -53,10 +57,11 @@ denominator sums over every batch of a campaign).
 | [docs/cli.md](docs/cli.md) | Every `python -m vcb.run` flag — defaults, overlaps, and the inert ones inherited from `boostedhh` |
 | [condor/README.md](condor/README.md) | Batch production on HTCondor: submit, normalize, validate, merge |
 | [docs/normalization.md](docs/normalization.md) | Design record: why `finalWeight` is a second pass, the failure mode it closes |
-| [docs/2024-inputs.md](docs/2024-inputs.md) | Provenance of the four 2024 calibration inputs (lumi, σ, pile-up, JEC/JER) |
+| [docs/2024-inputs.md](docs/2024-inputs.md) | Provenance of the 2024 calibration inputs (lumi, σ, pile-up, JEC/JER, lepton SFs) |
 | [docs/tests.md](docs/tests.md) | Test suite details and the jet-tagger round-trip check |
 | [docs/history.md](docs/history.md) | Lineage back to the old `Calib_ChargeTagger` repo |
-| [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) | Bundled correction payloads: origin, snapshot pins, md5s |
+| [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) | Bundled jet + pile-up payloads: origin, snapshot pins, md5s |
+| [src/vcb/corrections/README.md](src/vcb/corrections/README.md) | Bundled lepton scale-factor payloads: origin, working-point rationale, md5s |
 | [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md) | What "vendored" means here and the local deltas vs upstream |
 | [AGENTS.md](AGENTS.md) | Operating notes: environment, ground rules, pre-commit checks |
 
@@ -170,10 +175,13 @@ check works: [docs/tests.md](docs/tests.md).
 | 2024 pileup weights | real Summer24 `Collisions24_CDEFGHI_goldenJSON` (eras C–I, no commissioning era B) | bundled `corrections/2024_puWeights.json.gz` |
 | 2024 JEC + JER | compound `Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 smearing on the corrected pT | bundled `corrections/2024_jet_jerc.json.gz` + `jer_smear.json.gz` |
 | 2024 MET | **PUPPI**, rebuilt Type-1 from `RawPuppiMET` so it matches the recorrected jets | `MET_COLLECTION` in [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), `JECs.type1_met_2024` |
+| 2024 AK4 jet ID | Run-3 AK4 PUPPI **Tight**, recomputed from the PF fractions — NanoAOD ships no `Jet_jetId`. Thresholds transcribed from `POG/JME/2024_Summer24/jetid.json.gz` (identical across all Run-3 eras) | `objects.ak4_jet_id` in [src/vcb/processors/objects.py](src/vcb/processors/objects.py) |
+| 2024 lepton SFs | EGM reco + `wp90iso` ID + Ele30 trigger; MUO tight ID + tight PFIso + IsoMu24 trigger, on the event's trigger lepton | [src/vcb/processors/lepton_sf.py](src/vcb/processors/lepton_sf.py) + bundled `src/vcb/corrections/2024_*.json.gz` |
 
 Provenance for every number — which source it came from and why:
-[docs/2024-inputs.md](docs/2024-inputs.md) and
-[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md).
+[docs/2024-inputs.md](docs/2024-inputs.md),
+[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) and
+[src/vcb/corrections/README.md](src/vcb/corrections/README.md).
 
 ### MET: PUPPI, not PF (2024)
 
@@ -206,7 +214,7 @@ is the V1→V5 recalibration and ~3.8 the previously-absent JER smearing.
 ## Repo layout
 
 ```
-src/vcb/                 analysis package (run.py, HLTs.py, processors/)
+src/vcb/                 analysis package (run.py, HLTs.py, processors/, corrections/)
 src/boostedhh/           vendored framework (do not auto-format; see VENDORED.md)
 condor/                  batch submission + post-processing scripts
 tests/                   pytest units + integration script + committed baselines

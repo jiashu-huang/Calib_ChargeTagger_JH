@@ -5,7 +5,9 @@ Run Calib_ChargeTagger_JH on a single .root file and produce:
   3. tests/outfile/test-output-schema.csv    — variable name + type (committed baseline)
   4. tests/outfile/test-output_jet_pt.pdf    — unweighted AK4 jet pT plot (git-ignored)
   5. tests/outfile/test-output_trigger_lepton_pt_flavor.pdf
-                                             — trigger lepton pT by flavor (git-ignored)
+                                             — trigger lepton pT by flavor (git-ignored);
+                                               also asserts every written event has a
+                                               trigger lepton, else exits non-zero
   6. tests/outfile/test-jet-tagger-roundtrip.txt
                                              — input/output jet tagger check (committed
                                                baseline); a FAIL exits non-zero
@@ -171,8 +173,16 @@ def make_jet_pt_plot() -> None:
     print(f"  Maximum jet pT: {result['max_pt']:.3f} GeV")
 
 
-def make_trigger_lepton_pt_plot() -> None:
-    """Step 5: plot the trigger lepton pT, split by trigger lepton flavor."""
+def make_trigger_lepton_pt_plot() -> bool:
+    """
+    Step 5: plot the trigger lepton pT, split by trigger lepton flavor.
+
+    Doubles as an assertion on the skimmer's `trigger_lepton` cut: every written
+    event must carry a resolved trigger lepton, because that object is what the
+    lepton scale factors and the AK4 jet cleaning are computed from. A PAD_VAL
+    flavor in the output means an event was written with neither. Returns False
+    if any is found.
+    """
     sys.path.insert(0, str(PROJECT_ROOT / "diagnostics"))
     from plot_trigger_lepton_pt_flavor import plot_trigger_lepton_pt_flavor
 
@@ -181,11 +191,14 @@ def make_trigger_lepton_pt_plot() -> None:
         OUTFILE_DIR / "test-output_trigger_lepton_pt_flavor.pdf",
     )
     weight = result["weight_branch"] or "unweighted (1.0 / event)"
+    n_missing = result["n_no_trigger_lepton"]
     print(f"Trigger lepton pT plot: {result['output_pdf']}")
     print(f"  Weight: {weight}")
     for label, s in result["per_flavor"].items():
         print(f"  {label}: {s['n_events']} events, sum of weights {s['sum_weights']:.6g}")
-    print(f"  No trigger lepton (PAD_VAL flavor): {result['n_no_trigger_lepton']}")
+    print(f"  No trigger lepton (PAD_VAL flavor): {n_missing}")
+    print(f"  VERDICT: {'PASS' if n_missing == 0 else 'FAIL'}")
+    return n_missing == 0
 
 
 def check_jet_tagger_roundtrip(input_file: Path, year: str) -> bool:
@@ -235,7 +248,7 @@ def main() -> None:
     dump_0th_event()
     make_schema_csv()
     make_jet_pt_plot()
-    make_trigger_lepton_pt_plot()
+    trigger_lepton_passed = make_trigger_lepton_pt_plot()
     roundtrip_passed = check_jet_tagger_roundtrip(input_file, args.year)
 
     print("\nDone. Files in tests/outfile/:")
@@ -243,8 +256,16 @@ def main() -> None:
         if p.name.startswith(("test-output", "test-jet-tagger")):
             print(f"  {p.name}")
 
+    failures = []
+    if not trigger_lepton_passed:
+        failures.append(
+            "events were written with no trigger lepton; the `trigger_lepton` cut in "
+            "vcbSkimmer.py should make that impossible"
+        )
     if not roundtrip_passed:
-        sys.exit("\nFAILED: the jet tagger round-trip check found problems; see the report above.")
+        failures.append("the jet tagger round-trip check found problems; see the report above")
+    if failures:
+        sys.exit("\nFAILED: " + "; ".join(failures) + ".")
 
 
 if __name__ == "__main__":

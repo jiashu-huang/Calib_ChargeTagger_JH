@@ -8,10 +8,10 @@ Output slots are matched to input jets by eta/phi, which JECs leave untouched,
 so the match is exact rather than nearest-neighbour.
 
 Input jets that never reach the output are classified rather than ignored. The
-skimmer drops a jet for exactly four reasons -- it sits within dR <= 0.4 of the
+skimmer drops a jet for exactly five reasons -- it sits within dR <= 0.4 of the
 trigger lepton used for cleaning, it fails corrected pT > 15 GeV or
-|eta| < 4.7, or it fell past the 8 saved slots -- so anything left over is a
-real finding.
+|eta| < 4.7, it fails the Run-3 AK4 PUPPI Tight jet ID, or it fell past the
+last saved slot -- so anything left over is a real finding.
 
 The corrected pT is not stored for dropped jets, so by default this recomputes
 it with the same JEC/JER machinery the skimmer used (deterministic, and
@@ -40,7 +40,7 @@ DEFAULT_YEAR = "2024"
 DEFAULT_CHUNK_SIZE = 50000
 
 PAD_VAL = -99999.0
-NUM_AK4_SLOTS = 8
+NUM_AK4_SLOTS = 10
 # Mirrors objects.good_ak4jets: kept if pt > 15, |eta| < 4.7 and every cleaning
 # lepton is farther than dR 0.4. A jet exactly on a boundary is dropped.
 JET_CLEANING_DR = 0.4
@@ -51,15 +51,70 @@ JET_PT_MIN = 15.0
 # to a nearest-jet match with a reported dR instead of a silent failure.
 MATCH_DR_TOL = 1e-6
 
+# Inputs to the Run-3 AK4 PUPPI Tight jet ID, reimplemented in _passes_jet_id
+# below. Deliberately a second, independent transcription of the thresholds
+# rather than an import of objects.ak4_jet_id -- the whole point of this script
+# is to re-derive the skimmer's selection from the NanoAOD, not to trust it.
+# (objects.ak4_jet_id is separately checked against JME's jetid.json payload in
+# tests/test_objects.py; these two agreeing is what makes the count exact.)
+JET_ID_BRANCHES = (
+    "Jet_chHEF",
+    "Jet_neHEF",
+    "Jet_neEmEF",
+    "Jet_chMultiplicity",
+    "Jet_neMultiplicity",
+)
+
 # Compared fields: "<output branch suffix>": "<input Jet_ branch suffix>".
+# Every tagger discriminant `vcbSkimmer.skim_vars["Jet"]` saves appears here --
+# a score that is written but never round-tripped is a score nothing would catch
+# being attached to the wrong jet, which is the one failure this script exists
+# to find. Keep the two lists in step when either changes.
 TAGGER_FIELD_MAP = {
+    # Charge-tagger heads (CMSSW_15_CHARGE) -- the calibration target.
     "ParTNegvsAll": "ParTNegvsAll",
     "ParTPosvsAll": "ParTPosvsAll",
     "ParTPosvsNeg": "ParTPosvsNeg",
+    "ParTZerovsAll": "ParTZerovsAll",
+    # UnifiedParT -- the tagger BTV calibrates for 2024.
+    "btagUParTAK4B": "btagUParTAK4B",
+    "btagUParTAK4CvB": "btagUParTAK4CvB",
+    "btagUParTAK4CvL": "btagUParTAK4CvL",
+    "btagUParTAK4CvNotB": "btagUParTAK4CvNotB",
+    "btagUParTAK4QvG": "btagUParTAK4QvG",
+    # ParticleNet + RobustParT -- uncalibrated for 2024, kept as ML inputs.
     "btagPNetB": "btagPNetB",
     "btagPNetCvB": "btagPNetCvB",
+    "btagPNetCvL": "btagPNetCvL",
     "btagPNetCvNotB": "btagPNetCvNotB",
+    "btagPNetQvG": "btagPNetQvG",
+    "btagRobustParTAK4B": "btagRobustParTAK4B",
 }
+
+# The Qk jet charges live in the separate `JetQk` flat table, which the fork
+# builds from the *unfiltered* jet collection -- so it is a superset of `Jet`,
+# and the skimmer relies on `JetQk[i] <-> Jet[i]` holding over the first nJet
+# entries (see objects.attach_jet_charge for why that is sound). Comparing them
+# here re-derives that same slice straight from the NanoAOD, so it verifies the
+# skimmer's plumbing -- that the charge rode through JEC, selection, cleaning
+# and slot padding still attached to its own jet. It does not independently
+# re-prove the prefix assumption itself; both sides make it.
+#
+# The output suffixes carry a trailing underscore that the input branches do not
+# -- these are the only saved fields whose name ends in a digit, so the skimmer
+# separates them from the slot index to keep `ak4JetQkCharge05_7` unambiguous.
+# This is the one place in this file where the output and input names differ.
+JET_CHARGE_FIELD_MAP = {
+    "QkCharge05_": "QkCharge05",
+    "QkCharge10_": "QkCharge10",
+}
+
+# Everything compared per matched slot, whichever collection it came from.
+COMPARED_FIELDS = {**TAGGER_FIELD_MAP, **JET_CHARGE_FIELD_MAP}
+# Once sliced to the Jet prefix, the JetQk columns are relabelled into the Jet_
+# namespace under their *input* name, so the comparison loop's generic
+# `Jet_{COMPARED_FIELDS[field]}` lookup reads them exactly like a tagger branch.
+CHARGE_AS_JET_BRANCHES = [f"Jet_{name}" for name in JET_CHARGE_FIELD_MAP.values()]
 
 # Why an input jet can be absent from the output, in the order tested. A jet may
 # fail several cuts at once; it is counted under the first that applies, and
@@ -68,14 +123,16 @@ MISSING_REASONS = (
     "lepton_cleaned",
     "pt_below_threshold",
     "eta_out_of_range",
-    "truncated_beyond_8_slots",
+    "failed_jet_id",
+    "truncated_beyond_slots",
     "UNEXPLAINED",
 )
 REASON_NOTES = {
     "lepton_cleaned": f"dR <= {JET_CLEANING_DR} of the trigger lepton",
     "pt_below_threshold": f"corrected pT <= {JET_PT_MIN} GeV",
     "eta_out_of_range": f"|eta| >= {JET_ETA_MAX}",
-    "truncated_beyond_8_slots": f"passed selection, event had > {NUM_AK4_SLOTS} selected jets",
+    "failed_jet_id": "fails the Run-3 AK4 PUPPI Tight jet ID",
+    "truncated_beyond_slots": f"passed selection, event had > {NUM_AK4_SLOTS} selected jets",
     "UNEXPLAINED": "no known reason -- investigate",
 }
 PT_UNVERIFIED_NOTE = "not verified (--no-jec): assumed to fail the corrected-pT cut"
@@ -93,6 +150,39 @@ def _delta_r(eta1, phi1, eta2, phi2):
     deta = eta1 - eta2
     dphi = (phi1 - phi2 + np.pi) % (2 * np.pi) - np.pi
     return np.hypot(deta, dphi)
+
+
+def _passes_jet_id(fractions: dict[str, np.ndarray], start: int, stop: int) -> np.ndarray:
+    """
+    Run-3 AK4 PUPPI Tight jet ID for one event's slice of the flat jet arrays.
+
+    Four |eta| regions, tracking the detector: inside the tracker (< 2.6) the
+    charged-hadron and multiplicity cuts apply; 2.6-2.7 and 2.7-3.0 progressively
+    drop them as tracking runs out; beyond 3.0 the HF gets its own pair of cuts.
+    Bins are half-open, matching JME's payload (chHEF exactly 0.01 passes).
+    """
+    eta = np.abs(fractions["Jet_eta"][start:stop])
+    ch_hef = fractions["Jet_chHEF"][start:stop]
+    ne_hef = fractions["Jet_neHEF"][start:stop]
+    ne_em_ef = fractions["Jet_neEmEF"][start:stop]
+    # uint8 in NanoAOD; widen before summing so the total cannot wrap at 255.
+    ch_mult = fractions["Jet_chMultiplicity"][start:stop].astype(np.int32)
+    ne_mult = fractions["Jet_neMultiplicity"][start:stop].astype(np.int32)
+
+    tracker = (
+        (ch_hef >= 0.01)
+        & (ne_hef < 0.99)
+        & (ne_em_ef < 0.90)
+        & (ch_mult >= 1)
+        & (ch_mult + ne_mult >= 2)
+    )
+    transition = (ne_hef < 0.90) & (ne_em_ef < 0.99)
+    hetohf = ne_hef < 0.99
+    forward = (ne_em_ef < 0.40) & (ne_mult >= 2)
+
+    return np.where(
+        eta < 2.6, tracker, np.where(eta < 2.7, transition, np.where(eta < 3.0, hetohf, forward))
+    )
 
 
 def resolve_input_files(paths: list[Path]) -> list[Path]:
@@ -232,7 +322,7 @@ def check_jet_tagger_roundtrip(
 
     slot_branches = [
         f"ak4Jet{field}{slot}"
-        for field in ("Pt", "Eta", "Phi", *TAGGER_FIELD_MAP)
+        for field in ("Pt", "Eta", "Phi", *COMPARED_FIELDS)
         for slot in range(NUM_AK4_SLOTS)
     ]
     event_branches = [
@@ -258,9 +348,12 @@ def check_jet_tagger_roundtrip(
     if n_out_events <= 0:
         raise ValueError(f"{output_file} has no events.")
 
-    input_jet_branches = ["Jet_pt", "Jet_eta", "Jet_phi"] + [
-        f"Jet_{name}" for name in TAGGER_FIELD_MAP.values()
-    ]
+    input_jet_branches = (
+        ["Jet_pt", "Jet_eta", "Jet_phi"]
+        + list(JET_ID_BRANCHES)
+        + [f"Jet_{name}" for name in TAGGER_FIELD_MAP.values()]
+    )
+    input_charge_branches = [f"JetQk_{name}" for name in JET_CHARGE_FIELD_MAP.values()]
     # A Condor job skims several input files into one output, so the index and
     # the jet arrays span every input file, concatenated in the given order.
     entry_of: dict[tuple[int, int, int], int] = {}
@@ -269,7 +362,11 @@ def check_jet_tagger_roundtrip(
     for path in input_files:
         with uproot.open(path) as root_file:
             in_tree = root_file[tree_name]
-            missing = [name for name in input_jet_branches if name not in in_tree.keys()]
+            missing = [
+                name
+                for name in input_jet_branches + input_charge_branches
+                if name not in in_tree.keys()
+            ]
             if missing:
                 raise KeyError(
                     f"Missing required branch(es) in {path}: {', '.join(sorted(missing))}"
@@ -285,7 +382,19 @@ def check_jet_tagger_roundtrip(
                 )
             entry_of.update(file_index)
             file_event_starts.append(file_event_starts[-1] + in_tree.num_entries)
-            per_file_jets.append(in_tree.arrays(input_jet_branches, library="ak"))
+            chunk = in_tree.arrays(input_jet_branches + input_charge_branches, library="ak")
+            # Cut `JetQk` down to the `Jet` prefix so it shares Jet's offsets,
+            # then rename it into the Jet_ namespace the comparison loop reads.
+            n_jet = ak.num(chunk["Jet_pt"])
+            if ak.any(ak.num(chunk[input_charge_branches[0]]) < n_jet):
+                raise RuntimeError(
+                    f"{path}: JetQk is shorter than Jet in some events; the positional "
+                    "prefix match the skimmer relies on does not hold there."
+                )
+            for in_name in JET_CHARGE_FIELD_MAP.values():
+                column = chunk[f"JetQk_{in_name}"]
+                chunk[f"Jet_{in_name}"] = column[ak.local_index(column) < n_jet]
+            per_file_jets.append(chunk[input_jet_branches + CHARGE_AS_JET_BRANCHES])
 
     n_in_events = file_event_starts[-1]
     jets = per_file_jets[0] if len(per_file_jets) == 1 else ak.concatenate(per_file_jets)
@@ -293,7 +402,7 @@ def check_jet_tagger_roundtrip(
 
     in_flat = {}
     offsets = None
-    for name in input_jet_branches:
+    for name in input_jet_branches + CHARGE_AS_JET_BRANCHES:
         in_flat[name], offsets = _flatten_jagged(jets[name])
     del jets
 
@@ -313,7 +422,7 @@ def check_jet_tagger_roundtrip(
     out_pt = slot_block("Pt")
     out_eta = slot_block("Eta")
     out_phi = slot_block("Phi")
-    out_tagger = {field: slot_block(field) for field in TAGGER_FIELD_MAP}
+    out_tagger = {field: slot_block(field) for field in COMPARED_FIELDS}
 
     n_jets_branch = np.asarray(out["nJets"], dtype=np.int64)
     trig_flav = np.asarray(out["TriggerLeptonFlav"], dtype=np.int64)
@@ -361,6 +470,7 @@ def check_jet_tagger_roundtrip(
         in_eta = in_flat["Jet_eta"][start:stop]
         in_phi = in_flat["Jet_phi"][start:stop]
         in_pt = in_flat["Jet_pt"][start:stop]
+        in_jet_id = _passes_jet_id(in_flat, start, stop)
         n_in_jets = stop - start
 
         has_trig_lepton = trig_flav[i] != int(PAD_VAL)
@@ -411,10 +521,12 @@ def check_jet_tagger_roundtrip(
                     f"recomputed pT={corrected_pt[start + j]!r}",
                 )
 
-            for field, input_name in TAGGER_FIELD_MAP.items():
+            for field in COMPARED_FIELDS:
                 stats["comparisons"] += 1
                 output_value = out_tagger[field][i, slot]
-                input_value = in_flat[f"Jet_{input_name}"][start + j]
+                # Charge columns were relabelled into the Jet_ namespace above,
+                # so both kinds of field are read the same way here.
+                input_value = in_flat[f"Jet_{COMPARED_FIELDS[field]}"][start + j]
                 if not _values_agree(output_value, input_value):
                     stats["comparisons_differing"] += 1
                     record(
@@ -433,8 +545,10 @@ def check_jet_tagger_roundtrip(
                 reason = "pt_below_threshold"
             elif abs(in_eta[j]) >= JET_ETA_MAX:
                 reason = "eta_out_of_range"
+            elif not in_jet_id[j]:
+                reason = "failed_jet_id"
             elif n_jets_branch[i] > NUM_AK4_SLOTS and j > last_matched:
-                reason = "truncated_beyond_8_slots"
+                reason = "truncated_beyond_slots"
             else:
                 reason = "UNEXPLAINED"
                 dr_text = "no trigger lepton" if not has_trig_lepton else f"{dr_lepton[j]:.4f}"
@@ -456,6 +570,7 @@ def check_jet_tagger_roundtrip(
                 (corrected_pt[start:stop] > JET_PT_MIN)
                 & (np.abs(in_eta) < JET_ETA_MAX)
                 & (dr_lepton > JET_CLEANING_DR)
+                & in_jet_id
             )
             if int(np.count_nonzero(selected)) != int(n_jets_branch[i]):
                 stats["events_njets_disagree"] += 1
@@ -524,7 +639,7 @@ def _format_report(**ctx) -> str:
         + f"{len(ctx['input_files'])} file(s)\n"
         + "\n".join(f"              {_display_path(p)}" for p in ctx["input_files"]),
         f"tree        : {ctx['tree_name']}",
-        "fields      : " + ", ".join(f"ak4Jet{field}" for field in TAGGER_FIELD_MAP),
+        "fields      : " + ", ".join(f"ak4Jet{field}" for field in COMPARED_FIELDS),
         f"mode        : {jec_line}",
         "",
         "Events",
@@ -547,7 +662,7 @@ def _format_report(**ctx) -> str:
         f"  saved pT != recomputed pT          : {stats['slots_pt_disagree']}"
         + ("" if verify_jec else "   (not checked without the recomputed pT)"),
         "",
-        f"Tagger value comparisons ({len(TAGGER_FIELD_MAP)} fields x matched slot)",
+        f"Tagger + jet-charge comparisons ({len(COMPARED_FIELDS)} fields x matched slot)",
         rule,
         f"  comparisons made                   : {stats['comparisons']}",
         "  identical                          : "

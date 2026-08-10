@@ -8,18 +8,33 @@ Event acceptance in this processor:
   `HLT_IsoMu24 OR <year's single-electron path>`, resolved from bbtautau/HLTs.py
   (Ele32_WPTight_Gsf for 2022/2023, Ele30_WPTight_Gsf for 2024). A missing
   single-lepton HLT branch raises rather than silently dropping that channel.
-- Require the configured MET filters and the Run-3 AK4 jet-veto map event
-  selection.
-- Require at least one selected lepton: either a good electron or a good muon.
-  This is a good-lepton count, not an explicit requirement on a saved
-  single "trigger lepton" object.
+- Require the JME Run-3 recommended MET (event-quality) filters and the Run-3
+  AK4 jet-veto map event selection. A missing MET filter branch raises rather
+  than being skipped, for the same reason as the HLT branches above.
+- Require a resolved *trigger lepton*, not merely a good-lepton count: the
+  event must contain the electron or muon that the fired single-lepton path is
+  matched to, above that path's offline plateau threshold. This is the object
+  the `TriggerLepton*` branches, the lepton scale factors and the AK4 jet
+  cleaning all key off, so requiring it is what keeps those three consistent
+  with the events actually written (`trigger_lepton` in the cutflow; the loose
+  `nMuons + nElectrons >= 1` stage is retained above it for bookkeeping only).
 - Good electrons and muons are saved with their trigger-match flags. A single
   trigger lepton is chosen for `TriggerLepton*` output and AK4 jet cleaning.
+- Correct the electron energy scale (data) / resolution (MC) with the EGM
+  `electronSS_EtDependent` payload before any electron selection, since the
+  correction is what decides which electrons clear the pT thresholds
+  (`electron_ss.py`). The uncorrected pT is kept as `ElectronPtRaw`, and MC
+  additionally carries the four scale/smearing shifted pTs.
 
 Jet handling in this processor:
 - Build AK4 jets from NanoAOD `events.Jet` and apply year-dependent JECs.
 - Keep AK4 jets with corrected `pt > 15 GeV` and `|eta| < 4.7`; a jet at
   exactly 15 GeV is not selected.
+- Require the Run-3 AK4 PUPPI *Tight* jet ID, recomputed from the PF energy
+  fractions and multiplicities by `objects.ak4_jet_id` because our NanoAOD
+  ships no `Jet_jetId` branch. TightLepVeto is deliberately not used: the
+  DeltaR cleaning below already removes lepton-fake jets, while the extra
+  `muEF`/`chEmEF` cuts would eat real semileptonic heavy-flavour jets.
 - Remove jets within `DeltaR < 0.4` of the selected trigger lepton used for
   the single-lepton path, so the overlap veto is applied only against the
   prompt electron / muon rather than all reconstructed leptons.
@@ -29,11 +44,22 @@ Jet handling in this processor:
   data jets are not recorrected either.
 - Do not apply any b-tag working point at skimmer level and do not use AK8 jets
   or JMSR in this processor.
-- Save up to 8 selected AK4 jets to the parquet output, including kinematics,
-  `rawFactor`, flavor labels, ParticleNet / RobustParT / charge-tagger
-  observables, and matched gen-jet `pt` for MC.
+- Save up to 10 selected AK4 jets to the parquet output, including kinematics,
+  `rawFactor`, flavor labels, UnifiedParT / ParticleNet / RobustParT /
+  charge-tagger observables, the Qk jet charges, and matched gen-jet `pt` for
+  MC. UParT and PNet are both kept: only UParT is calibrated for 2024, but the
+  two are independent networks and either may end up feeding the ML step.
+- The Qk charges come from the fork's separate `JetQk` collection, which is
+  indexed over the *unfiltered* jets; `objects.attach_jet_charge` handles the
+  match and guards the assumption it rests on.
 - Derive event-level jet quantities such as `ht` and `nJets`, and apply the
   AK4 jet-veto map event selection.
+
+MC weights in this processor:
+- `genWeight`, pile-up, and ISR/FSR parton-shower weights, plus the
+  cross-section x luminosity normalization (see `docs/normalization.md`).
+- Lepton reco / ID / isolation / trigger scale factors for the event's trigger
+  lepton, as six separately named weights (`lepton_sf.py`). Data is unweighted.
 
 Author: Jiashu Huang (Brown U)
 
@@ -77,6 +103,8 @@ from boostedhh.processors.utils import (
 from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 
 from . import GenSelection, objects  # Local gen selection and object definitions.
+from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
+from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
 
 # -----------------------------------------------------------------------------
 # End Imports
@@ -89,13 +117,30 @@ gen_selection_dict = {
     "TTtoLNu2Q": GenSelection.gen_selection_Vcb,
 }
 
-# Analysis-local MET filters for the Vcb semileptonic ttbar workflow. Keep this
-# here rather than changing boostedhh so the external dependency stays untouched.
-VCB_MET_FILTERS = [
+# Event-quality ("MET") filters: the JME/JetMET POG **Run-3** recommended set,
+# which covers every year this repo can process (2022, 2022EE, 2023, 2023BPix,
+# 2024). Source of truth, CERN SSO:
+#   https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
+#
+# Deliberately absent (removed 2026-08-09) and not to be re-added for Run 3:
+# `HBHENoiseFilter` and `HBHENoiseIsoFilter`. They target HPD / ion-feedback
+# noise topologies of the pre-Phase-1 HB/HE readout, are not part of the Run-3
+# recommendation, and are not validated for Run-3 conditions. CMSSW still *runs*
+# those paths (`PhysicsTools/PatAlgos/.../metFilterPaths_cff.py` has no Run-3
+# removal), so the branches do exist in our private Summer24 NanoAOD — presence
+# in the file is not a POG endorsement. On tests/data/test-input.root both are
+# true for all 208,780 events, so dropping them is a numerical no-op there.
+#
+# If this repo is ever pointed at 2022/2023: the stored `Flag_ecalBadCalibFilter`
+# was known to over-veto in those eras and JME published a recomputation recipe.
+# Check the TWiki before trusting the branch as-is for those years; it is fine
+# as stored for 2024.
+#
+# Kept here rather than in boostedhh (`processors/utils.py::met_filters`, which
+# is unused) so the vendored dependency stays untouched.
+RUN3_MET_FILTERS = [
     "goodVertices",
     "globalSuperTightHalo2016Filter",
-    "HBHENoiseFilter",
-    "HBHENoiseIsoFilter",
     "EcalDeadCellTriggerPrimitiveFilter",
     "BadPFMuonFilter",
     "BadPFMuonDzFilter",
@@ -124,6 +169,29 @@ logger.setLevel(logging.INFO)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
 
+def met_filter_mask(events, year: str) -> np.ndarray:
+    """Per-event AND of the Run-3 recommended event-quality flags.
+
+    Every flag in `RUN3_MET_FILTERS` is required to be present in the input.
+    A missing branch raises rather than being skipped: silently dropping a
+    filter loosens the selection in a way nothing downstream can see — the
+    cutflow still reports a `met_filters` stage that passed.
+    """
+    missing = [mf for mf in RUN3_MET_FILTERS if mf not in events.Flag.fields]
+    if missing:
+        raise KeyError(
+            f"MET filter branches {missing} required for year {year} are not present "
+            f"in the input NanoAOD (found {sorted(events.Flag.fields)}). Skipping them "
+            f"would silently loosen the event selection. Check the NanoAOD version of "
+            f"this sample against RUN3_MET_FILTERS in vcb/processors/vcbSkimmer.py."
+        )
+
+    mask = np.ones(len(events), dtype="bool")
+    for mf in RUN3_MET_FILTERS:
+        mask = mask & events.Flag[mf].to_numpy().astype(bool)
+    return mask
+
+
 # -----------------------------------------------------------------------------
 # Class definition:
 # -----------------------------------------------------------------------------
@@ -144,12 +212,42 @@ class vcbSkimmer(SkimmerABC):
             "rawFactor": "rawFactor",
             "hadronFlavour": "HadronFlavour",
             "partonFlavour": "PartonFlavour",
-            "btagPNetB": "btagPNetB",  # RobustPrT and chargetagger
+            # UnifiedParT (UParTAK4) flavour scores. The only AK4 tagger BTV
+            # calibrates for 2024: the CAT payload for
+            # Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15 ships
+            # `UParTAK4_comb` / `_mujets` / `_light` b-tag SFs plus the CvL/CvB
+            # working points, and no ParticleNet correction of any kind — not
+            # even `particleNet_wp_values`. It is also the same network family
+            # as the ParT charge-tagger heads below, so the flavour split and
+            # the calibration target are not drawn from unrelated trainings.
+            "btagUParTAK4B": "btagUParTAK4B",
+            "btagUParTAK4CvB": "btagUParTAK4CvB",
+            "btagUParTAK4CvL": "btagUParTAK4CvL",
+            "btagUParTAK4CvNotB": "btagUParTAK4CvNotB",
+            "btagUParTAK4QvG": "btagUParTAK4QvG",
+            # ParticleNet + RobustParT, kept alongside UParT. No 2024 SF exists
+            # for either, so neither can carry a b-tag weight, but they are
+            # independent networks and are retained as ML inputs / cross-checks.
+            "btagPNetB": "btagPNetB",
             "btagPNetCvB": "btagPNetCvB",
             "btagPNetCvL": "btagPNetCvL",
             "btagRobustParTAK4B": "btagRobustParTAK4B",
             "btagPNetCvNotB": "btagPNetCvNotB",
             "btagPNetQvG": "btagPNetQvG",
+            # Jet charge Qk at kappa = 0.5 and 1.0, attached from the separate
+            # `JetQk` collection by objects.attach_jet_charge. Sentinels are
+            # -999 / -998 / -997, not PAD_VAL — see objects.QK_SENTINEL_MAX.
+            #
+            # The trailing underscore is load-bearing. Slot indices are appended
+            # bare, so these are the only saved fields whose *name* ends in a
+            # digit: without it, `ak4JetQkCharge105` could be read as either
+            # QkCharge1 slot 05 or QkCharge10 slot 5. The separator makes the
+            # split unambiguous for anything that parses branch names, and
+            # matches what GenSelection already does for `ak4MatchedHadB_`.
+            "QkCharge05": "QkCharge05_",
+            "QkCharge10": "QkCharge10_",
+            # Charge-tagger heads from the CMSSW_15_CHARGE fork — what this
+            # analysis exists to calibrate.
             "ParTPosvsAll": "ParTPosvsAll",
             "ParTNegvsAll": "ParTNegvsAll",
             "ParTZerovsAll": "ParTZerovsAll",
@@ -167,6 +265,23 @@ class vcbSkimmer(SkimmerABC):
         },
         "ElectronDebug": {
             "mvaIso_WP90": "MvaIsoWP90",
+        },
+        # Electron energy scale / smearing (electron_ss.py). `pt_raw` is the
+        # uncorrected NanoAOD pT, kept so the correction stays auditable and
+        # reversible after the fact.
+        "ElectronEnergy": {
+            "pt_raw": "PtRaw",
+        },
+        # The shifted pTs for the EGM scale/smearing systematics, MC only.
+        # Saved per electron rather than as a weight because a pT shift changes
+        # *which* electrons pass the selection, and that cannot be recovered
+        # downstream from the nominal column alone. The keys must stay in step
+        # with electron_ss.PT_VARIATIONS; tests/test_electron_ss.py asserts it.
+        "ElectronEnergyMC": {
+            "pt_scaleUp": "PtScaleUp",
+            "pt_scaleDown": "PtScaleDown",
+            "pt_smearUp": "PtSmearUp",
+            "pt_smearDown": "PtSmearDown",
         },
         "MuonDebug": {
             "pfRelIso04_all": "PfRelIso04All",
@@ -287,7 +402,18 @@ class vcbSkimmer(SkimmerABC):
 
         # Leptons (electrons and muons)
         num_leptons = 3  # We will save up to 3 leptons
-        electrons, etrigvars = objects.good_electrons(events, events.Electron, year)
+
+        # EGM electron energy scale (data) / resolution smearing (MC), applied
+        # to the full collection BEFORE good_electrons. Ordering is not
+        # cosmetic: the correction moves electrons across the pT > 20 cut in
+        # good_electrons and the 32 GeV trigger-matching threshold in
+        # trig_match_sel, and applying it afterwards would erase exactly the
+        # migration it describes. Everything downstream -- selection, jet
+        # cleaning, the trigger-lepton choice, the lepton SFs, GenSelection --
+        # therefore sees the corrected pT.
+        corrected_electrons = apply_electron_scale_smearing(events, events.Electron, year, isData)
+
+        electrons, etrigvars = objects.good_electrons(events, corrected_electrons, year)
         muons, mtrigvars = objects.good_muons(events, events.Muon, year)
 
         # These are bools saying if the lepton is matched to a trigger object or not
@@ -327,37 +453,45 @@ class vcbSkimmer(SkimmerABC):
             leading_collection = leptons[pt_order][:, :1]
             return leading_collection, ak.firsts(leading_collection)
 
-        leading_electrons, fallback_trigger_electron = leading_lepton_collection(electrons)
-        leading_prompt_electrons, prompt_trigger_electron = leading_lepton_collection(
+        leading_prompt_electrons, trigger_electron_candidate = leading_lepton_collection(
             prompt_electrons
         )
         leading_prompt_muons, trigger_muon = leading_lepton_collection(prompt_muons)
 
+        # "ready" means: a trigger-matched candidate of this flavour exists in this
+        # event. The pT comparison is NOT an extra cut -- objects.trig_match_sel
+        # already folds `pt >= ptcut` into the match, so every prompt lepton is above
+        # its path's offline plateau by construction. What the comparison does is
+        # collapse the option-type `ak.firsts` result to a plain per-event boolean:
+        # an empty prompt collection gives None, which fill_none turns into False.
         trigger_electron_ready = ak.fill_none(
-            prompt_trigger_electron.pt >= objects.single_ele_lepton_pt(year),
-            False,
-        ).to_numpy()
-        fallback_trigger_electron_ready = ak.fill_none(
-            fallback_trigger_electron.pt >= objects.single_ele_lepton_pt(year),
+            trigger_electron_candidate.pt >= objects.single_ele_lepton_pt(year),
             False,
         ).to_numpy()
         trigger_muon_ready = ak.fill_none(
             trigger_muon.pt >= objects.HLT_ISOMU24_LEPTON_PT,
             False,
         ).to_numpy()
-        both_single_lep_triggers = hlt_single_ele & hlt_single_mu
 
-        # If both single-lepton HLTs fire, prefer a trigger-matched muon at the
-        # IsoMu24 activation threshold. If none exists, classify the event as
-        # electron and use the leading selected electron as the trigger lepton.
-        use_trigger_muon = (
-            (hlt_single_mu & ~hlt_single_ele) | (both_single_lep_triggers & trigger_muon_ready)
-        ) & trigger_muon_ready
-        use_prompt_trigger_electron = (hlt_single_ele & ~hlt_single_mu) & trigger_electron_ready
-        use_fallback_trigger_electron = (
-            both_single_lep_triggers & ~trigger_muon_ready & fallback_trigger_electron_ready
-        )
-        use_trigger_electron = use_prompt_trigger_electron | use_fallback_trigger_electron
+        # One rule for both flavours: the trigger lepton is a *trigger-matched*
+        # lepton above its path's offline plateau. Muon wins when both are
+        # available, which is only decidable at all in the 0.2% of events where
+        # both single-lepton paths fire.
+        #
+        # There is deliberately no looser electron branch. Until 2026-08-09 the
+        # both-fired case fell back to the leading *good* electron, matched or not,
+        # which meant the same event was judged by a different standard depending on
+        # whether IsoMu24 happened to also fire -- and let an unmatched electron
+        # collect an `electron_trigger` scale factor measured on matched ones. It
+        # never actually selected an unmatched electron on the 2024 fixture, so
+        # removing it changed no event there; it was a latent inconsistency, not an
+        # observed bias.
+        #
+        # The `hlt_single_*` terms are redundant (trig_match_sel requires the path to
+        # have fired before any lepton can be prompt) and kept as belt-and-braces:
+        # they keep this block correct on its own terms if that ever changes.
+        use_trigger_muon = hlt_single_mu & trigger_muon_ready
+        use_trigger_electron = hlt_single_ele & trigger_electron_ready & ~use_trigger_muon
 
         def keep_leading_when(leading_collection, event_mask):
             event_mask_broadcast = ak.broadcast_arrays(ak.Array(event_mask), leading_collection.pt)[
@@ -365,22 +499,22 @@ class vcbSkimmer(SkimmerABC):
             ]
             return leading_collection[event_mask_broadcast]
 
-        cleaning_electrons = ak.concatenate(
-            [
-                keep_leading_when(leading_prompt_electrons, use_prompt_trigger_electron),
-                keep_leading_when(leading_electrons, use_fallback_trigger_electron),
-            ],
-            axis=1,
-        )
+        cleaning_electrons = keep_leading_when(leading_prompt_electrons, use_trigger_electron)
         cleaning_muons = keep_leading_when(leading_prompt_muons, use_trigger_muon)
         trigger_electron = ak.firsts(cleaning_electrons)
 
         print("* Leptons:\t", f"{time.time() - start:.2f}")
 
-        # TODO: lepton systematics
+        # The trigger lepton resolved just above is also what the lepton scale
+        # factors are evaluated on, down in add_weights() -> add_lepton_weights().
 
         # AK4 Jets
-        num_ak4_jets = 8
+        # 10 slots, not 8: the semileptonic tt -> b c b~ b~ l nu final state has
+        # four hard jets, and the chi^2 jet-parton assignment needs the ISR/FSR
+        # jets around them too. `GenSelection.num_jets` pads the gen-match flags
+        # and must stay equal to this, or slots 8-9 carry jets whose truth flags
+        # were silently truncated.
+        num_ak4_jets = 10
         jets, _jec_shifted_jetvars = JEC_loader.get_jec_jets(
             events,
             events.Jet,
@@ -417,6 +551,13 @@ class vcbSkimmer(SkimmerABC):
 
         print("* ak4 JECs:\t", f"{time.time() - start:.2f}")
 
+        # Attach jet charge before the selection below, while `jets` is still
+        # index-aligned with the input `Jet` collection that `JetQk` is a
+        # superset of. JEC changes pt/mass values but neither the order nor the
+        # count, so doing it here rather than pre-JEC is equivalent and keeps
+        # the raw-NanoAOD dependency in one place.
+        jets = objects.attach_jet_charge(jets, events)
+
         jets = objects.good_ak4jets(
             jets,
             self._nano_version,
@@ -424,6 +565,7 @@ class vcbSkimmer(SkimmerABC):
             dr_leptons=0.4,
             cleaning_electrons=cleaning_electrons,
             cleaning_muons=cleaning_muons,
+            jet_id="tight",
         )
         ht = ak.sum(jets.pt, axis=1)
         print("* ak4:\t", f"{time.time() - start:.2f}")
@@ -459,16 +601,20 @@ class vcbSkimmer(SkimmerABC):
         logging.info(f"Passing gen selection: {np.sum(gen_selected)} / {len(events)}")
 
         # Lepton variables
+        electron_skimvars = {
+            **self.skim_vars["Lepton"],
+            **self.skim_vars["ElectronDebug"],
+            **self.skim_vars["ElectronEnergy"],
+        }
+        if not isData:
+            # The scale/smearing variations exist on MC only -- data gets the
+            # nominal scale and is never varied (see electron_ss.py).
+            electron_skimvars = {**electron_skimvars, **self.skim_vars["ElectronEnergyMC"]}
+
         electronVars = {
             f"Electron{key}": pad_val(electrons[var], num_leptons, axis=1)
-            for (var, key) in self.skim_vars["Lepton"].items()
+            for (var, key) in electron_skimvars.items()
         }
-        electronVars.update(
-            {
-                f"Electron{key}": pad_val(electrons[var], num_leptons, axis=1)
-                for (var, key) in self.skim_vars["ElectronDebug"].items()
-            }
-        )
         muonVars = {
             f"Muon{key}": pad_val(muons[var], num_leptons, axis=1)
             for (var, key) in self.skim_vars["Lepton"].items()
@@ -616,14 +762,9 @@ class vcbSkimmer(SkimmerABC):
         single_lep_trigger = hlt_single_mu | hlt_single_ele
         add_selection("single_lep_trigger", single_lep_trigger, *selection_args)
 
-        # MET filters: require all configured event-quality Flag branches that
-        # exist in the input NanoAOD. Missing campaign-specific branches are
-        # skipped to keep private/official NanoAOD variants usable.
-        cut_metfilters = np.ones(len(events), dtype="bool")
-        for mf in VCB_MET_FILTERS:
-            if mf in events.Flag.fields:
-                cut_metfilters = cut_metfilters & events.Flag[mf]
-        add_selection("met_filters", cut_metfilters, *selection_args)
+        # MET filters: require every flag in the Run-3 recommended set (see
+        # RUN3_MET_FILTERS). All must be present in the input; a missing one raises.
+        add_selection("met_filters", met_filter_mask(events, year), *selection_args)
 
         # jet veto maps
         cut_jetveto = get_jetveto_event(jets, year)
@@ -631,7 +772,29 @@ class vcbSkimmer(SkimmerABC):
 
         # # >=2 AK8 jets passing selections
         # add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
+
+        # Two lepton stages, deliberately. `1lep` is the loose good-lepton count and
+        # is kept only so the cutflow shows what the tightening below costs; it is
+        # implied by `trigger_lepton` and never removes an event on its own.
         add_selection("1lep", ak.num(muons) + ak.num(electrons) >= 1, *selection_args)
+
+        # `trigger_lepton` is the cut that matters: the event must have a *resolved*
+        # trigger lepton, i.e. the same object the `TriggerLepton*` branches, the
+        # lepton scale factors (add_lepton_weights) and the AK4 jet DeltaR cleaning
+        # all key off. A good-lepton count is not equivalent, and the gap is not
+        # academic -- on tests/data/test-input.root it is 3.5% of the events that
+        # would otherwise be written, of which:
+        #   - 97% have their only good lepton *below* the offline plateau cut
+        #     (muon < 26, electron < 32 GeV in 2024), i.e. sitting on the trigger
+        #     turn-on where the tag-and-probe trigger SF is not the measured
+        #     quantity;
+        #   - the rest either carry no good lepton of the flavour whose HLT fired,
+        #     or a lepton above threshold that no HLT object matches -- both mean
+        #     the path fired on something other than the analysis lepton.
+        # Keeping them would write events with PAD_VAL lepton kinematics (nothing to
+        # build W -> l nu from), a silent 1.0 lepton SF, and jets that were never
+        # cleaned against the lepton. See docs/processor.md section 6.
+        add_selection("trigger_lepton", use_trigger_electron | use_trigger_muon, *selection_args)
         if self._prescale_factor:
             cut_prescale = events.event % self._prescale_factor == 0
             add_selection("prescale", cut_prescale, *selection_args)
@@ -655,6 +818,10 @@ class vcbSkimmer(SkimmerABC):
                 dataset,
                 gen_weights,
                 gen_selected,
+                trigger_electron=trigger_electron,
+                use_trigger_electron=use_trigger_electron,
+                trigger_muon=trigger_muon,
+                use_trigger_muon=use_trigger_muon,
             )
             # Merge the weight columns into the skim output and keep the totals metadata.
             skimmed_events = {**skimmed_events, **weights_dict}
@@ -691,9 +858,18 @@ class vcbSkimmer(SkimmerABC):
         dataset,
         gen_weights,
         gen_selected,
+        trigger_electron=None,
+        use_trigger_electron=None,
+        trigger_muon=None,
+        use_trigger_muon=None,
     ) -> tuple[dict, dict]:
         """
         Adds weights and variations, saves totals for all norm preserving weights and variations
+
+        The four trigger-lepton arguments are the per-event leading electron /
+        muon candidates and the flavor choice made in process(); they are what
+        the lepton scale factors are evaluated on. Omitting them skips those
+        SFs, which is only correct for a run that has no lepton selection.
         """
 
         # -------------------------------------------------------------------------
@@ -710,6 +886,25 @@ class vcbSkimmer(SkimmerABC):
         # puWeights corrections are functions of NumTrueInteractions.
         add_pileup_weight(weights, year, events.Pileup.nTrueInt.to_numpy())
         add_ps_weight(weights, events.PSWeight)
+
+        # Lepton reco / ID / isolation / trigger SFs for the event's trigger
+        # lepton. Not norm-preserving: these correct efficiencies, so they move
+        # the yield rather than just reshaping it.
+        if use_trigger_electron is None or use_trigger_muon is None:
+            # Say so rather than dropping ~5% of the event weight in silence.
+            logger.warning(
+                "add_weights called without the trigger lepton; lepton scale factors "
+                "are NOT applied and MC lepton efficiencies stay uncorrected."
+            )
+        else:
+            add_lepton_weights(
+                weights,
+                year,
+                trigger_electron,
+                use_trigger_electron,
+                trigger_muon,
+                use_trigger_muon,
+            )
 
         logger.debug("weights", extra=weights._weights.keys())
 

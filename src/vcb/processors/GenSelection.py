@@ -351,7 +351,10 @@ def gen_selection_Vcb(
     jets["MatchedHadQ2"] = ak.values_astype(jets.delta_r(qs_3) < 0.4, np.int32)
 
     # Pad per-jet/per-lepton match info to fixed sizes for the output format.
-    num_jets = 8
+    # Must equal `vcbSkimmer.process`'s num_ak4_jets: these flags are the truth
+    # counterpart of the saved jet slots, so a smaller value here would leave
+    # the highest slots holding jets whose gen match silently reads as unmatched.
+    num_jets = 10
     JetVars = {
         f"ak4{var}_": pad_val(jets[var], num_jets, axis=1)
         for var in [

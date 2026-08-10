@@ -3,8 +3,14 @@ Plot the trigger lepton's pT split by trigger lepton flavor.
 
 Events are weighted by `finalWeight` when the branch is present (i.e. the file
 has been through the normalization pass, see docs/normalization.md); otherwise every
-event counts as 1.0. Events with no resolved trigger lepton carry
-`TriggerLeptonFlav == PAD_VAL` and are counted but not plotted.
+event counts as 1.0.
+
+Events with no resolved trigger lepton carry `TriggerLeptonFlav == PAD_VAL` and
+are counted but not plotted. In current skimmer output that count must be zero
+-- the `trigger_lepton` cut removes exactly those events -- so a non-zero
+`n_no_trigger_lepton` means either a file skimmed before that cut existed, or a
+regression in the trigger-lepton resolution. It is reported loudly rather than
+silently dropped.
 """
 
 from __future__ import annotations
@@ -171,4 +177,11 @@ if __name__ == "__main__":
     print(f"Weight: {result['weight_branch'] or 'unweighted (1.0 / event)'}")
     for label, stats in result["per_flavor"].items():
         print(f"{label}: {stats['n_events']} events, sum of weights {stats['sum_weights']:.6g}")
-    print(f"No trigger lepton (PAD_VAL flavor): {result['n_no_trigger_lepton']}")
+    n_missing = result["n_no_trigger_lepton"]
+    print(f"No trigger lepton (PAD_VAL flavor): {n_missing}")
+    if n_missing:
+        print(
+            f"WARNING: {n_missing} / {result['n_events']} events have no trigger lepton. "
+            "The skimmer's `trigger_lepton` cut should make this impossible -- this file "
+            "predates that cut, or the trigger-lepton resolution has regressed."
+        )
