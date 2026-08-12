@@ -301,6 +301,43 @@ could produce nothing at all.)
 > 2026-07-24 and now skims cleanly (43,800 events, verified). It is no longer a
 > problem.
 
+## 8. Top-pT reweighting  (implemented, Run 2 numbers — ⚠️ open)
+
+- **Get:** the TOP PAG correction for the top quark pT spectrum, which is
+  softer in data than POWHEG+Pythia8 predicts because the generator stops at
+  NLO in QCD.
+- **Done (2026-08-11):** implemented in
+  [src/vcb/processors/top_pt.py](../src/vcb/processors/top_pt.py), called at
+  the end of `vcbSkimmer.add_weights`. Three parameterisations written as
+  standalone branches — `topPtWeight_dataNLO`, `topPtWeight_dataNNLO`,
+  `topPtWeight_NNLONLO` — as `w = sqrt(SF(pT_t) × SF(pT_t̄))` on the
+  `isLastCopy` parton-level tops. **None is applied**: they reach neither
+  `weight` nor `finalWeight` nor `np_nominal`, and carry no σ×L. Full
+  walkthrough in [docs/processor.md](processor.md) §7 "Top-pT reweighting".
+- **Source:** the CMS `TopPtReweighting` twiki (CERN SSO),
+  <https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting>, **topic revision
+  r31, 2020-09-24**. Coefficients are hardcoded — unlike every other item here
+  there is **no correctionlib payload**, on cvmfs or anywhere else. Neither the
+  `jsonpog-integration` nor the CAT metadata tree has a `TOP` directory
+  (checked 2026-08-11); this correction has never been packaged as one.
+  Public reference for the theory function: JHEP 1710 (2017) 186.
+- **⚠️ Open — these are Run 2 numbers on Run 3 samples.** The `data*` fits use
+  2.2–2.3 fb⁻¹ of *2015* 13 TeV data (TOP-16-011, TOP-16-008); the twiki's own
+  promise of a full-Run-2 update "soon (08/2020)" never landed. Our samples are
+  Summer24 at 13.6 TeV. No Run 3 functions exist and none can be derived yet —
+  the only published Run 3 TOP results are inclusive ttbar
+  (CMS-PAS-TOP-22-012) and tW (TOP-23-008), so there is no 13.6 TeV
+  differential ttbar cross section unfolded to parton-level top pT anywhere.
+  `NNLONLO` transfers best, being a ratio of two calculations rather than a fit
+  to a dataset. **A question is out to the TOP-PAG conveners.**
+- **Also open:** the Pythia tune of the private `TTtoLNuCB` sample is not
+  recorded anywhere in this repo. `NNLONLO` is derived against POWHEG+Pythia8
+  **CP5** specifically; the matrix element matches (standard POWHEG `hvq`, item
+  2), but the tune should be read off the sample config and written into this
+  document.
+- **Impact:** none as shipped — three extra `Double_t` columns and nothing
+  else. `weight`, `finalWeight` and the event count are untouched.
+
 ---
 
 ### Quick-check after filling things in
@@ -315,6 +352,7 @@ micromamba run -n ttbar python -m vcb.run --year 2024 \
 # baselines: items 4 (JER + V5 JEC) and 6 (jet ID) move jet pT / nJets — item 6 also
 # shifts the event count via the jet-veto map; items 1–3 and 5 change weights only
 # (item 5 also adds six single_weight_* columns to the schema); item 5b moves the
-# electron pT and event count, and adds 15 Electron{PtRaw,PtScale*,PtSmear*} columns:
+# electron pT and event count, and adds 15 Electron{PtRaw,PtScale*,PtSmear*} columns;
+# item 8 adds three topPtWeight_* columns and changes nothing else:
 micromamba run -n ttbar python tests/test_run.py
 ```

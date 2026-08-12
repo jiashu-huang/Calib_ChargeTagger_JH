@@ -609,6 +609,10 @@ Only `genweight`, `pileup` and the two PS weights are in
 SFs deliberately are not: they correct an efficiency, and are meant to move the
 yield.
 
+The **top-pT reweighting** factors are the exception to all of the above: they
+are written as standalone columns and are in neither `weight` nor
+`np_nominal`. See [below](#top-pt-reweighting).
+
 ### Pile-up
 
 Relevant files (line numbers as of the current commit):
@@ -747,6 +751,115 @@ Two things to be aware of:
   electron-channel events in the fixture take an unmeasured SF (verified in
   [`tests/test_objects.py`](../tests/test_objects.py)); relaxing the veto brings
   the problem straight back.
+
+### Top-pT reweighting
+
+> ⚠️ **These are Run 2 (13 TeV) numbers on Run 3 samples.** The source twiki is
+> frozen at r31, 2020-09-24, and no Run 3 replacement exists. Read the caveat
+> below before using any of these columns for a result.
+
+The pT spectrum of top quarks in data is **softer** than POWHEG+Pythia8
+predicts — simulation makes too many hard tops. Seen in Run 1, confirmed in Run
+2, corroborated by ATLAS. It is understood to be largely an artifact of the
+generator stopping at NLO in QCD: the NNLO QCD corrections and the negative,
+pT-growing NLO electroweak Sudakov logarithms both soften the spectrum the way
+the data wants.
+
+Implemented in [`src/vcb/processors/top_pt.py`](../src/vcb/processors/top_pt.py)
+(analysis-local for the same reason as the lepton SFs), called at the very end
+of `add_weights`. The per-event weight is the geometric mean over the two tops,
+
+```
+w = sqrt( SF(pT_t) × SF(pT_t̄) )
+```
+
+evaluated on the **`isLastCopy` parton-level top, after radiation and before
+decay** — the module imports `TOP_PDGID` and `GEN_FLAGS` from the same places
+`gen_selection_Vcb` does, so the two definitions cannot drift. The twiki is
+explicit that a reco- or particle-level proxy gives "an invalid reweighting".
+
+Three parameterisations are written, one column each, using the twiki's own
+vocabulary so there is no translation step between the recommendation and the
+branch name:
+
+| Branch | `SF(pT)` | What it is | When the TOP PAG recommends it |
+|---|---|---|---|
+| `topPtWeight_dataNLO` | `exp(0.0615 − 0.0005·pT)` | data / POWHEG+Pythia8 | ttbar MC modelling the **detector response** — trigger, ID, b-tag, reconstruction efficiencies (use case 1) |
+| `topPtWeight_dataNNLO` | `exp(0.0416 − 0.0003·pT)` | data / NNLO | **cross-check** only |
+| `topPtWeight_NNLONLO` | `0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973` | (NNLO QCD + NLO EW) / POWHEG+Pythia8 CP5 | NLO-QCD **signal** samples where SM ttbar is both signal and background (use case 3.2) |
+
+Both readings apply here. The SPANet reconstruction efficiency is an MC-derived
+efficiency (case 1); W→cb signal sitting inside the same ttbar production is
+case 3.2. That is exactly why nothing is applied centrally.
+
+**Not folded into `weight`.** These columns are appended *after* the σ×L loop in
+`add_weights`, so unlike the `single_weight_*` diagnostics they carry no
+normalization factor — they are raw scale factors. They reach neither `weight`,
+nor `finalWeight`, nor `np_nominal`. Three reasons:
+
+* The recommended systematic is **on/off**, not up/down: the twiki says in as
+  many words that deriving it by applying the reweighting twice, or in opposite
+  directions, is *not* recommended. Separate columns give "without" by not
+  multiplying and "with" by multiplying — no division, no inverse.
+* The choice between `dataNLO` and `NNLONLO` is still open, and so is whether
+  TOP-PAG's answer changes it.
+* Whether top-pT belongs in the `np_nominal` denominator is an unresolved
+  normalization question. That denominator sums over **all events read, before
+  cuts**, so it cannot be reconstructed from the skim afterwards — folding the
+  factor into `weight` now would silently decide it. Keeping the columns
+  separate leaves the decision open; making it later costs a re-skim.
+
+**Gating.** ttbar only (`TTtoLNuCB`, `TT1L2Q`, `TTtoLNu2Q`, matched as
+substrings). The TOP PAG weights are explicitly *not* valid for single top or
+ttX — top production may look similar, but there is no evidence the same
+mismodelling applies. A non-ttbar dataset gets **no columns at all**, not
+columns of 1.0, so nobody can apply them there by accident. Events without
+exactly two hard-process last-copy tops get 1.0.
+
+**Clamping.** Above 500 GeV the data-based weights hold at their 500 GeV value,
+per the twiki — the measurements they are fitted to do not extend further. The
+twiki gives no equivalent rule for `NNLONLO`; we clamp it at 2000 GeV, the edge
+of its published figure. That one is **our choice, not twiki text**, and exists
+so a pathological gen pT cannot walk the linear term down to a negative weight
+(it crosses zero around 7.3 TeV). No top in 124 fb⁻¹ comes close.
+
+#### The Run 2 caveat
+
+The source is the CMS `TopPtReweighting` twiki (CERN SSO), **topic revision r31,
+2020-09-24**. Both `data*` functions are fitted to 2.2–2.3 fb⁻¹ of *2015* 13 TeV
+data (TOP-16-011, TOP-16-008); the page's own promise of a full-Run-2 update
+"soon (08/2020)" never landed. Our samples are Summer24 at **13.6 TeV, 124
+fb⁻¹**.
+
+There is no Run 3 replacement, and the reason is structural rather than
+editorial: the only published Run 3 TOP results are the inclusive ttbar cross
+section (CMS-PAS-TOP-22-012) and tW (TOP-23-008). **No 13.6 TeV differential
+ttbar cross section unfolded to parton-level top pT exists**, so the TOP PAG
+cannot derive Run 3 versions of the data-based functions until somebody measures
+the input.
+
+Of the three, `NNLONLO` travels best. It is a ratio of two *calculations*, both
+evaluable at any √s, and a 4.6 % shift in beam energy barely moves the shape of
+a K-factor; the EW logarithms scale with pT/m_W, not with √s. The `data*`
+functions have a 2015 dataset, a Run 2 tune and a Run 2 PDF baked in, and no
+principled claim on Summer24 samples.
+
+Two open items:
+
+* **A question is out to the TOP-PAG conveners** on Run 3 guidance. Until it is
+  answered, treat every column here as provisional.
+* **The tune of the private signal sample is unrecorded.** `NNLONLO` is derived
+  against POWHEG+Pythia8 **CP5** specifically, and the general twiki caveat puts
+  the burden on the author for different generators or showers. The production
+  is standard POWHEG `hvq`, so the matrix element matches; the Pythia tune
+  should be read off the sample config and written into
+  [`2024-inputs.md`](2024-inputs.md).
+
+The genuinely Run 3-native alternative, once a data skim exists, is case 3.1:
+derive a reweighting from a ttbar-enriched control region in our own 124 fb⁻¹.
+Note that a self-derived function is based on *reconstructed* tops and must then
+be applied on reconstructed top pT — not the `isLastCopy` gen pT these three
+columns use.
 
 ---
 

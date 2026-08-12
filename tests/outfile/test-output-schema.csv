@@ -488,5 +488,8 @@ single_weight_muon_id,Double_t
 single_weight_muon_iso,Double_t
 single_weight_muon_trigger,Double_t
 single_weight_pileup,Double_t
+topPtWeight_NNLONLO,Double_t
+topPtWeight_dataNLO,Double_t
+topPtWeight_dataNNLO,Double_t
 weight,Double_t
 weight_noxsec,Double_t

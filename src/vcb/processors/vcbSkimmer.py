@@ -111,6 +111,7 @@ from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 from . import GenSelection, objects  # Local gen selection and object definitions.
 from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
 from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
+from .top_pt import top_pt_weights  # ttbar top-pT reweighting SFs (standalone columns).
 
 # -----------------------------------------------------------------------------
 # End Imports
@@ -989,5 +990,15 @@ class vcbSkimmer(SkimmerABC):
 
         # 12) Also store the unnormalized nominal weight for post-processing checks.
         weights_dict["weight_noxsec"] = weights.weight()
+
+        # 13) Top-pT reweighting factors for ttbar MC, as standalone columns.
+        #
+        # Deliberately *after* the sigma*L loop in step 11, and deliberately not
+        # in the `Weights` container: these stay raw per-event scale factors, so
+        # they reach neither `weight` nor `finalWeight` nor `np_nominal`.
+        # Applying them is a downstream choice, and the recommended systematic
+        # is on/off rather than up/down. They are Run 2 parameterisations on Run
+        # 3 samples -- src/vcb/processors/top_pt.py carries the full caveat.
+        weights_dict.update(top_pt_weights(events, dataset))
 
         return weights_dict, totals_dict

@@ -36,6 +36,11 @@ Known gaps:
   the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
 - **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is
   MC AK4 only.
+- **Top-pT reweighting is Run 2 (13 TeV) applied to Run 3 samples.** The three
+  `topPtWeight_*` branches come from a TOP PAG twiki frozen at 2020-09-24; no
+  Run 3 functions exist, because no 13.6 TeV differential ttbar measurement has
+  been published to derive them from. They are written but **never applied** —
+  see [Top-pT reweighting](#top-pt-reweighting-run-2-numbers) below.
 
 ## What the pipeline does
 
@@ -44,7 +49,9 @@ trigger matching, AK4 jets with JEC + tight jet ID + jet-veto map + lepton
 cleaning;
 gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
 `JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
-(genWeight, pileup, PS ISR/FSR, xsec×lumi normalization) → parquet/ROOT skim +
+(genWeight, pileup, PS ISR/FSR, lepton SFs, xsec×lumi normalization; plus
+standalone top-pT reweighting columns that are *not* folded into `weight`)
+→ parquet/ROOT skim +
 pickle totals → `finalWeight = weight / np_nominal` appended in a second pass
 by `condor/scripts/normalize.py` (the skimmer itself never writes it — the
 denominator sums over every batch of a campaign).
@@ -177,6 +184,7 @@ check works: [docs/tests.md](docs/tests.md).
 | 2024 MET | **PUPPI**, rebuilt Type-1 from `RawPuppiMET` so it matches the recorrected jets | `MET_COLLECTION` in [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), `JECs.type1_met_2024` |
 | 2024 AK4 jet ID | Run-3 AK4 PUPPI **Tight**, recomputed from the PF fractions — NanoAOD ships no `Jet_jetId`. Thresholds transcribed from `POG/JME/2024_Summer24/jetid.json.gz` (identical across all Run-3 eras) | `objects.ak4_jet_id` in [src/vcb/processors/objects.py](src/vcb/processors/objects.py) |
 | 2024 lepton SFs | EGM reco + `wp90iso` ID + Ele30 trigger; MUO tight ID + tight PFIso + IsoMu24 trigger, on the event's trigger lepton | [src/vcb/processors/lepton_sf.py](src/vcb/processors/lepton_sf.py) + bundled `src/vcb/corrections/2024_*.json.gz` |
+| Top-pT reweighting | ⚠️ **Run 2 (13 TeV)** TOP PAG fits, twiki r31 2020-09-24. Three `topPtWeight_*` columns, written but never applied | [src/vcb/processors/top_pt.py](src/vcb/processors/top_pt.py) — coefficients hardcoded, no payload file |
 
 Provenance for every number — which source it came from and why:
 [docs/2024-inputs.md](docs/2024-inputs.md),
@@ -210,6 +218,41 @@ is the V1→V5 recalibration and ~3.8 the previously-absent JER smearing.
 > private POWHEG sample forces W→cb, so its generated xsec carries no `|Vcb|²`
 > and would overcount the signal by ~2200×. Details in
 > [docs/2024-inputs.md](docs/2024-inputs.md) item 2.
+
+### Top-pT reweighting (Run 2 numbers)
+
+Simulation makes too many hard top quarks: the top pT spectrum in data is
+softer than POWHEG+Pythia8 predicts, mostly because the generator stops at NLO
+in QCD. The TOP PAG correction is a per-event weight,
+`w = sqrt(SF(pT_t) × SF(pT_t̄))`, evaluated on the `isLastCopy` parton-level
+tops.
+
+Three parameterisations are written to ttbar MC, one branch each:
+
+| Branch | `SF(pT)` | Recommended for |
+|---|---|---|
+| `topPtWeight_dataNLO` | `exp(0.0615 − 0.0005·pT)` | ttbar MC modelling detector response / efficiencies (use case 1) |
+| `topPtWeight_dataNNLO` | `exp(0.0416 − 0.0003·pT)` | cross-check only |
+| `topPtWeight_NNLONLO` | `0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973` | NLO-QCD signal samples where SM ttbar is signal *and* background (use case 3.2) |
+
+**None of them is applied.** They are raw scale factors in their own columns —
+not in `weight`, not in `finalWeight`, not in the `np_nominal` denominator, and
+(unlike `single_weight_*`) not scaled by σ×L. Multiply one in downstream if you
+want it. This is deliberate: the recommended systematic is **on/off** rather
+than up/down, the choice of function is still open, and folding a factor into
+`weight` would silently settle a normalization question that cannot be
+un-settled without a re-skim.
+
+> ⚠️ **The Run 2 problem.** The source twiki is at revision **r31, 2020-09-24**.
+> The `data*` fits use 2.2–2.3 fb⁻¹ of *2015* 13 TeV data; the page's own
+> promised full-Run-2 update never landed. Our samples are Summer24 at 13.6 TeV.
+> No Run 3 functions exist and none can, yet: the only published Run 3 TOP
+> results are inclusive ttbar (CMS-PAS-TOP-22-012) and tW (TOP-23-008), so there
+> is no 13.6 TeV differential ttbar measurement to derive them from. `NNLONLO`
+> travels best — it is a ratio of two calculations, not a fit to a dataset. A
+> question is out to the TOP-PAG conveners. Full reasoning, the clamping rules,
+> and the open item on the private sample's Pythia tune:
+> [docs/processor.md](docs/processor.md#top-pt-reweighting).
 
 ## Repo layout
 
