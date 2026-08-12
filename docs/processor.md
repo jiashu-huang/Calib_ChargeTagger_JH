@@ -754,9 +754,9 @@ Two things to be aware of:
 
 ### Top-pT reweighting
 
-> ⚠️ **These are Run 2 (13 TeV) numbers on Run 3 samples.** The source twiki is
-> frozen at r31, 2020-09-24, and no Run 3 replacement exists. Read the caveat
-> below before using any of these columns for a result.
+> ⚠️ **Three of the four columns are 13 TeV fits.** On these Summer24 samples
+> use `topPtWeight_NNLONLO_13p6TeV`, the only one carrying the beam-energy
+> extrapolation. Read the caveat below before using any of the others.
 
 The pT spectrum of top quarks in data is **softer** than POWHEG+Pythia8
 predicts — simulation makes too many hard tops. Seen in Run 1, confirmed in Run
@@ -778,31 +778,74 @@ decay** — the module imports `TOP_PDGID` and `GEN_FLAGS` from the same places
 `gen_selection_Vcb` does, so the two definitions cannot drift. The twiki is
 explicit that a reco- or particle-level proxy gives "an invalid reweighting".
 
-Three parameterisations are written, one column each, using the twiki's own
+AN-25-050 phrases the same selection differently — it fits its extrapolation
+"looking only at top particles with status 62", the Pythia8 code for an outgoing
+hard-process parton after radiation. On the 2024 fixture the two are not merely
+equivalent in spirit but **identical particle for particle**: over 200 000
+events, `|pdgId| == 6 & fromHardProcess & isLastCopy` and
+`|pdgId| == 6 & status == 62` select exactly the same GenParticles, both giving
+two tops in every event.
+
+Four parameterisations are written, one column each, using the twiki's own
 vocabulary so there is no translation step between the recommendation and the
 branch name:
 
-| Branch | `SF(pT)` | What it is | When the TOP PAG recommends it |
+| Branch | `SF(pT)` | √s | What it is / when it is recommended |
 |---|---|---|---|
-| `topPtWeight_dataNLO` | `exp(0.0615 − 0.0005·pT)` | data / POWHEG+Pythia8 | ttbar MC modelling the **detector response** — trigger, ID, b-tag, reconstruction efficiencies (use case 1) |
-| `topPtWeight_dataNNLO` | `exp(0.0416 − 0.0003·pT)` | data / NNLO | **cross-check** only |
-| `topPtWeight_NNLONLO` | `0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973` | (NNLO QCD + NLO EW) / POWHEG+Pythia8 CP5 | NLO-QCD **signal** samples where SM ttbar is both signal and background (use case 3.2) |
+| `topPtWeight_dataNLO` | `exp(0.0615 − 0.0005·pT)` | 13 TeV | data / POWHEG+Pythia8. ttbar MC modelling the **detector response** — trigger, ID, b-tag, reconstruction efficiencies (use case 1) |
+| `topPtWeight_dataNNLO` | `exp(0.0416 − 0.0003·pT)` | 13 TeV | data / NNLO. **Cross-check** only |
+| `topPtWeight_NNLONLO` | `0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973` | 13 TeV | (NNLO QCD + NLO EW) / POWHEG+Pythia8 CP5. NLO-QCD **signal** samples where SM ttbar is both signal and background (use case 3.2) |
+| **`topPtWeight_NNLONLO_13p6TeV`** | the row above **×** `(0.991 + 0.000075·pT)` | **13.6 TeV** | **the Run 3 column** — `top_pt.RECOMMENDED_COLUMN` |
 
-Both readings apply here. The SPANet reconstruction efficiency is an MC-derived
-efficiency (case 1); W→cb signal sitting inside the same ttbar production is
-case 3.2. That is exactly why nothing is applied centrally.
+Both TOP PAG use cases apply here. The SPANet reconstruction efficiency is an
+MC-derived efficiency (case 1); W→cb signal sitting inside the same ttbar
+production is case 3.2. That is exactly why nothing is applied centrally.
+
+#### The 13.6 TeV extrapolation
+
+The NNLO-NLO fit was derived at 13 TeV. **AN-25-050 (v11) §4.7**, the analysis
+note for **TOP-25-018**, extrapolates it to 13.6 TeV by fitting the ratio of the
+generator-level top pT spectrum between the two beam energies (its eq. 3) and
+applying that *on top of* the 13 TeV weight (its eq. 2):
+
+```
+SF_13.6(pT) = [0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973] × [0.991 + 0.000075·pT]
+```
+
+with the usual geometric mean over the two tops on top of that. The procedure
+was taken from the 13.6 TeV tW measurement, TOP-23-008 / JHEP 01 (2025) 107.
+
+The extrapolation **rises** with pT — 0.991 at pT = 0, crossing 1 at exactly
+120 GeV — partly counteracting the fall of the 13 TeV term, since the spectrum
+is slightly harder at the higher beam energy. Its effect on the total weight is
+at the percent level: on the fixture's event 0 (top pT 52.75 and 150.5 GeV) it
+moves the weight from 0.99541 to 0.99403.
+
+It is defined **only** as an add-on to NNLO-NLO. AN-25-050 does not apply it to
+the data-based fits, and neither do we — inventing a `dataNLO_13p6TeV` would be
+our extrapolation rather than anybody's recommendation. That asymmetry is also
+why the `data*` columns are stuck at 13 TeV: NNLO-NLO could be carried across
+beam energies precisely because it is a ratio of two *calculations*, both
+evaluable at any √s, while the data-based fits have a 2015 dataset, a Run 2 tune
+and a Run 2 PDF baked in. No 13.6 TeV differential ttbar cross section unfolded
+to parton-level top pT exists to update them from — the only published Run 3 TOP
+results are inclusive ttbar (CMS-PAS-TOP-22-012) and tW (TOP-23-008), the latter
+being where the extrapolation trick came from in the first place.
 
 **Not folded into `weight`.** These columns are appended *after* the σ×L loop in
 `add_weights`, so unlike the `single_weight_*` diagnostics they carry no
 normalization factor — they are raw scale factors. They reach neither `weight`,
 nor `finalWeight`, nor `np_nominal`. Three reasons:
 
-* The recommended systematic is **on/off**, not up/down: the twiki says in as
+* The recommended systematic is **on/off**, not up/down. The twiki says in as
   many words that deriving it by applying the reweighting twice, or in opposite
-  directions, is *not* recommended. Separate columns give "without" by not
-  multiplying and "with" by multiplying — no division, no inverse.
-* The choice between `dataNLO` and `NNLONLO` is still open, and so is whether
-  TOP-PAG's answer changes it.
+  directions, is *not* recommended, and AN-25-050 §7 does exactly the sanctioned
+  thing: *"the uncertainty … is taken as the difference with respect to the
+  uncorrected shapes (no toppT reweighting applied), and symmetrised."*
+  Separate columns give "without" by not multiplying and "with" by multiplying —
+  no division, no inverse.
+* Which column to apply is a per-use-case decision, and this skim feeds more
+  than one (tagger efficiency vs. Vcb signal).
 * Whether top-pT belongs in the `np_nominal` denominator is an unresolved
   normalization question. That denominator sums over **all events read, before
   cuts**, so it cannot be reconstructed from the skim afterwards — folding the
@@ -821,45 +864,36 @@ per the twiki — the measurements they are fitted to do not extend further. The
 twiki gives no equivalent rule for `NNLONLO`; we clamp it at 2000 GeV, the edge
 of its published figure. That one is **our choice, not twiki text**, and exists
 so a pathological gen pT cannot walk the linear term down to a negative weight
-(it crosses zero around 7.3 TeV). No top in 124 fb⁻¹ comes close.
+(it crosses zero around 7.3 TeV). No top in 124 fb⁻¹ comes close. The
+extrapolation shares that 2000 GeV clamp, so the product stays flat past the fit
+range instead of turning back upward — the rising factor must not outlive the
+falling one it multiplies.
 
-#### The Run 2 caveat
+#### Provenance and open items
 
-The source is the CMS `TopPtReweighting` twiki (CERN SSO), **topic revision r31,
-2020-09-24**. Both `data*` functions are fitted to 2.2–2.3 fb⁻¹ of *2015* 13 TeV
-data (TOP-16-011, TOP-16-008); the page's own promise of a full-Run-2 update
-"soon (08/2020)" never landed. Our samples are Summer24 at **13.6 TeV, 124
-fb⁻¹**.
+| Piece | Source |
+|---|---|
+| all four base functions | CMS `TopPtReweighting` twiki (CERN SSO), **topic revision r31, 2020-09-24** |
+| `data*` fits | TOP-16-011, TOP-16-008 — 2.2–2.3 fb⁻¹ of *2015* 13 TeV data |
+| NNLO-NLO theory | Czakon *et al.*, JHEP 10 (2017) 186, [arXiv:1705.04105](https://arxiv.org/abs/1705.04105) |
+| 13→13.6 TeV extrapolation | **AN-25-050 (v11) §4.7 eq. 3**, the analysis note for **TOP-25-018** |
+| where that procedure came from | CMS tW at 13.6 TeV, TOP-23-008, JHEP 01 (2025) 107, [arXiv:2409.06444](https://arxiv.org/abs/2409.06444) |
 
-There is no Run 3 replacement, and the reason is structural rather than
-editorial: the only published Run 3 TOP results are the inclusive ttbar cross
-section (CMS-PAS-TOP-22-012) and tW (TOP-23-008). **No 13.6 TeV differential
-ttbar cross section unfolded to parton-level top pT exists**, so the TOP PAG
-cannot derive Run 3 versions of the data-based functions until somebody measures
-the input.
+Still open:
 
-Of the three, `NNLONLO` travels best. It is a ratio of two *calculations*, both
-evaluable at any √s, and a 4.6 % shift in beam energy barely moves the shape of
-a K-factor; the EW logarithms scale with pT/m_W, not with √s. The `data*`
-functions have a 2015 dataset, a Run 2 tune and a Run 2 PDF baked in, and no
-principled claim on Summer24 samples.
-
-Two open items:
-
-* **A question is out to the TOP-PAG conveners** on Run 3 guidance. Until it is
-  answered, treat every column here as provisional.
-* **The tune of the private signal sample is unrecorded.** `NNLONLO` is derived
+* **The tune of the private signal sample is unrecorded.** NNLO-NLO is derived
   against POWHEG+Pythia8 **CP5** specifically, and the general twiki caveat puts
   the burden on the author for different generators or showers. The production
   is standard POWHEG `hvq`, so the matrix element matches; the Pythia tune
   should be read off the sample config and written into
   [`2024-inputs.md`](2024-inputs.md).
-
-The genuinely Run 3-native alternative, once a data skim exists, is case 3.1:
-derive a reweighting from a ttbar-enriched control region in our own 124 fb⁻¹.
-Note that a self-derived function is based on *reconstructed* tops and must then
-be applied on reconstructed top pT — not the `isLastCopy` gen pT these three
-columns use.
+* **The `data*` columns cannot be used on Summer24** and have no Run 3
+  successor, for the structural reason given above. If a use case genuinely
+  needs the data-based correction (case 1 is where the TOP PAG points), the
+  fallback is case 3.1: derive a reweighting from a ttbar-enriched control
+  region in our own 124 fb⁻¹ once a data skim exists. Note that a self-derived
+  function is based on *reconstructed* tops and must then be applied on
+  reconstructed top pT — not the `isLastCopy` gen pT these four columns use.
 
 ---
 

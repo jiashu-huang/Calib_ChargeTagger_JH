@@ -1,6 +1,6 @@
 # 2024 calibration inputs — provenance
 
-Last update: **2026-08-05**
+Last update: **2026-08-12**
 
 This repo is copied from Calib_ChargeTagger, which could only process files up
 to 2023. This document records, for each 2024 calibration input, what was
@@ -10,7 +10,8 @@ pipeline worked on placeholders throughout — these only ever affected
 calibration-grade correctness.
 
 Items 1–4 were the original set; item 5 (lepton scale factors) was added on
-2026-08-04 and item 6 (AK4 jet ID) on 2026-08-05.
+2026-08-04, item 6 (AK4 jet ID) on 2026-08-05, and item 8 (top-pT reweighting)
+on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
 
 ---
 
@@ -301,42 +302,56 @@ could produce nothing at all.)
 > 2026-07-24 and now skims cleanly (43,800 events, verified). It is no longer a
 > problem.
 
-## 8. Top-pT reweighting  (implemented, Run 2 numbers — ⚠️ open)
+## 8. Top-pT reweighting  (done)
 
 - **Get:** the TOP PAG correction for the top quark pT spectrum, which is
   softer in data than POWHEG+Pythia8 predicts because the generator stops at
-  NLO in QCD.
+  NLO in QCD — plus a way to use it at 13.6 TeV, since the published fits are
+  13 TeV.
 - **Done (2026-08-11):** implemented in
   [src/vcb/processors/top_pt.py](../src/vcb/processors/top_pt.py), called at
-  the end of `vcbSkimmer.add_weights`. Three parameterisations written as
-  standalone branches — `topPtWeight_dataNLO`, `topPtWeight_dataNNLO`,
-  `topPtWeight_NNLONLO` — as `w = sqrt(SF(pT_t) × SF(pT_t̄))` on the
-  `isLastCopy` parton-level tops. **None is applied**: they reach neither
-  `weight` nor `finalWeight` nor `np_nominal`, and carry no σ×L. Full
-  walkthrough in [docs/processor.md](processor.md) §7 "Top-pT reweighting".
+  the end of `vcbSkimmer.add_weights`. Four parameterisations written as
+  standalone branches, as `w = sqrt(SF(pT_t) × SF(pT_t̄))` on the `isLastCopy`
+  parton-level tops. **None is applied**: they reach neither `weight` nor
+  `finalWeight` nor `np_nominal`, and carry no σ×L. Full walkthrough in
+  [docs/processor.md](processor.md) §7 "Top-pT reweighting".
+- **Updated (2026-08-12), after TOP-PAG replied:** added
+  `topPtWeight_NNLONLO_13p6TeV`, the 13 TeV NNLO-NLO fit times the 13→13.6 TeV
+  extrapolation `0.991 + 0.000075·pT`, from **AN-25-050 (v11) §4.7 eq. 3** —
+  the analysis note for **TOP-25-018**. **This is the column to use on Summer24
+  samples**; the other three are 13 TeV. The extrapolation is fitted to the
+  ratio of the generator-level top pT spectrum between the two beam energies
+  and applied multiplicatively on top of eq. 2; the procedure comes from the
+  13.6 TeV tW measurement (TOP-23-008, JHEP 01 (2025) 107, arXiv:2409.06444).
 - **Source:** the CMS `TopPtReweighting` twiki (CERN SSO),
   <https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting>, **topic revision
-  r31, 2020-09-24**. Coefficients are hardcoded — unlike every other item here
+  r31, 2020-09-24**, for the four base functions; AN-25-050 for the
+  extrapolation. Coefficients are hardcoded — unlike every other item here
   there is **no correctionlib payload**, on cvmfs or anywhere else. Neither the
   `jsonpog-integration` nor the CAT metadata tree has a `TOP` directory
   (checked 2026-08-11); this correction has never been packaged as one.
-  Public reference for the theory function: JHEP 1710 (2017) 186.
-- **⚠️ Open — these are Run 2 numbers on Run 3 samples.** The `data*` fits use
-  2.2–2.3 fb⁻¹ of *2015* 13 TeV data (TOP-16-011, TOP-16-008); the twiki's own
-  promise of a full-Run-2 update "soon (08/2020)" never landed. Our samples are
-  Summer24 at 13.6 TeV. No Run 3 functions exist and none can be derived yet —
-  the only published Run 3 TOP results are inclusive ttbar
-  (CMS-PAS-TOP-22-012) and tW (TOP-23-008), so there is no 13.6 TeV
-  differential ttbar cross section unfolded to parton-level top pT anywhere.
-  `NNLONLO` transfers best, being a ratio of two calculations rather than a fit
-  to a dataset. **A question is out to the TOP-PAG conveners.**
+  Theory reference for the NNLO-NLO function: Czakon *et al.*, JHEP 10 (2017)
+  186, arXiv:1705.04105.
+- **Verified:** AN-25-050 fits its extrapolation on tops with Pythia8 `status
+  62`, whereas we select `fromHardProcess & isLastCopy`. On the 2024 fixture
+  the two are identical particle for particle over 200 000 events, both giving
+  two tops in every event — so eq. 3 is applied to the objects it was fitted
+  on.
+- **⚠️ Still 13 TeV, with no Run 3 successor:** `topPtWeight_dataNLO` and
+  `topPtWeight_dataNNLO`. Those fits use 2.2–2.3 fb⁻¹ of *2015* data
+  (TOP-16-011, TOP-16-008) and the twiki's own promise of a full-Run-2 update
+  "soon (08/2020)" never landed. They cannot be extrapolated the way NNLO-NLO
+  was: that one is a ratio of two *calculations*, evaluable at any √s, while
+  the data-based fits have a 2015 dataset, a Run 2 tune and a Run 2 PDF baked
+  in. No 13.6 TeV differential ttbar cross section unfolded to parton-level top
+  pT exists to rederive them from.
 - **Also open:** the Pythia tune of the private `TTtoLNuCB` sample is not
-  recorded anywhere in this repo. `NNLONLO` is derived against POWHEG+Pythia8
+  recorded anywhere in this repo. NNLO-NLO is derived against POWHEG+Pythia8
   **CP5** specifically; the matrix element matches (standard POWHEG `hvq`, item
   2), but the tune should be read off the sample config and written into this
   document.
-- **Impact:** none as shipped — three extra `Double_t` columns and nothing
-  else. `weight`, `finalWeight` and the event count are untouched.
+- **Impact:** none as shipped — four extra `Double_t` columns and nothing else.
+  `weight`, `finalWeight` and the event count are untouched.
 
 ---
 
@@ -353,6 +368,6 @@ micromamba run -n ttbar python -m vcb.run --year 2024 \
 # shifts the event count via the jet-veto map; items 1–3 and 5 change weights only
 # (item 5 also adds six single_weight_* columns to the schema); item 5b moves the
 # electron pT and event count, and adds 15 Electron{PtRaw,PtScale*,PtSmear*} columns;
-# item 8 adds three topPtWeight_* columns and changes nothing else:
+# item 8 adds four topPtWeight_* columns and changes nothing else:
 micromamba run -n ttbar python tests/test_run.py
 ```

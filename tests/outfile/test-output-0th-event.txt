@@ -490,6 +490,7 @@ single_weight_muon_iso (Double_t) = 42632.58771943055
 single_weight_muon_trigger (Double_t) = 42925.993438947655
 single_weight_pileup (Double_t) = 24997.788180991225
 topPtWeight_NNLONLO (Double_t) = 0.995413467006329
+topPtWeight_NNLONLO_13p6TeV (Double_t) = 0.9940349659813583
 topPtWeight_dataNLO (Double_t) = 1.0107448153320129
 topPtWeight_dataNNLO (Double_t) = 1.0111744731743533
 weight (Double_t) = 8369821.758416563

@@ -37,10 +37,13 @@ from boostedhh.processors.utils import GEN_FLAGS
 from vcb.processors.top_pt import (
     DATA_PT_CLAMP,
     NNLO_PT_CLAMP,
+    RECOMMENDED_COLUMN,
     SF_FUNCTIONS,
     _sf_data_nlo,
     _sf_data_nnlo,
     _sf_nnlo_nlo,
+    _sf_nnlo_nlo_13p6tev,
+    _sf_run3_extrapolation,
     top_pt_weights,
 )
 
@@ -136,6 +139,53 @@ class TestScaleFactorValues(unittest.TestCase):
             self.assertGreater(float(sf(np.array([0.0]))[0]), 1.0, name)
             self.assertLess(float(sf(np.array([400.0]))[0]), 1.0, name)
 
+    def test_run3_extrapolation_matches_the_an_at_reference_points(self):
+        """AN-25-050 eq. 3: SF(pT) = 0.991 + 0.000075 * pT."""
+        for pt in (0.0, 100.0, 500.0, 1000.0, 2000.0):
+            expected = 0.991 + 0.000075 * pt
+            self.assertAlmostEqual(
+                float(_sf_run3_extrapolation(np.array([pt]))[0]), expected, places=12
+            )
+
+    def test_run3_extrapolation_rises_and_crosses_unity_near_120_gev(self):
+        """
+        Opposite slope to every other function here -- the 13.6 TeV spectrum is
+        slightly harder, so this partly undoes the 13 TeV fall. A sign slip
+        would make it fall like the others and go unnoticed among them.
+        """
+        pt = np.array([0.0, 100.0, 200.0, 500.0, 1000.0])
+        values = _sf_run3_extrapolation(pt)
+        self.assertTrue(np.all(np.diff(values) > 0.0), f"not rising: {values}")
+
+        self.assertLess(float(_sf_run3_extrapolation(np.array([0.0]))[0]), 1.0)
+        self.assertGreater(float(_sf_run3_extrapolation(np.array([200.0]))[0]), 1.0)
+        # crossing at (1 - 0.991) / 0.000075 = 120 GeV exactly
+        self.assertAlmostEqual(float(_sf_run3_extrapolation(np.array([120.0]))[0]), 1.0, places=12)
+
+    def test_13p6tev_is_the_product_of_eq2_and_eq3(self):
+        """The AN applies eq. 3 multiplicatively on top of eq. 2, per top."""
+        pt = np.array([0.0, 50.0, 150.0, 400.0, 900.0, 2000.0])
+        np.testing.assert_allclose(
+            _sf_nnlo_nlo_13p6tev(pt), _sf_nnlo_nlo(pt) * _sf_run3_extrapolation(pt), rtol=0, atol=0
+        )
+
+    def test_13p6tev_differs_from_13tev_by_a_visible_amount(self):
+        """
+        Guards against the extrapolation being silently dropped -- if someone
+        wires `_sf_nnlo_nlo` into the 13.6 TeV column the values still look
+        entirely reasonable, so pin that they actually differ, and by how much.
+        """
+        for pt, expected_ratio in [(0.0, 0.991), (120.0, 1.0), (1000.0, 1.066)]:
+            ratio = float(_sf_nnlo_nlo_13p6tev(np.array([pt]))[0]) / float(
+                _sf_nnlo_nlo(np.array([pt]))[0]
+            )
+            self.assertAlmostEqual(ratio, expected_ratio, places=9)
+
+    def test_recommended_column_is_the_13p6tev_one(self):
+        """Summer24 is 13.6 TeV; the 13 TeV columns are not the default."""
+        self.assertEqual(RECOMMENDED_COLUMN, "topPtWeight_NNLONLO_13p6TeV")
+        self.assertIn(RECOMMENDED_COLUMN, SF_FUNCTIONS)
+
     def test_scale_factors_stay_physical(self):
         """Positive and within a sane band over the whole clamped range."""
         pt = np.linspace(0.0, 3000.0, 301)
@@ -157,13 +207,30 @@ class TestClamping(unittest.TestCase):
 
     def test_nnlo_nlo_holds_flat_above_fit_range(self):
         """Our own guard rail at the edge of the published fit, not twiki text."""
-        expected = float(_sf_nnlo_nlo(np.array([NNLO_PT_CLAMP]))[0])
-        for value in _sf_nnlo_nlo(np.array([2500.0, 8000.0])):
-            self.assertAlmostEqual(float(value), expected, places=12)
+        for sf in (_sf_nnlo_nlo, _sf_run3_extrapolation, _sf_nnlo_nlo_13p6tev):
+            expected = float(sf(np.array([NNLO_PT_CLAMP]))[0])
+            for value in sf(np.array([2500.0, 8000.0])):
+                self.assertAlmostEqual(float(value), expected, places=12)
+
+    def test_extrapolation_shares_the_nnlo_clamp(self):
+        """
+        The two halves of the 13.6 TeV product must clamp at the same pT. If the
+        rising extrapolation kept going while the falling 13 TeV term froze, the
+        product would turn back upward past the fit range.
+        """
+        pt = np.array([1500.0, 2000.0, 4000.0, 9000.0])
+        values = _sf_nnlo_nlo_13p6tev(pt)
+        self.assertTrue(np.all(np.diff(values) <= 0.0), f"turned upward: {values}")
 
     def test_negative_pt_cannot_inflate_the_weight(self):
         """Clipping at zero: a pathological gen pT must not run the exponent up."""
-        for sf in (_sf_data_nlo, _sf_data_nnlo, _sf_nnlo_nlo):
+        for sf in (
+            _sf_data_nlo,
+            _sf_data_nnlo,
+            _sf_nnlo_nlo,
+            _sf_run3_extrapolation,
+            _sf_nnlo_nlo_13p6tev,
+        ):
             self.assertAlmostEqual(
                 float(sf(np.array([-50.0]))[0]), float(sf(np.array([0.0]))[0]), places=12
             )
