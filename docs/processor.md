@@ -344,6 +344,64 @@ pT / η / cleaning fail the ID, ≈ 3.1 % of the otherwise-selected jets. The
 jet-veto map applies this same helper at its TightLepVeto working point, to its
 own candidate list — see [section 4](#4-jet-veto-map).
 
+#### Slot ordering and provenance
+
+The selected jets are **sorted into descending corrected pT** before they are
+written, and each saved slot carries `ak4JetNanoIdx`, its index in the input
+NanoAOD `Jet` collection.
+
+NanoAOD writes `Jet` in descending pT, but under the JEC of its own era. The
+re-derivation in [section 3](#3-jet-energy-corrections-jec--jer) multiplies
+every jet by a different factor and then applies a partly *stochastic* JER
+smear, so that ordering does not survive: on `tests/data/test-input.root` only
+**43.8 %** of the full collection is still pT-descending afterwards. Boolean
+masking in `good_ak4jets` preserves whatever order it is handed, so nothing
+downstream repaired it either. Two consequences, before the fix on 2026-08-13:
+
+- `ak4JetPt0` was not the leading jet in **31.5 %** of written events;
+- worse, `pad_val(..., num_ak4_jets, clip=True)` keeps the **first** ten jets,
+  not the **hardest** ten, so an event with more than ten selected jets could
+  silently lose a hard jet while keeping a soft one — and the χ² jet–parton
+  assignment this skim feeds needs the hard ones.
+
+The `ak.argsort` that fixes both sits between `attach_jet_charge` and the
+`GenSelection` call, and the placement is load-bearing on both sides:
+
+| Boundary | Why |
+|---|---|
+| after `objects.attach_jet_charge` | the `JetQk` → `Jet` match is *positional* (section 2), so the input ordering must still be intact when the charges are copied |
+| before `GenSelection.gen_selection_Vcb` | it pads its own `ak4Matched*_` truth flags from the same array; sorting after that call would leave slot *k*'s kinematics and slot *k*'s gen match describing different jets, with nothing to catch it |
+
+`ak4JetNanoIdx` is captured immediately after `get_jec_jets` — JECs change
+energies but neither reorder nor filter, so it is the input index — and it is
+the only column that points back at the file once the sort has permuted the
+slots. It is also the `JetQk` index, by the same prefix argument, and
+`set(range(nJets)) - set(saved indices)` recovers exactly which jets the
+ten-slot truncation dropped. `diagnostics/check_jet_tagger_roundtrip.py`
+re-derives the correspondence independently from η/φ and then checks the saved
+column against it, so the provenance is verified rather than asserted.
+
+A second pointer, `ak4JetGenJetIdx`, indexes the truth side: it is NanoAOD's
+`Jet_genJetIdx` clamped to the `GenJet*` slots, so `GenJetPt[ak4JetGenJetIdx]`
+is the reco jet's generator-level counterpart. Its sentinels are **not**
+interchangeable:
+
+| value | meaning |
+|---|---|
+| `>= 0` | index into the saved `GenJet*` slots |
+| `-1` | NanoAOD's own "no gen jet matched this reco jet" — a pileup-like jet, and a physics statement, so it is kept rather than folded into `PAD_VAL` |
+| `PAD_VAL` | either the reco slot is empty, or the gen jet is real but sits past `num_gen_jets` and was never written |
+
+The clamp is what prevents the last case from leaking through as an index that
+would point confidently at the wrong gen jet. `nGenJets` is saved so that case
+is detectable at all: it can only occur when `nGenJets > 25`, which does not
+happen on the fixture (maximum 23).
+
+The reason the full `GenJet` collection is kept rather than one gen jet copied
+into each reco slot is measured, not assumed — copying would discard 0.41 hard
+gen jets per event (0.169 of them b-flavour), which is the acceptance
+population, to save 6.4 % of the file. See [`docs/history.md`](history.md).
+
 ### MET
 
 `events.PFMET` for MC (a JEC-corrected MET factory is used for data when
@@ -372,6 +430,67 @@ compound correction on raw pT/mass, then applies nominal JRV2 hybrid JER
 smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet
 cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD
 energies, and JES/JER variations are not written by the skimmer.
+
+### Deriving JES/JER variations from the skim
+
+The skimmer writes nominal energies only — `get_jec_jets` returns `None` for
+`jec_shifted_vars` on the 2024 path, and `vcbSkimmer` discards it. The
+variations are instead meant to be evaluated **at analysis time**, from the
+saved columns. This section records what that does and does not buy, because
+the boundary is not obvious.
+
+#### What the payloads need, and what the skim provides
+
+Everything below lives in the bundled `2024_jet_jerc.json.gz`:
+
+| correction | inputs | available downstream? |
+|---|---|---|
+| `V5_MC_Total` (JES) | `JetEta`, `JetPt` | ✅ `ak4JetEta`, `ak4JetPt` |
+| `V5_MC_Regrouped_*` (11 sources) | `JetEta`, `JetPt` | ✅ same |
+| `JRV2_MC_ScaleFactor` (JER SF) | `JetEta`, `JetPt` | ✅ same |
+| `JRV2_MC_PtResolution` (JER σ) | `JetEta`, `JetPt`, `Rho` | ✅ **only because `Rho` is saved** |
+
+JES is therefore a pure per-jet lookup: the payload returns a *fractional*
+uncertainty δ(η, pT), and the shifted jet is `pt · (1 ± δ)`, mass likewise. No
+`rho`, no `area`, no raw pT. This is why the full 11-source regrouped
+decomposition costs nothing to add later.
+
+JER is harder, because the smear is the hybrid of a deterministic and a
+stochastic branch (see `_jer_smear_2024`), and reproducing it needs four things
+beyond the SF: the resolution σ (hence `Rho`), the gen-matched pT
+(`ak4JetMatchedGenJetPt`), the ΔR of that match (recoverable from the saved
+`GenJet*` collection), and the `hashprng` entropy source, which is the event
+number (`event`). All four are now in the output.
+
+#### Where it stops being exact
+
+The offline route shifts the jets *that are in the file*. It does not re-run the
+skimmer's decisions, all of which were made with nominal energies:
+
+- **`pt > 15` migration.** A jet at 14.8 GeV nominal that would clear 15 GeV
+  under JES-up is simply absent, and nothing downstream can invent it. The leak
+  is one-sided: shifting down can be done exactly (drop jets that fall below the
+  analysis cut), shifting up cannot.
+- **`nJets` and `ht`** were computed on the nominal selection. `ht` is
+  recomputable from the saved slots only when `nJets ≤ 10`.
+- **Type-1 MET** was rebuilt by summing over *every* jet in the event, including
+  sub-threshold and lepton-overlapping ones that are not in the output at all
+  (`JECs.type1_met_2024`). Its JES/JER shift is therefore **not** derivable from
+  the ten saved jets except approximately.
+- **The jet-veto map decision** is an event-level cut evaluated on nominal
+  energies, over a candidate list that is not the saved collection.
+
+The practical rule: the offline route is **exact for per-jet quantities above a
+threshold comfortably clear of 15 GeV**, and **approximate for `nJets`, `ht`,
+MET and the veto**. Since the JES uncertainty is a few percent, the migration
+band around the skim threshold is roughly 14.2–15.9 GeV; if the analysis cuts
+jets at 25–30 GeV, no analysis jet is ever in it. MET is the one that needs
+thought for this analysis, because W → ℓν is reconstructed from it.
+
+If the MET systematic turns out to matter at the precision this calibration
+needs, the fix is to propagate the shifts inline in the skimmer — the
+`jec_shifted_vars` machinery in `get_jec_jets` exists for exactly that and only
+the 2024 branch declines to fill it.
 
 ---
 

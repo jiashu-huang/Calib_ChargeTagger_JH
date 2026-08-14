@@ -245,3 +245,161 @@ electron branches together.
 (0.2 %), 43 of which took the fallback, and in all 43 the chosen electron was
 trigger-matched anyway. This closed a latent inconsistency, not an observed
 bias, so pre-existing skims need no reprocessing on this account.
+
+### 2026-08-13 — Saved jets sorted by pT; `ak4JetNanoIdx` provenance added
+
+The saved AK4 jet slots were never sorted. NanoAOD writes `Jet` in descending
+pT, but under the JEC of its own era; the re-derivation in `get_jec_jets`
+multiplies each jet by its own factor and then applies a partly **stochastic**
+JER smear, after which only **43.8 %** of the full collection (68.5 % of the
+selected one) is still pT-descending. Boolean masking in `good_ak4jets`
+preserves whatever order it is given, so nothing repaired it.
+
+Two distinct consequences, measured on `tests/data/test-input.root`
+(59 575 written events):
+
+1. **Mislabelled slots.** `ak4JetPt0` was not the leading jet in **31.5 %**
+   (18 762) of events. Cosmetic in the sense that nothing was lost, but wrong
+   for anything that reads slot 0 as "the leading jet".
+2. **The wrong jets were dropped.** `pad_val(..., clip=True)` keeps the
+   *first* ten jets, not the *hardest* ten. 455 events (0.76 %) had more than
+   ten selected jets, and in **217 of them (47.7 %)** the kept set differed from
+   the ten hardest: **234 jets** with mean pT 21.4 GeV (max **54.3 GeV**) were
+   discarded in favour of jets averaging 18.1 GeV. This one loses information
+   irreversibly, and the χ² jet–parton assignment needs exactly those hard jets.
+
+Fixed with one `ak.argsort(jets.pt, ascending=False)` in `vcbSkimmer.process`,
+placed between `attach_jet_charge` (which needs the input ordering intact, for
+the positional `JetQk` match) and the `GenSelection` call (which pads its own
+`ak4Matched*_` truth flags off the same array — sorting after it would desync
+slot *k*'s kinematics from slot *k*'s gen match, silently). See
+[`docs/processor.md` §2](processor.md#slot-ordering-and-provenance).
+
+Added alongside it: **`ak4JetNanoIdx`**, each saved jet's index in the input
+NanoAOD `Jet` collection, captured right after `get_jec_jets` — before anything
+can permute or drop it. Once the sort permutes the slots this is the only column
+that points back at the input file. It doubles as the `JetQk` index (same
+positional-prefix argument as `attach_jet_charge`), and
+`set(range(nJets)) − set(saved indices)` recovers precisely which jets the
+ten-slot truncation dropped, which is otherwise unrecoverable from the output.
+Ten `Long64_t` columns; negligible on disk under dictionary encoding.
+
+`diagnostics/check_jet_tagger_roundtrip.py` was updated to match: it now
+requires the saved slots to be pT-descending, classifies `truncated_beyond_slots`
+by corrected pT rather than by input position (the old rule assumed input
+ordering), and cross-checks `ak4JetNanoIdx` against its own independent η/φ
+match. On the fixture: 319 077 filled slots, **0** index disagreements, **0**
+out-of-order events, 5 424 309 tagger comparisons identical, 0 unexplained
+dropped jets. Output files predating the column skip that one check rather than
+failing.
+
+**Productions skimmed before this date** (`prod_20260726`, `prod_lnu2q_20260728`)
+carry both problems. Point (1) is repairable at analysis time — re-sort the ten
+slots per event — but point (2) is not: the dropped jets are simply not in those
+files, and without `ak4JetNanoIdx` there is no record of which they were. It
+affects ~0.4 % of events, so whether that warrants a re-skim depends on how much
+the jet-assignment step leans on the tail.
+
+### 2026-08-13 — `Rho` and the full `GenJet` collection added to the output
+
+Two additions aimed at what a 2024 analysis needs downstream, found by checking
+the bundled JEC/JER payloads' input signatures against the saved columns.
+
+**`Rho`** (`fixedGridRhoFastjetAll`, one float per event). The skimmer writes no
+JES/JER variations, the intent being to derive them at analysis time. That works
+for JES — `V5_MC_Total` and the eleven `V5_MC_Regrouped_*` sources take only
+`(JetEta, JetPt)`, both already per-jet columns — and for the JER scale factor,
+which takes the same pair. It did **not** work for JER as a whole, because
+`JRV2_MC_PtResolution` takes `(JetEta, JetPt, Rho)` and rho was consumed inside
+`get_jec_jets` and thrown away. Without it the JER systematic was not
+reconstructible from the skim at any price. One float fixes that. The boundaries
+of the offline route — exact per-jet above the threshold, approximate for
+`nJets`, `ht`, Type-1 MET and the veto decision — are written up in
+[`docs/processor.md` §3](processor.md#deriving-jesjer-variations-from-the-skim).
+
+**`GenJet*`** — the whole truth-level AK4 collection (`Pt`/`Eta`/`Phi`/`Mass`,
+`HadronFlavour`, `PartonFlavour`, `NBHadrons`, `NCHadrons`), 25 slots, MC only.
+Previously the only truth-level jet information was `ak4JetMatchedGenJetPt`: one
+number, and only for the jets that survived selection, so nothing in the output
+could say what was actually there before the reco cuts.
+
+25 slots is where truncation stops occurring — `GenJet` is a pT > 10 GeV
+collection with a median multiplicity of 7, 20 at the 99.99th percentile and a
+maximum of 23 over the 208 780 fixture events. The number is deliberately
+generous rather than tuned, because surplus slots are pure padding and padding
+compresses away: 15 slots cost 47.9 MiB and 30 slots 48.8 MiB on the full
+fixture, under 2 % apart for twice the columns. `GenJet` is pT-descending as
+written and nothing here touches it — no JEC applies to truth-level jets, which
+is exactly why the reco collection needed sorting and this one does not — so a
+truncated event would lose only its softest gen jets.
+
+Side benefit: `GenJet` eta/phi is what makes the ΔR of the JER gen-match
+recoverable downstream (`_add_jec_variables` computes `dr_gen` and does not save
+it), so the two additions together close the JER gap rather than only most of it.
+
+Cost: 201 new columns, output `test-output.root` 62.1 → 76.4 MiB (**+23 %**) for
+59 575 events, ~244 B/event of it the gen jets. If that proves too expensive at
+production scale, a pT cut on the saved gen jets is the lever — `pt > 20` would
+drop the median multiplicity from 7 to 5 — but it was not applied here, since
+the point of the collection is to see what the reco selection did *not* keep.
+
+Verified by the usual round-trip run: every `GenJet` slot compared value by
+value against the input NanoAOD (163 200 comparisons on a smoke chunk, 0
+mismatches), `Rho` exact against `Rho_fixedGridRhoFastjetAll`, filled-slot counts
+equal to `nGenJet`, and the full-fixture jet round-trip still PASS with 0
+out-of-order events and 0 `NanoIdx` disagreements.
+
+### 2026-08-14 — `ak4JetGenJetIdx`: point at the gen jets, don't copy them
+
+Follow-up to the above. The obvious economy on the new `GenJet*` block is to
+keep only the gen jets matched to a saved reco jet — 80 columns instead of 200,
+and aligned to the reco slot so no lookup is needed. It was measured and
+rejected.
+
+**What it would have cost.** Matched-only keeps 61.9 % of the gen jets in the
+written events and drops 38.1 %, and the dropped population is not soft junk:
+22.6 % of it is above 50 GeV. Above the 20 GeV analysis threshold it drops
+1.41 gen jets per event — but that headline is inflated, because a gen jet is
+clustered from all visible particles and the trigger lepton therefore *is* one.
+Decomposing:
+
+| | per event | |
+|---|---|---|
+| the trigger lepton's own gen jet | 1.00 | expected, not a loss |
+| a reco jet existed but the selection cut it | 0.12 | acceptance |
+| no reco jet claimed it at all | 0.29 | reconstruction inefficiency |
+
+So the real loss is **0.41 hard gen jets per event**, of which **0.169 are
+b-flavour**. In a final state with three b jets (both tops plus the b̄ from
+W → cb) that is the acceptance population, and it is exactly what cannot be
+asked about once discarded — the parton-level `ak4Matched*_` flags already in
+the output do not answer it, since they are keyed to reco jets that survived.
+
+**What it would have saved.** 14.0 → 9.1 MiB, i.e. **4.9 MiB on a 76.4 MiB
+file (6.4 %)**. Deleting 120 of 200 columns buys far less than 60 % of the bytes
+because the deleted columns are mostly padding, which is the most compressible
+thing in the file.
+
+**What was done instead.** The full collection stays, and each reco jet gains
+`ak4JetGenJetIdx` — NanoAOD's `Jet_genJetIdx`, clamped to the saved slots. That
+recovers the only real attraction of matched-only (reco slot → gen jet in one
+indexing operation) for **10 integer columns, ~0.8 MiB** — a sixth of what the
+matched block cost, and additive rather than destructive. Same pattern as
+`ak4JetNanoIdx`: store the pointer, not a copy. It also makes the JER gen-match
+exact, closing the last approximation in the offline-variation route (previously
+the gen jet had to be identified by pT-matching against the `GenJet*` slots).
+
+Three sentinel values, deliberately distinct: `>= 0` is the slot index, `-1` is
+NanoAOD's own "no gen jet matched this reco jet" (31 870 saved jets on the
+fixture — a physics statement about pileup-like jets, so not folded into
+`PAD_VAL`), and `PAD_VAL` means either an empty reco slot or a gen jet real but
+past `num_gen_jets`. The clamp exists so the latter can never leak through as an
+index pointing confidently at the wrong gen jet. **`nGenJets`** was added in the
+same change so that case is detectable from the output alone; it does not arise
+on the fixture, where the maximum gen-jet multiplicity is 23 against 25 slots.
+
+Verified on a smoke chunk: 4 037 non-negative pointers all land in filled
+`GenJet` slots, `GenJetPt[ptr] == MatchedGenJetPt` for every one of them (two
+independently written columns), all 444 `-1` slots carry `MatchedGenJetPt == 0`,
+and all 4 481 filled slots agree with the input `Jet_genJetIdx` read back through
+`ak4JetNanoIdx`.

@@ -15,6 +15,7 @@ Events
   NOT found in the input file        : 0
   with no trigger lepton (PAD_VAL)   : 0   (no jet cleaning applied)
   saved nJets != jets passing the cuts: 0
+  saved slots NOT in descending pT   : 0
 
 Saved jet slots
 ------------------------------------------------------------------------------
@@ -22,6 +23,7 @@ Saved jet slots
   matched to an input jet            : 319077   (max dR 0)
   with NO input jet match            : 0
   saved pT != recomputed pT          : 0
+  saved NanoIdx != eta/phi match     : 0
 
 Tagger + jet-charge comparisons (17 fields x matched slot)
 ------------------------------------------------------------------------------
@@ -36,7 +38,7 @@ Input jets absent from the output
     pt_below_threshold               : 50401   (corrected pT <= 15.0 GeV)
     eta_out_of_range                 : 2122   (|eta| >= 4.7)
     failed_jet_id                    : 9824   (fails the Run-3 AK4 PUPPI Tight jet ID)
-    truncated_beyond_slots           : 695   (passed selection, event had > 10 selected jets)
+    truncated_beyond_slots           : 695   (passed selection, but was not among the 10 highest corrected pT of an event with > 10 selected jets)
     UNEXPLAINED                      : 0   (no known reason -- investigate)
 
   A jet can fail several cuts at once; it is counted under the first

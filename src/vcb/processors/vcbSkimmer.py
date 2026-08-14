@@ -46,11 +46,30 @@ Jet handling in this processor:
   data jets are not recorrected either.
 - Do not apply any b-tag working point at skimmer level and do not use AK8 jets
   or JMSR in this processor.
+- Sort the selected jets into descending *corrected* pT before saving them.
+  NanoAOD's own ordering does not survive the JEC re-derivation and the
+  (partly stochastic) JER smear, so without this the saved slots are neither
+  pT-ordered nor even the ten hardest jets -- the 10-slot truncation keeps the
+  first ten in the permuted order. See the comment at the `ak.argsort` call for
+  why it has to sit exactly where it does.
 - Save up to 10 selected AK4 jets to the parquet output, including kinematics,
   `rawFactor`, flavor labels, UnifiedParT / ParticleNet / RobustParT /
   charge-tagger observables, the Qk jet charges, and matched gen-jet `pt` for
   MC. UParT and PNet are both kept: only UParT is calibrated for 2024, but the
   two are independent networks and either may end up feeding the ML step.
+- Each saved jet also carries `ak4JetNanoIdx`, its index in the input NanoAOD
+  `Jet` collection, captured before any reordering or filtering. It is the only
+  link from an output slot back to the input file once the sort has permuted
+  them, it indexes `JetQk` as well, and it identifies which jets the 10-slot
+  truncation dropped.
+- Save the generator-level AK4 jets whole for MC (`GenJet*`, 25 slots), not just
+  the matched `MatchedGenJetPt` of the jets that survived selection, so the reco
+  collection can be sanity-checked against the truth-level one it came from.
+  Each reco jet points into that collection with `ak4JetGenJetIdx`, and
+  `nGenJets` records how many gen jets the event actually had.
+- Save the event pile-up energy density as `Rho`. This is the input JER needs
+  and the per-jet columns cannot supply, so writing it is what makes the JES/JER
+  variations derivable from the skim without a reprocessing pass.
 - The Qk charges come from the fork's separate `JetQk` collection, which is
   indexed over the *unfiltered* jets; `objects.attach_jet_charge` handles the
   match and guards the assumption it rests on.
@@ -217,6 +236,13 @@ class vcbSkimmer(SkimmerABC):
         "Jet": {
             **P4,
             "rawFactor": "rawFactor",
+            # Provenance: this jet's index in the input NanoAOD `Jet` collection,
+            # attached in process() before anything can permute or drop it. The
+            # saved slots are sorted by corrected pT, which is a *different*
+            # order from the file's, so this is the only column that points back
+            # at the input. See the `nanoIdx` comment in process() for what it
+            # buys; `-99999` in an unfilled slot, like every other padded field.
+            "nanoIdx": "NanoIdx",
             "hadronFlavour": "HadronFlavour",
             "partonFlavour": "PartonFlavour",
             # UnifiedParT (UParTAK4) flavour scores. The only AK4 tagger BTV
@@ -265,6 +291,28 @@ class vcbSkimmer(SkimmerABC):
         "MET": {
             "pt": "Pt",
             "phi": "Phi",
+        },
+        # Generator-level AK4 jets, saved whole (MC only). The reco jets already
+        # carry `MatchedGenJetPt`, but that is one number for the jets that were
+        # *kept*; this is the full truth-level collection, for sanity-checking
+        # the reco selection against what was actually there.
+        #
+        # `pt` is included via P4 even though it duplicates `MatchedGenJetPt` for
+        # matched jets -- eta/phi/mass without pt would not define a jet, and the
+        # duplication is the cross-check that the matching worked.
+        #
+        # nBHadrons / nCHadrons are the ghost-clustered heavy-flavour hadron
+        # counts. For a *charge*-tagger calibration these are worth more than
+        # `hadronFlavour` alone: the latter collapses to a single label, while
+        # the counts distinguish a b jet from a b jet that also contains a
+        # charmed hadron -- which is exactly the W -> cb topology this analysis
+        # is built around.
+        "GenJet": {
+            **P4,
+            "hadronFlavour": "HadronFlavour",
+            "partonFlavour": "PartonFlavour",
+            "nBHadrons": "NBHadrons",
+            "nCHadrons": "NCHadrons",
         },
         "Lepton": {
             **P4,
@@ -534,6 +582,26 @@ class vcbSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
 
+        # Freeze each jet's position in the input NanoAOD `Jet` collection, here,
+        # while `jets` is still that collection element for element. JECs change
+        # energies but neither reorder nor filter, so this is identical to taking
+        # the index off `events.Jet` -- and taking it here keeps it adjacent to
+        # the first step that could ever invalidate it.
+        #
+        # Everything downstream permutes or drops jets, and after the pT sort in
+        # particular an output slot has no algebraic relation to anything in the
+        # input file. This column is what survives all of it:
+        #   * it names the input jet a saved slot came from, for any check that
+        #     wants to go back to the NanoAOD (diagnostics/check_jet_tagger_roundtrip.py
+        #     matches on eta/phi independently and then cross-checks against it);
+        #   * it indexes `JetQk` too, since `Jet` is a positional prefix of it
+        #     (objects.attach_jet_charge), so auditing the jet charges is a lookup
+        #     rather than an excavation;
+        #   * `set(range(nJets)) - set(saved indices)` is exactly the set of jets
+        #     the 10-slot truncation below discarded, which is otherwise
+        #     unrecoverable from the output.
+        jets["nanoIdx"] = ak.values_astype(ak.local_index(jets, axis=1), np.int32)
+
         # MET must be rebuilt from the jets we just recorrected -- it is minus the
         # vector sum of the event, so new jet energies mean a new MET. Done here,
         # before good_ak4jets(), because Type-1 sums over every jet in the event,
@@ -579,6 +647,31 @@ class vcbSkimmer(SkimmerABC):
             cleaning_muons=cleaning_muons,
             jet_id="tight",
         )
+
+        # Sort into descending *corrected* pT. Nothing upstream gives us this.
+        # NanoAOD is written pT-ordered, but under the JEC of its own era; the
+        # re-derivation above rescales every jet by a different factor, and the
+        # JER smear on top of it is partly stochastic per jet, so adjacent jets
+        # swap constantly -- only ~44% of the full collection is still ordered by
+        # the time it reaches this line. Masking in good_ak4jets() preserves
+        # whatever order it was handed, so it cannot fix it either.
+        #
+        # Two things break without the sort, and the second is the serious one:
+        #   * `ak4JetPt0` is not the leading jet, so any downstream "leading jet"
+        #     is wrong in ~31% of events;
+        #   * `pad_val(..., num_ak4_jets, clip=True)` below keeps the *first* ten
+        #     jets, not the *hardest* ten. In an event with more than ten selected
+        #     jets that silently deletes hard jets while keeping soft ones -- and
+        #     the chi^2 jet-parton assignment this skim feeds needs the hard ones.
+        #
+        # The placement is load-bearing on both sides. It must come *after*
+        # attach_jet_charge(), the one step that requires the input ordering to be
+        # intact, and *before* the GenSelection call below, which pads its own
+        # `ak4Matched*_` truth flags from this same array: sorting after that call
+        # would leave slot k's kinematics and slot k's gen match describing
+        # different jets, with nothing anywhere to catch it.
+        jets = jets[ak.argsort(jets.pt, axis=1, ascending=False)]
+
         ht = ak.sum(jets.pt, axis=1)
         print("* ak4:\t", f"{time.time() - start:.2f}")
 
@@ -689,6 +782,24 @@ class vcbSkimmer(SkimmerABC):
             ),
         }
 
+        # Generator-level AK4 jets (MC only), the whole collection rather than a
+        # leading subset. 25 slots because that is where truncation stops
+        # happening at all: the NanoAOD `GenJet` threshold is pT > 10 GeV, and on
+        # tests/data/test-input.root the multiplicity is 7 at the median, 20 at
+        # the 99.99th percentile and 23 at its maximum over 208 780 events.
+        #
+        # Being generous costs almost nothing, which is why the number is not
+        # tuned tighter: the surplus slots are pure padding, and padding is the
+        # most compressible thing in the file. Measured on the full fixture,
+        # 15 slots cost 47.9 MiB and 30 slots cost 48.8 MiB -- under 2 % apart
+        # for twice the columns. The whole block is ~244 B/event.
+        #
+        # `GenJet` is pT-descending as written by NanoAOD and nothing here
+        # touches it (no JEC applies to truth-level jets, which is the entire
+        # reason the reco collection needed sorting and this one does not), so a
+        # truncated event loses its *softest* gen jets and nothing else.
+        num_gen_jets = 25
+
         # AK4 Jet variables
         jet_skimvars = self.skim_vars["Jet"]
         jets["BTaggable"] = ak.values_astype((jets.pt >= 20.0) & (abs(jets.eta) <= 2.5), np.int32)
@@ -697,15 +808,51 @@ class vcbSkimmer(SkimmerABC):
             "BTaggable": "BTaggable",
         }
         if not isData:
+            # Pointer from this reco jet to its generator-level jet, as an index
+            # into the `GenJet*` slots written below -- the truth-side twin of
+            # `nanoIdx`. Storing the pointer rather than a copy of the gen jet is
+            # what lets the full `GenJet` collection stay in the file: the jets
+            # the reco selection did *not* keep (0.41 hard gen jets per event,
+            # 0.169 of them b-flavour) are exactly the acceptance population, and
+            # a per-reco-slot copy would bury them. See docs/history.md.
+            #
+            # Three values, and the distinction between them is load-bearing:
+            #   >= 0      the gen jet's slot index
+            #   -1        NanoAOD's own "no gen jet matched this reco jet".
+            #             Kept rather than folded into PAD_VAL because it is a
+            #             physics statement (an unmatched, i.e. pileup-like, reco
+            #             jet) and it is NanoAOD's documented convention; 31 870
+            #             of the fixture's saved jets carry it.
+            #   PAD_VAL   either the slot holds no jet at all, or -- and this is
+            #             why the clamp exists -- the gen jet is real but sits
+            #             past `num_gen_jets` and was therefore never written.
+            #             Never let that case through as an index: it would point
+            #             confidently at the wrong gen jet. `nGenJets` below is
+            #             what tells you whether it can have happened (it does
+            #             not on the fixture: max nGenJet is 23).
+            jets["genJetIdxSaved"] = ak.where(
+                jets.genJetIdx < num_gen_jets, jets.genJetIdx, PAD_VAL
+            )
             jet_skimvars = {
                 **jet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
+                "genJetIdxSaved": "GenJetIdx",
             }
 
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_ak4_jets, axis=1)
             for (var, key) in jet_skimvars.items()
         }
+
+        genJetVars = (
+            {}
+            if isData
+            else {
+                f"GenJet{key}": pad_val(events.GenJet[var], num_gen_jets, axis=1)
+                for (var, key) in self.skim_vars["GenJet"].items()
+            }
+        )
+
         # MET
         metVars = {f"MET{key}": met[var].to_numpy() for (var, key) in self.skim_vars["MET"].items()}
 
@@ -719,6 +866,31 @@ class vcbSkimmer(SkimmerABC):
         eventVars["nElectrons"] = ak.num(electrons).to_numpy()
         eventVars["nMuons"] = ak.num(muons).to_numpy()
         eventVars["nJets"] = ak.num(jets).to_numpy()
+        if not isData:
+            # Gen jets *in the event*, which is not the same as gen jets in the
+            # file: `nGenJets > num_gen_jets` is the only way to know the
+            # collection was truncated, and it is what makes a PAD_VAL in
+            # `ak4JetGenJetIdx` readable as "gen jet past the slots" rather than
+            # "empty reco slot". Same role `nJets` plays for the reco side.
+            eventVars["nGenJets"] = ak.num(events.GenJet).to_numpy()
+
+        # Pileup energy density, the same one JECs.get_jec_jets evaluates the
+        # corrections with (`fixedGridRhoFastjetAll` -- NanoAOD ships six rho
+        # flavours and they are not interchangeable). One float per event.
+        #
+        # Saved because it is the missing input for redoing JER downstream. The
+        # JES uncertainty payloads (`V5_MC_Total`, `V5_MC_Regrouped_*`) and the
+        # JER scale factor take only (JetEta, JetPt), both of which are already
+        # per-jet columns -- but `JRV2_MC_PtResolution` takes (JetEta, JetPt,
+        # Rho), so without this the resolution cannot be evaluated and the JER
+        # systematic is not reconstructible from the skim at any price. See
+        # docs/processor.md, "Deriving JES/JER variations from the skim".
+        rho = (
+            events.Rho.fixedGridRhoFastjetAll
+            if "Rho" in events.fields
+            else events.fixedGridRhoFastjetAll
+        )
+        eventVars["Rho"] = rho.to_numpy()
 
         if isData:
             pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
@@ -758,6 +930,7 @@ class vcbSkimmer(SkimmerABC):
             **leptonVars,
             **triggerLeptonVars,
             **ak4JetVars,
+            **genJetVars,
             **metVars,
         }
 

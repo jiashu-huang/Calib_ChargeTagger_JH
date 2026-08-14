@@ -7,11 +7,22 @@ the charge- and flavor-tagger branches against the input jet they came from.
 Output slots are matched to input jets by eta/phi, which JECs leave untouched,
 so the match is exact rather than nearest-neighbour.
 
+The skimmer also *saves* that correspondence, as `ak4JetNanoIdx`. This script
+deliberately does not use it to do the matching -- the whole point is to
+re-derive the correspondence from the NanoAOD rather than trust it -- but it
+does compare the two afterwards, which turns the eta/phi match into an
+independent check that the saved index is right. Output files written before
+that column existed simply skip the comparison.
+
 Input jets that never reach the output are classified rather than ignored. The
 skimmer drops a jet for exactly five reasons -- it sits within dR <= 0.4 of the
 trigger lepton used for cleaning, it fails corrected pT > 15 GeV or
-|eta| < 4.7, it fails the Run-3 AK4 PUPPI Tight jet ID, or it fell past the
-last saved slot -- so anything left over is a real finding.
+|eta| < 4.7, it fails the Run-3 AK4 PUPPI Tight jet ID, or, in an event with
+more than ten selected jets, it did not rank among the ten highest corrected
+pT -- so anything left over is a real finding.
+
+The saved slots are additionally required to be in descending corrected pT,
+which is what makes the last of those reasons well defined.
 
 The corrected pT is not stored for dropped jets, so by default this recomputes
 it with the same JEC/JER machinery the skimmer used (deterministic, and
@@ -50,6 +61,10 @@ JET_PT_MIN = 15.0
 # exact; the tolerance only exists so a future eta-changing correction degrades
 # to a nearest-jet match with a reported dR instead of a silent failure.
 MATCH_DR_TOL = 1e-6
+# Provenance column written by the skimmer: the slot's index in the input
+# `Jet` collection. Optional here so this script still runs against output
+# produced before it was added.
+NANO_IDX_FIELD = "NanoIdx"
 
 # Inputs to the Run-3 AK4 PUPPI Tight jet ID, reimplemented in _passes_jet_id
 # below. Deliberately a second, independent transcription of the thresholds
@@ -132,7 +147,10 @@ REASON_NOTES = {
     "pt_below_threshold": f"corrected pT <= {JET_PT_MIN} GeV",
     "eta_out_of_range": f"|eta| >= {JET_ETA_MAX}",
     "failed_jet_id": "fails the Run-3 AK4 PUPPI Tight jet ID",
-    "truncated_beyond_slots": f"passed selection, event had > {NUM_AK4_SLOTS} selected jets",
+    "truncated_beyond_slots": (
+        f"passed selection, but was not among the {NUM_AK4_SLOTS} highest "
+        f"corrected pT of an event with > {NUM_AK4_SLOTS} selected jets"
+    ),
     "UNEXPLAINED": "no known reason -- investigate",
 }
 PT_UNVERIFIED_NOTE = "not verified (--no-jec): assumed to fail the corrected-pT cut"
@@ -335,14 +353,29 @@ def check_jet_tagger_roundtrip(
         "TriggerLeptonPhi",
     ]
 
+    index_branches = [f"ak4Jet{NANO_IDX_FIELD}{slot}" for slot in range(NUM_AK4_SLOTS)]
+
     with uproot.open(output_file) as root_file:
         out_tree = root_file[tree_name]
-        missing = [name for name in event_branches + slot_branches if name not in out_tree.keys()]
+        out_branches = set(out_tree.keys())
+        missing = [name for name in event_branches + slot_branches if name not in out_branches]
         if missing:
             raise KeyError(
                 f"Missing required branch(es) in {output_file}: {', '.join(sorted(missing))}"
             )
-        out = out_tree.arrays(event_branches + slot_branches, library="np")
+        # All-or-nothing: a file carrying only some of the ten slot columns is
+        # malformed, not merely old, so say which ones are missing.
+        present_index = [name for name in index_branches if name in out_branches]
+        if present_index and len(present_index) != len(index_branches):
+            raise KeyError(
+                f"{output_file} has only {len(present_index)}/{len(index_branches)} "
+                f"ak4Jet{NANO_IDX_FIELD} slot branches; missing "
+                f"{', '.join(sorted(set(index_branches) - set(present_index)))}"
+            )
+        has_index = bool(present_index)
+        out = out_tree.arrays(
+            event_branches + slot_branches + (index_branches if has_index else []), library="np"
+        )
         n_out_events = out_tree.num_entries
 
     if n_out_events <= 0:
@@ -423,6 +456,7 @@ def check_jet_tagger_roundtrip(
     out_eta = slot_block("Eta")
     out_phi = slot_block("Phi")
     out_tagger = {field: slot_block(field) for field in COMPARED_FIELDS}
+    out_nano_idx = slot_block(NANO_IDX_FIELD) if has_index else None
 
     n_jets_branch = np.asarray(out["nJets"], dtype=np.int64)
     trig_flav = np.asarray(out["TriggerLeptonFlav"], dtype=np.int64)
@@ -434,10 +468,12 @@ def check_jet_tagger_roundtrip(
         "events_missing_from_input": 0,
         "events_without_trigger_lepton": 0,
         "events_njets_disagree": 0,
+        "events_slots_out_of_order": 0,
         "slots_filled": 0,
         "slots_matched": 0,
         "slots_unmatched": 0,
         "slots_pt_disagree": 0,
+        "slots_index_disagree": 0,
         "comparisons": 0,
         "comparisons_differing": 0,
     }
@@ -447,6 +483,8 @@ def check_jet_tagger_roundtrip(
         "missing_events": [],
         "unmatched_slots": [],
         "pt_disagree": [],
+        "index_disagree": [],
+        "slots_out_of_order": [],
         "njets_disagree": [],
         "value_mismatches": [],
         "unexplained": [],
@@ -484,7 +522,22 @@ def check_jet_tagger_roundtrip(
         )
 
         matched_input = np.zeros(n_in_jets, dtype=bool)
-        last_matched = -1
+
+        # The saved slots must be in descending corrected pT. Checked from the
+        # output alone -- it is a property of the file, independent of whether
+        # the input can be matched -- and it is also what makes
+        # `truncated_beyond_slots` below a statement rather than a guess.
+        filled_pt = out_pt[i][out_pt[i] != PAD_VAL]
+        if filled_pt.size > 1 and np.any(np.diff(filled_pt) > 0):
+            stats["events_slots_out_of_order"] += 1
+            record(
+                "slots_out_of_order",
+                f"{tag}: saved slot pT is not descending: "
+                + ", ".join(f"{v:.4f}" for v in filled_pt),
+            )
+        # Every filled slot is at or above this, so an input jet that passes the
+        # selection and sits below it is one the truncation dropped.
+        min_saved_pt = float(filled_pt.min()) if filled_pt.size else np.inf
 
         for slot in range(NUM_AK4_SLOTS):
             if out_pt[i, slot] == PAD_VAL:
@@ -511,7 +564,19 @@ def check_jet_tagger_roundtrip(
             stats["slots_matched"] += 1
             max_match_dr = max(max_match_dr, float(dr[j]))
             matched_input[j] = True
-            last_matched = max(last_matched, j)
+
+            # The saved provenance index must name the same input jet that the
+            # eta/phi match just found. The two are derived independently -- the
+            # skimmer captures the index before any reordering, this script
+            # re-derives the correspondence from the geometry -- so agreement is
+            # a real check on the column rather than a tautology.
+            if out_nano_idx is not None and int(out_nano_idx[i, slot]) != j:
+                stats["slots_index_disagree"] += 1
+                record(
+                    "index_disagree",
+                    f"{tag} slot={slot}: saved ak4Jet{NANO_IDX_FIELD}="
+                    f"{int(out_nano_idx[i, slot])} but eta/phi matches input jet {j}",
+                )
 
             if corrected_pt is not None and corrected_pt[start + j] != out_pt[i, slot]:
                 stats["slots_pt_disagree"] += 1
@@ -547,7 +612,12 @@ def check_jet_tagger_roundtrip(
                 reason = "eta_out_of_range"
             elif not in_jet_id[j]:
                 reason = "failed_jet_id"
-            elif n_jets_branch[i] > NUM_AK4_SLOTS and j > last_matched:
+            elif n_jets_branch[i] > NUM_AK4_SLOTS and corrected_pt[start + j] <= min_saved_pt:
+                # Slots are pT-sorted, so a selected jet the output does not
+                # carry is the truncation's doing exactly when it is no harder
+                # than the softest jet that was kept. (This branch is only
+                # reachable with the recomputed pT -- without it the elif above
+                # has already claimed every unmatched jet.)
                 reason = "truncated_beyond_slots"
             else:
                 reason = "UNEXPLAINED"
@@ -587,6 +657,8 @@ def check_jet_tagger_roundtrip(
         stats["events_missing_from_input"] == 0
         and stats["slots_unmatched"] == 0
         and stats["slots_pt_disagree"] == 0
+        and stats["slots_index_disagree"] == 0
+        and stats["events_slots_out_of_order"] == 0
         and stats["events_njets_disagree"] == 0
         and stats["comparisons_differing"] == 0
         and missing_counts["UNEXPLAINED"] == 0
@@ -605,6 +677,7 @@ def check_jet_tagger_roundtrip(
         missing_counts=missing_counts,
         anomalies=anomalies,
         max_anomalies=max_anomalies,
+        has_index=has_index,
         passed=passed,
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -614,6 +687,7 @@ def check_jet_tagger_roundtrip(
         "report": str(report_path),
         "passed": passed,
         "verify_jec": corrected_pt is not None,
+        "has_index": has_index,
         **stats,
         "missing_counts": missing_counts,
     }
@@ -623,7 +697,9 @@ def _format_report(**ctx) -> str:
     stats = ctx["stats"]
     missing_counts = ctx["missing_counts"]
     verify_jec = ctx["verify_jec"]
+    has_index = ctx["has_index"]
     rule = "-" * 78
+    no_index_note = f"   (no ak4Jet{NANO_IDX_FIELD} in this file)"
 
     jec_line = (
         f"JEC/JER recomputed for year {ctx['year']} -- dropped jets get an exact reason"
@@ -652,6 +728,7 @@ def _format_report(**ctx) -> str:
         "   (no jet cleaning applied)",
         f"  saved nJets != jets passing the cuts: {stats['events_njets_disagree']}"
         + ("" if verify_jec else "   (not checked without the recomputed pT)"),
+        f"  saved slots NOT in descending pT   : {stats['events_slots_out_of_order']}",
         "",
         "Saved jet slots",
         rule,
@@ -661,6 +738,8 @@ def _format_report(**ctx) -> str:
         f"  with NO input jet match            : {stats['slots_unmatched']}",
         f"  saved pT != recomputed pT          : {stats['slots_pt_disagree']}"
         + ("" if verify_jec else "   (not checked without the recomputed pT)"),
+        f"  saved NanoIdx != eta/phi match     : {stats['slots_index_disagree']}"
+        + ("" if has_index else no_index_note),
         "",
         f"Tagger + jet-charge comparisons ({len(COMPARED_FIELDS)} fields x matched slot)",
         rule,
@@ -689,6 +768,16 @@ def _format_report(**ctx) -> str:
         ("Events not found in the input file", "missing_events", stats["events_missing_from_input"]),
         ("Output jet slots with no input match", "unmatched_slots", stats["slots_unmatched"]),
         ("Saved pT disagreeing with the recomputed pT", "pt_disagree", stats["slots_pt_disagree"]),
+        (
+            f"Saved ak4Jet{NANO_IDX_FIELD} disagreeing with the eta/phi match",
+            "index_disagree",
+            stats["slots_index_disagree"],
+        ),
+        (
+            "Events whose saved slots are not in descending pT",
+            "slots_out_of_order",
+            stats["events_slots_out_of_order"],
+        ),
         ("Events where nJets disagrees with the selection", "njets_disagree", stats["events_njets_disagree"]),
         ("Tagger value mismatches", "value_mismatches", stats["comparisons_differing"]),
         ("Absent input jets with no known reason", "unexplained", missing_counts["UNEXPLAINED"]),
