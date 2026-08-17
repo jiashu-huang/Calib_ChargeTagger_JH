@@ -370,7 +370,7 @@ The `ak.argsort` that fixes both sits between `attach_jet_charge` and the
 | Boundary | Why |
 |---|---|
 | after `objects.attach_jet_charge` | the `JetQk` → `Jet` match is *positional* (section 2), so the input ordering must still be intact when the charges are copied |
-| before `GenSelection.gen_selection_Vcb` | it pads its own `ak4Matched*_` truth flags from the same array; sorting after that call would leave slot *k*'s kinematics and slot *k*'s gen match describing different jets, with nothing to catch it |
+| before `GenSelection.gen_selection_Vcb` | it runs the jet–parton assignment over the same array and reports it as slot indices (`Gen*JetIdx`); sorting after that call would leave slot *k*'s kinematics and slot *k*'s gen match describing different jets, with nothing to catch it |
 
 `ak4JetNanoIdx` is captured immediately after `get_jec_jets` — JECs change
 energies but neither reorder nor filter, so it is the input index — and it is
@@ -593,11 +593,95 @@ Runs only when the dataset name is a key in `gen_selection_dict` (`TT1L2Q`,
 `TTtoLNu2Q`, `TTtoLNuCB`). It **saves** gen-truth branches but registers
 **no** event-level cuts. It finds the hard-process tops, splits the
 hadronic/leptonic branches, saves W/b/quark kinematics and the six exclusive
-`GenWto*` flavor tags, and computes ΔR reco↔gen matching (jets↔b/quarks at
-ΔR < 0.4, leptons↔gen-lepton at ΔR < 0.2). The full branch list is in
+`GenWto*` flavor tags, and assigns the four hadronic/leptonic partons to reco
+jets (below). Leptons keep a plain ΔR < 0.2 tag to the gen lepton — there is
+only one, so no ambiguity arises. The full branch list is in
 [`tests/outfile/test-output-schema.csv`](../tests/outfile/test-output-schema.csv);
 unit tests for the helpers are in
 [`tests/test_vcb_gen_truth.py`](../tests/test_vcb_gen_truth.py).
+
+### `GenQ1` is down-type, `GenQ2` is up-type
+
+The two hadronic-W daughters are stored by **type**, not by the order the
+generator wrote them in: `GenQ1` is always the down-type quark and `GenQ2`
+always the up-type one. Charge conservation gives a W exactly one of each, so
+the split is total and unambiguous.
+
+| | \|pdgId\| | For W→cb |
+|---|---|---|
+| `GenQ1` | 1 (d), 3 (s), 5 (b) — odd | the **b** |
+| `GenQ2` | 2 (u), 4 (c) — even | the **c** |
+
+Odd/even is the PDG numbering scheme, not a choice made here. `GenQ1PdgId` and
+`GenQ2PdgId` keep the signed IDs, so the charge and the particle/antiparticle
+assignment are still recoverable. The six `GenWto*` flavor tags sort their pair
+internally and are unaffected.
+
+This is enforced in `_split_w_quarks_by_type`. It was previously positional —
+children `0` and `1` of the hadronic W — which gave the same answer on every
+event this repo has processed: 9 746 741 TTtoLNu2Q events (d/s against u/c) and
+59 575 TTtoLNuCB ones (b against c), 100 % in both, so making it explicit changed
+no output. It is enforced anyway because nothing *made* it true. It came from
+generator child ordering by way of `distinctChildren`, and a different generator,
+NanoAOD version or coffea release could reverse it for one decay mode with
+nothing raising. The ordering is genuinely by type rather than by \|pdgId\|: the
+s-then-u combination occurs 248 459 times in TTtoLNu2Q, where a \|pdgId\| sort
+would put the u first.
+
+A W yielding two same-type quarks — physically impossible — leaves the missing
+side `PAD_VAL` rather than quietly slotting the wrong quark into `GenQ2`.
+
+### Jet–parton assignment
+
+`GenHadTopB`, `GenLepTopB`, `GenQ1` and `GenQ2` are assigned to saved jet slots
+**one-to-one**: take the smallest ΔR(parton, jet) still under 0.4, record it,
+retire both objects, repeat. Each parton lands on at most one jet and each jet
+carries at most one parton. Four branches hold the whole result:
+
+| Branch | Meaning |
+|---|---|
+| `GenHadBJetIdx` | saved jet slot matched to `GenHadTopB`; `-1` if unmatched |
+| `GenLepBJetIdx` | saved jet slot matched to `GenLepTopB`; `-1` if unmatched |
+| `GenHadQ1JetIdx` | saved jet slot matched to `GenQ1`; `-1` if unmatched |
+| `GenHadQ2JetIdx` | saved jet slot matched to `GenQ2`; `-1` if unmatched |
+
+Each is a plain `Int_t` in `0..9` or `-1`. This is the form a SPANet target
+builder consumes, and it makes the one-to-one property structural rather than
+incidental — there is no representation in which a parton has two jets.
+
+**Why an assignment and not four cuts.** The gen match used to be 40 per-slot
+booleans, `ak4MatchedHadB_`*k* and friends, from four *independent* ΔR < 0.4
+cuts. That is not an assignment: on the test fixture 7.1 % of events had one jet
+carrying two parton labels (1.34 % of saved jets carried 2, 0.011 % carried 3)
+and 5.0 % had one parton spread over two jets. SPANet needs one parton per jet
+and one jet per parton, so its targets could not be built from that output at
+all. The 40 booleans are gone — they encoded the same four numbers, and keeping
+a second representation only invited the two to drift.
+
+> **Reading an older skim.** Outputs written before 2026-08-15 have the 40
+> `ak4Matched*_` branches and none of the `Gen*JetIdx` ones. Do not treat the two
+> as interchangeable: the old flags are *not* a one-to-one assignment. And do not
+> read an old flag branch as if it were an index — `MatchedHadB`-style booleans
+> and a jet index disagree on exactly the common cases, since index `0` (matched
+> to the leading jet) is falsy and `-1` (unmatched) is truthy.
+
+**Why greedy and not Hungarian.** The exact minimum-total-ΔR assignment (the
+Hungarian algorithm) is also one-to-one and is genuinely optimal, but measured
+on the same 59 575-event fixture it differs from greedy in 41 events and buys
+**+0.037 pp** of complete four-parton events — 36.20 % against 36.16 %, where
+the four independent booleans gave 33.89 %. Essentially the whole gain comes
+from having a one-to-one rule at all, not from which one; nearest-first is one
+sentence to state and defend.
+
+**What neither can fix.** Both sit ~3.9 pp below the 40.08 % ceiling of events
+where all four partons have *some* jet inside 0.4, because there the only
+candidate for two partons is the *same* jet — most often the b from W→cb
+sitting inside another b's cone, which is why `GenQ1` matches at 67.8 % against
+`GenHadTopB`'s 84.1 %. That is a cone/merging question, not an assignment one.
+
+The cost matrix spans only the ten saved slots. Assigning over the full jet
+collection would let a parton claim a jet the slot truncation then deletes,
+losing that label *and* blocking a jet another parton could have used.
 
 ---
 

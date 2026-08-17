@@ -275,8 +275,9 @@ class vcbSkimmer(SkimmerABC):
             # bare, so these are the only saved fields whose *name* ends in a
             # digit: without it, `ak4JetQkCharge105` could be read as either
             # QkCharge1 slot 05 or QkCharge10 slot 5. The separator makes the
-            # split unambiguous for anything that parses branch names, and
-            # matches what GenSelection already does for `ak4MatchedHadB_`.
+            # split unambiguous for anything that parses branch names. (The
+            # `ak4Matched*_` flags shared this convention until they were replaced
+            # by the `Gen*JetIdx` branches; these two are now its only users.)
             "QkCharge05": "QkCharge05_",
             "QkCharge10": "QkCharge10_",
             # Charge-tagger heads from the CMSSW_15_CHARGE fork — what this
@@ -666,10 +667,11 @@ class vcbSkimmer(SkimmerABC):
         #
         # The placement is load-bearing on both sides. It must come *after*
         # attach_jet_charge(), the one step that requires the input ordering to be
-        # intact, and *before* the GenSelection call below, which pads its own
-        # `ak4Matched*_` truth flags from this same array: sorting after that call
-        # would leave slot k's kinematics and slot k's gen match describing
-        # different jets, with nothing anywhere to catch it.
+        # intact, and *before* the GenSelection call below, which runs its jet-parton
+        # assignment over this same array and reports the result as slot indices
+        # (`Gen*JetIdx`): sorting after that call would leave slot k's kinematics and
+        # slot k's gen match describing different jets, with nothing anywhere to
+        # catch it.
         jets = jets[ak.argsort(jets.pt, axis=1, ascending=False)]
 
         ht = ak.sum(jets.pt, axis=1)

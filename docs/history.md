@@ -403,3 +403,133 @@ Verified on a smoke chunk: 4 037 non-negative pointers all land in filled
 independently written columns), all 444 `-1` slots carry `MatchedGenJetPt == 0`,
 and all 4 481 filled slots agree with the input `Jet_genJetIdx` read back through
 `ak4JetNanoIdx`.
+
+### 2026-08-15 — Jet–parton matching made a one-to-one assignment
+
+`MatchedHadB` / `MatchedLepB` / `MatchedHadQ1` / `MatchedHadQ2` were four
+*independent* ΔR < 0.4 booleans. That is not an assignment, and SPANet's target
+format needs one: one parton per jet, one jet per parton. On the 59 575-event
+fixture the old output had a jet carrying 2+ parton labels in **7.09 %** of
+events (1.335 % of saved jets carried 2, 0.011 % carried 3) and a parton spread
+over 2+ jets in **5.02 %** (per parton: HadB 1.45 %, LepB 1.54 %, HadQ1 1.03 %,
+HadQ2 1.13 % — the 1.0–1.5 % figure is *per parton*, the 5.02 % is the union).
+A complete unique four-parton → four-jet reading succeeded for only 33.89 % of
+written events.
+
+Replaced by a **greedy nearest-first assignment**: take the smallest
+ΔR(parton, jet) still under 0.4, record it, retire both objects, repeat. The
+whole gen match is now four integers — `GenHadBJetIdx` / `GenLepBJetIdx` /
+`GenHadQ1JetIdx` / `GenHadQ2JetIdx`, each a saved jet slot in `0..9` or `-1`.
+
+**The 40 `ak4Matched*_` booleans were dropped**, taking the output from 721
+columns to 681. They shipped briefly as a derived per-slot view of the same
+assignment before being removed in the same day's work: they held the same four
+numbers, nothing in the repo, `spanet-test/` or `Vcb-analysis/` read them, and a
+second representation of one fact only invites the two to drift. The disk saving
+was *not* the reason and should not be quoted as one — parquet run-length-encodes
+a column that is almost entirely `0`/`PAD_VAL` down to 0.24 MB of a 31.5 MB file,
+0.76 %.
+
+The parton order — which fixes both the tie-break and the branch naming — is now
+declared once, as the `match_partons` mapping in `gen_selection_Vcb`, so
+reordering it renames the outputs to match instead of silently filing LepB's jet
+under `GenHadBJetIdx`.
+
+**Reading older skims.** The names were deliberately *not* reused. A pre-2026-08-15
+skim has `ak4Matched*_` and no `Gen*JetIdx`; the two are not interchangeable,
+since the old flags are not a one-to-one assignment. Reusing `MatchedHadB` for an
+index was considered and rejected: the old branch was consumed in boolean
+context, where index `0` (matched to the leading jet, the commonest case) is
+falsy and `-1` (unmatched) is truthy — it would invert exactly the two cases that
+matter, silently. A new name makes stale code fail loudly.
+
+**Greedy, not Hungarian.** The exact minimum-total-ΔR (Hungarian) assignment was
+measured on the same fixture as the alternative — for a 4×10 cost matrix the
+optimum is reachable by brute force over all P(10,4) = 5040 orderings, so the
+comparison is exact and needed no solver. It differs from greedy in **41 of
+59 575 events** and gains **+0.037 pp** of complete four-parton events (36.20 %
+vs 36.16 %); per parton the gain is +0.007 to +0.034 pp, and it never matches
+fewer. Greedy captures 2.271 pp of the 2.308 pp available over the old booleans
+— 98 % of the win is having a one-to-one rule at all, not which rule — so the
+simpler statement was taken. The "sacrifice a tight match to rescue a marginal
+one" case that distinguishes them fires in 2 events; it is pinned as a test
+(`test_greedy_leaves_the_documented_gap_to_the_optimal_assignment`) rather than
+fixed.
+
+**Ties.** Bit-identical ΔR between two feasible pairs occurs in 13 events
+(0.02 %). `argmin` over the row-major (parton, jet) block breaks them to the
+earlier parton in `MATCH_PARTON_LABELS`, then the harder jet — fixed, not
+physically motivated, which is all it needs to be. The exact optimum had **zero**
+genuinely degenerate solutions after post-filtering, so neither rule needed a
+tie-break to be reproducible.
+
+**Cost matrix spans the saved slots only.** Matching over the full jet
+collection would let a parton claim a jet that the 10-slot truncation then
+deletes — losing that label *and* blocking a jet another parton could have
+taken. An earlier standalone Hungarian study that matched over all jets scored
+35.59 %, ~0.6 pp below the 36.20 % the same rule reaches on the saved ten,
+which is the size of that effect.
+
+**Ceiling.** Both rules sit ~3.9 pp under the 40.08 % of events where all four
+partons have *some* jet within 0.4: there two partons' only candidate is the
+same jet and no one-to-one rule can split them. This is why `GenQ1` matches at
+67.8 % against `GenHadTopB`'s 84.1 % — in this sample Q1 is the b from W→cb, a
+third b crowding the cones. A cone/merging question, not an assignment one.
+
+ΔR is rebuilt from padded η/φ rather than `jets.delta_r(parton)`: a parton
+absent for an event makes the whole coffea entry `None`, which does not survive
+`pad_val`'s `to_numpy`. Both validity masks in that computation are load-bearing
+— an absent parton and an empty jet slot both sit at `PAD_VAL`, so their ΔR is
+exactly 0 and would otherwise read as the tightest match in the event.
+
+Verified on the regenerated fixture output, while the per-slot flags were still
+being written alongside: zero jets carrying 2+ labels, zero partons on 2+ jets,
+zero disagreements between the flags and the index branches (which is what
+established the two were redundant), zero assigned pairs at ΔR ≥ 0.4 (max 0.3999)
+or pointing at padding, and the complete-assignment and per-parton rates
+reproducing the standalone study exactly (36.16 %, 79.04 % of partons). Re-checked
+after the flags were dropped: every index is `-1` or a filled slot, no slot is
+claimed twice, and the same rates hold. Eight unit tests in
+[`tests/test_vcb_gen_truth.py`](../tests/test_vcb_gen_truth.py).
+
+### 2026-08-15 — `GenQ1`/`GenQ2` pinned to down-type/up-type
+
+`GenQ1` and `GenQ2` were the hadronic W's children `0` and `1` — positional, so
+which one held the c in a W→cb event was whatever order the generator wrote them
+in. The convention everyone was already relying on (Q1 down-type, Q2 up-type) was
+real but unenforced.
+
+**It was also, empirically, already true everywhere.** Checked before changing
+anything: 9 746 741 TTtoLNu2Q events (`prod_lnu2q_20260728`, the d/s against u/c
+modes) and 59 575 TTtoLNuCB fixture events (b against c) — Q1 down-type and Q2
+up-type in **100 %** of both, covering all three down flavors and both up
+flavors. So `_split_w_quarks_by_type` changed no output: the regenerated
+regression baselines came back byte-identical, which is the point of recording
+the check here.
+
+Two details worth keeping:
+
+- The ordering is by **type**, not by \|pdgId\|. The s-then-u combination occurs
+  248 459 times in TTtoLNu2Q; a \|pdgId\| sort would put the u first there. So
+  "sorted by pdgId" is *not* an equivalent description, and a future refactor
+  reaching for `argsort` on \|pdgId\| would silently break the ub/us modes.
+- It holds for both W charges and regardless of which daughter is the
+  antiparticle — all eight signed (Q1, Q2) combinations appear in TTtoLNu2Q with
+  Q1 always down-type.
+
+Enforced anyway, because nothing *made* it true: it came from generator child
+ordering by way of `distinctChildren`, and a different generator, NanoAOD version
+or coffea release could reverse it for one decay mode with nothing raising — the
+kind of break that would surface as a quietly mislabelled charge tagger training
+set rather than as an error. Down-type is odd \|pdgId\| (d=1, s=3, b=5), up-type
+even (u=2, c=4), which is PDG numbering rather than a convention of this
+analysis. A same-type pair leaves the missing side `PAD_VAL`.
+
+The six `GenWto*` flavor tags sort their pair internally and are swap-invariant,
+so they are unaffected; `GenWb` is selected by flavor and unaffected too. For
+W→cb, `GenQ1` and `GenWb` now necessarily refer to the same quark.
+
+Documented in [`README.md`](../README.md) (gen-truth conventions, alongside the
+one-to-one jet match) and [`docs/processor.md`](processor.md). Five unit tests
+cover both child orderings, all six decay modes, the by-type-not-by-\|pdgId\|
+distinction, and the impossible same-type pair.

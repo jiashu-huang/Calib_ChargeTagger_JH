@@ -56,6 +56,32 @@ pickle totals → `finalWeight = weight / np_nominal` appended in a second pass
 by `condor/scripts/normalize.py` (the skimmer itself never writes it — the
 denominator sums over every batch of a campaign).
 
+### Gen-truth conventions worth knowing before you read a branch
+
+Two conventions are enforced in the code rather than left to chance, because
+both are easy to assume wrongly and neither would raise an error if it broke.
+
+**`GenQ1` is the down-type quark, `GenQ2` the up-type — always.** A W decays to
+exactly one of each, so the split is total and unambiguous, and the branch name
+answers "which one is the c?" without a per-event PDG-ID check. For the W→cb
+signal that means **`GenQ2` is the c and `GenQ1` the b, in every event**;
+`GenQ1PdgId` / `GenQ2PdgId` still carry the signed IDs if you need the charge.
+Down-type is odd \|pdgId\| (d=1, s=3, b=5), up-type even (u=2, c=4) — PDG
+numbering, not a convention of this analysis. The six `GenWto*` flavor tags are
+deliberately *unordered* and unaffected by this.
+
+**The gen match is a one-to-one assignment**, reported as four integers —
+`GenHadBJetIdx`, `GenLepBJetIdx`, `GenHadQ1JetIdx`, `GenHadQ2JetIdx` — each a
+saved jet slot in `0..9`, or `-1` if that parton has no jet. No jet is ever
+claimed by two partons and no parton by two jets. Details, and why this replaced
+40 per-slot booleans, in
+[docs/processor.md](docs/processor.md#jetparton-assignment).
+
+> Both conventions post-date the committed 2024 production, which needs a
+> re-skim regardless (see the MET note below). Older skims have neither the
+> `Gen*JetIdx` branches nor the enforced Q1/Q2 ordering — though the ordering
+> happened to hold there anyway, in all 9.8 M events checked.
+
 ## Documentation map
 
 | Document | What it covers |
