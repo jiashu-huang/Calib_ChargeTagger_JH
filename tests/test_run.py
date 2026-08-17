@@ -35,6 +35,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTFILE_DIR = PROJECT_ROOT / "tests" / "outfile"
 DEFAULT_INPUT = PROJECT_ROOT / "tests" / "data" / "test-input.root"
 DEFAULT_YEAR = "2024"
+# The fixture is a TTtoLNuCB batch, so that is the dataset label the run needs.
+# It is passed explicitly because `vcb.run` requires `--files-name` with
+# `--files` -- point this script at a different sample and the label must follow,
+# or the baselines are regenerated under the wrong cross section.
+DEFAULT_FILES_NAME = "TTtoLNuCB"
 
 # numpy dtype -> ROOT typedef
 DTYPE_TO_ROOT = {
@@ -55,7 +60,7 @@ DTYPE_TO_ROOT = {
 FILETAG = "test-output"
 
 
-def run_skimmer(input_file: Path, year: str) -> None:
+def run_skimmer(input_file: Path, year: str, files_name: str) -> None:
     """Step 1: run the vcb skimmer with the prescribed parameters."""
     cmd = [
         sys.executable,
@@ -69,6 +74,8 @@ def run_skimmer(input_file: Path, year: str) -> None:
         year,
         "--files",
         str(input_file),
+        "--files-name",
+        files_name,
         "--save-root",
         "--chunksize",
         "100000",
@@ -231,6 +238,11 @@ def main() -> None:
         help=f"Input NanoAOD ROOT file (default: {DEFAULT_INPUT})",
     )
     parser.add_argument("--year", default=DEFAULT_YEAR, help="Data-taking year")
+    parser.add_argument(
+        "--files-name",
+        default=DEFAULT_FILES_NAME,
+        help="Dataset label for the input file; sets the cross section and gen selection",
+    )
     args = parser.parse_args()
 
     input_file = Path(args.input_file).resolve()
@@ -244,7 +256,7 @@ def main() -> None:
 
     OUTFILE_DIR.mkdir(parents=True, exist_ok=True)
 
-    run_skimmer(input_file, args.year)
+    run_skimmer(input_file, args.year, args.files_name)
     dump_0th_event()
     make_schema_csv()
     make_jet_pt_plot()

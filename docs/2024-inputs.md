@@ -362,7 +362,8 @@ could produce nothing at all.)
 # "Pileup 2024: using bundled .../2024_puWeights.json.gz (correction 'Collisions24_CDEFGHI_goldenJSON')"
 # and item 5 logs "Lepton SF 2024 <payload>: using bundled ...":
 micromamba run -n ttbar python -m vcb.run --year 2024 \
-  --files <one production file> --maxchunks 1 --naming-tag check --outdir /tmp/check
+  --files <one production file> --files-name TTtoLNuCB \
+  --maxchunks 1 --naming-tag check --outdir /tmp/check
 
 # baselines: items 4 (JER + V5 JEC) and 6 (jet ID) move jet pT / nJets — item 6 also
 # shifts the event count via the jet-veto map; items 1–3 and 5 change weights only

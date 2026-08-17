@@ -29,7 +29,7 @@ needs the whole sample to know the denominator.
 |---|---|---|
 | `--year` | *required* | `2018 / 2022 / 2022EE / 2023 / 2023BPix / 2024`. Selects LUMI, JEC/JER, pile-up and jet-veto payloads. `nargs="+"`, but more than one value raises. |
 | `--files` | `[]` | Explicit list of input NanoAOD paths. **The only working input path in this repo** — see *Inert* below. |
-| `--files-name` | `TTtoLNuCB` | Dataset label. The fileset key is `<year>_<files-name>`, and the skimmer splits it back apart to look up the cross section. |
+| `--files-name` | *required with `--files`* | Dataset label. The fileset key is `<year>_<files-name>`, and the skimmer splits it back apart to look up the cross section. No default — see below. |
 | `--samples` `--subsamples` `--yaml` `--starti` `--endi` | — | Index-JSON workflow. Inert here. |
 
 ### Chunking
@@ -91,11 +91,26 @@ A hidden side effect worth knowing: with `--files`, an unreadable input raises
 instead of being skipped. This is why a NanoAOD with no `Events` tree kills the
 whole job rather than being dropped.
 
-**`--files-name` silently controls normalization.** The skimmer reconstructs the
-dataset name from the fileset key and looks it up in `xsecs`
-([SkimmerABC:73](../src/boostedhh/processors/SkimmerABC.py#L73)). A name with no
-matching entry logs `Weight not normalized to cross section` and falls back to
-`weight_norm = 1` — the run succeeds with wrong weights. Keep it `TTtoLNuCB`.
+**`--files-name` controls normalization, so it is mandatory.** The skimmer
+reconstructs the dataset name from the fileset key and looks it up in `xsecs`
+([SkimmerABC:73](../src/boostedhh/processors/SkimmerABC.py#L73)); the same label
+also gates `gen_selection_dict` and the top-pT columns. Pass the sample name:
+
+```bash
+--files <batch files> --files-name TTtoLNu2Q
+```
+
+Two failure modes, one loud and one quiet:
+
+- **Omitted entirely** — `vcb.run` exits non-zero before reading a file
+  (`_require_files_name`). It defaulted to `TTtoLNuCB` until 2026-08-15, which
+  made pointing `--files` at any other sample a silent ~1190× normalization
+  error (`weight_norm` 4.28e4 instead of 5.09e7 for TTtoLNu2Q) — the
+  cross-section warning below never fires, because `TTtoLNuCB` *is* in `xsecs`.
+- **Present but unknown to `xsecs`** — logs `Weight not normalized to cross
+  section` and falls back to `weight_norm = 1`. The run succeeds with unscaled
+  weights. This is deliberate: it is how you skim a sample with no cross section
+  on file.
 
 ## Inert flags
 
@@ -112,11 +127,11 @@ Accepted by the parser, no effect on the output:
 
 ```bash
 # local single file, everything on
-python -m vcb.run --year 2024 --files /path/to/file.root \
+python -m vcb.run --year 2024 --files /path/to/file.root --files-name TTtoLNuCB \
   --save-root --chunksize 100000 --maxchunks 0
 
 # ROOT only, sent somewhere specific
-python -m vcb.run --year 2024 --files /path/to/file.root \
+python -m vcb.run --year 2024 --files /path/to/file.root --files-name TTtoLNuCB \
   --root-only --output-root-location /where/the/roots/go \
   --chunksize 100000 --maxchunks 0
 

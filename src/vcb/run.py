@@ -9,9 +9,14 @@ python -m vcb.run \
   --skimmer vcbSkimmer \
   --year 2024 \
   --files /isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/batch_000/<file>.root \
+  --files-name TTtoLNuCB \
   --save-root \
   --chunksize 100000 \
   --maxchunks 0
+
+`--files-name` is mandatory alongside `--files`: it is the dataset label, and the
+skimmer reads the cross section off it. There is deliberately no default -- see
+`_require_files_name`.
 """
 
 from __future__ import annotations
@@ -31,7 +36,36 @@ from boostedhh.processors import SkimmerABC
 from boostedhh.xsecs import xsecs
 from vcb import vcb_utils
 
-DEFAULT_FILES_NAME = "TTtoLNuCB"
+
+def _require_files_name(args) -> None:
+    """
+    Refuse to run `--files` without `--files-name`.
+
+    The fileset key is `<year>_<files_name>`, and `vcbSkimmer.process` splits it
+    back apart to get the dataset -- which then picks the cross section
+    (`SkimmerABC.get_dataset_norm`), gates `gen_selection_dict`, and gates the
+    top-pT columns. So the label is not cosmetic: it scales every weight in the
+    output.
+
+    This used to default to `TTtoLNuCB`, which made the failure silent and
+    expensive. Pointing `--files` at a TTtoLNu2Q batch and forgetting the label
+    normalized it with the W->cb signal cross section -- `weight_norm` 4.28e4
+    instead of 5.09e7, a factor of ~1190 -- with nothing to catch it: the
+    "Weight not normalized to cross section" warning only fires for a dataset
+    *absent* from `xsecs`, and `TTtoLNuCB` is present.
+
+    An unknown label is left alone rather than rejected here: `get_dataset_norm`
+    already warns and falls back to `weight_norm = 1` for it, and that is the
+    documented way to run a sample with no cross section on file.
+    """
+    if len(args.files) and not args.files_name:
+        raise SystemExit(
+            "--files requires --files-name: it is the dataset label the cross section, "
+            "the gen selection and the top-pT columns are all keyed off, and there is no "
+            "safe default (the old TTtoLNuCB one silently mis-normalized every other "
+            "sample by ~1190x). Pass the sample name, e.g. "
+            "`--files-name TTtoLNuCB` or `--files-name TTtoLNu2Q`."
+        )
 
 
 def _parse_skimmer_arg(skimmer: str | None) -> tuple[str, str | None]:
@@ -268,7 +302,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Common args shared across different workflows.
     run_utils.parse_common_run_args(parser)
-    parser.set_defaults(files_name=DEFAULT_FILES_NAME)
+    # boostedhh defaults this to the string "files"; blank it so `--files-name`
+    # is either given explicitly or caught by _require_files_name below. Set
+    # here rather than in boostedhh so the vendored dependency stays untouched.
+    parser.set_defaults(files_name=None)
     run_utils.parse_common_hh_args(parser)
     vcb_utils.parse_common_run_args(parser)
     parser.add_argument(
@@ -317,6 +354,9 @@ if __name__ == "__main__":
         ),
     )
     args = parser.parse_args()
+
+    # Before anything else: a mislabelled fileset silently rescales the output.
+    _require_files_name(args)
 
     # --root-only is meaningless without ROOT output, so turn it on rather than
     # making the user pass both flags.

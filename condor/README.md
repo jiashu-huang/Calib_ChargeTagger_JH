@@ -23,14 +23,18 @@ Input: 93 `batch_*` dirs (465 files, 5 per batch, ~65 GB, 19,823,340 events;
 INPUT=/isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1
 
 # dry run on the first two batches first:
-python condor/submit_batches.py --input-root "$INPUT" --tag test_$(date +%Y%m%d) --test
+python condor/submit_batches.py --input-root "$INPUT" --files-name TTtoLNuCB \
+  --tag test_$(date +%Y%m%d) --test
 
 # full campaign, submitting directly:
-python condor/submit_batches.py --input-root "$INPUT" --tag prod_$(date +%Y%m%d) --submit
+python condor/submit_batches.py --input-root "$INPUT" --files-name TTtoLNuCB \
+  --tag prod_$(date +%Y%m%d) --submit
 ```
 
-Defaults: `--year 2024`, `--files-name TTtoLNuCB`, `--skimmer vcbSkimmer`,
-`--mamba-env ttbar`. Generated JDLs/worker scripts land in
+`--files-name` is **required** and has no default — it picks the cross section,
+the gen selection and the top-pT columns, so the wrong label rescales the whole
+campaign with nothing to catch it. Other defaults: `--year 2024`,
+`--skimmer vcbSkimmer`, `--mamba-env ttbar`. Generated JDLs/worker scripts land in
 `condor/runs/<tag>/` (git-ignored); outputs in
 `<input-root>/processed-nano/<tag>/{roots,pickles,metadata}/` by default, or
 wherever `--processed-dir <dir>` points (the 2026-07-26 production wrote to
@@ -66,6 +70,7 @@ micromamba run -n ttbar python -u -m vcb.run \
   --files <this batch's *.root>  --files-name TTtoLNuCB \
   --naming-tag batch_NNN \
   --save-root \
+  --save-systematics|--no-save-systematics \
   --chunksize 1000000 --maxchunks 0 --batch-size 9999 \
   --outdir condor/runs/<tag>/batch_NNN/work
 ```
@@ -73,7 +78,8 @@ micromamba run -n ttbar python -u -m vcb.run \
 | Where it comes from | Value | Why |
 |---|---|---|
 | `--naming-tag` | `batch_NNN` | names the outputs; the worker renames them to `<tag>/roots/batch_NNN.root` and `<tag>/pickles/batch_NNN.pkl`, which is the pairing `normalize.py` relies on |
-| `--files-name` | `TTtoLNuCB` | must match a key in `xsecs`, else the run silently normalizes to `weight_norm = 1` |
+| `--files-name` | *required* | whatever you passed to `submit_batches.py`. Must match a key in `xsecs`, else the run normalizes to `weight_norm = 1`; `vcb.run` refuses to start if it is missing altogether |
+| `--save-systematics` | off unless passed | mirrors `submit_batches.py --save-systematics`. Always written out in full (`--save-systematics` or `--no-save-systematics`) so the worker script records which mode it ran. See below |
 | `--batch-size` | `9999` | forces one ROOT per job; the worker asserts exactly one and fails otherwise |
 | `--maxchunks` | `0` | no cap — process the whole batch |
 | `--chunksize` | `1000000` | events per coffea chunk |
@@ -94,6 +100,41 @@ parameter it was generated with.
 **Tag convention:** `test_<YYYYMMDD>[_<HHMM>]` for trial runs (delete the run
 dir *and* its processed outputs once superseded), `prod_<YYYYMMDD>` for real
 productions (keep both).
+
+#### Which code ran: `calib_repo_git`
+
+`campaign.json` also records `submitted_at` and a `calib_repo_git` block —
+commit, branch, and a `dirty` flag with the list of uncommitted files.
+
+This matters more than it looks, because **workers do not get a copy of the
+repo**. The generated script puts `$CALIB_REPO/src` on `PYTHONPATH` and imports
+from the live checkout, so:
+
+- a finished skim has no other record of what produced it, and
+- jobs start over a span of hours. **Editing anything under `src/` while the
+  queue drains silently splits the campaign across two code versions**, with
+  nothing in the output to mark where.
+
+So: commit before submitting, and leave the tree alone until the queue is
+empty. `submit_batches.py` prints a warning when the tree is dirty, but does
+not refuse — a submitter that blocks is a submitter people work around.
+`dirty: true` in a production's `campaign.json` means its commit hash does not
+describe what ran.
+
+#### Systematic variations
+
+`--save-systematics` is **off by default** and worth turning on for any real
+production. It adds 18 `weight_*Up/Down` columns — pile-up, ISR/FSR parton
+shower, and the six lepton scale factors — plus their `np_*` denominators in
+the totals pickle (699 branches instead of 681).
+
+The reason to decide *before* submitting rather than after: the raw `PSWeight`
+array is not written to the skim, so **ISR/FSR variations cannot be rebuilt
+from the output** — recovering them means re-running the whole campaign, and
+regenerating everything downstream that was built on the first skim. Pile-up
+and the lepton SFs are re-derivable (from `nTrueInt` and
+`TriggerLeptonPt`/`Eta`), and the μR/μF `scale_weights0..5` are written either
+way.
 
 ### 2. Global finalWeight
 

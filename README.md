@@ -149,8 +149,13 @@ Single file, local:
 python -m vcb.run \
   --year 2024 \
   --files /path/to/<file>_CMSSW_15_CHARGE_NanoAOD.root \
+  --files-name TTtoLNuCB \
   --save-root --chunksize 100000 --maxchunks 0
 ```
+
+`--files-name` is the dataset label and is required alongside `--files`: it
+selects the cross section, the gen selection and the top-pT columns. Use
+`TTtoLNu2Q` for the inclusive semileptonic sample.
 
 Outputs land in `outputs/<timestamp>/` (symlinked from `outputs/latest`):
 per-batch parquet + ROOT skims and `outfiles/<tag>.pkl` totals. The ROOT also
@@ -165,6 +170,7 @@ When only the ROOT skim is wanted:
 python -m vcb.run \
   --year 2024 \
   --files /path/to/<file>_CMSSW_15_CHARGE_NanoAOD.root \
+  --files-name TTtoLNuCB \
   --root-only --output-root-location /where/the/roots/go \
   --chunksize 100000 --maxchunks 0
 ```

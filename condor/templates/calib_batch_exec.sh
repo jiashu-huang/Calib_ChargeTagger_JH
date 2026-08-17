@@ -17,6 +17,10 @@ MAXCHUNKS="@@MAXCHUNKS@@"
 BATCH_SIZE="@@BATCH_SIZE@@"
 MAMBA_ENV="@@MAMBA_ENV@@"
 KEEP_INTERMEDIATE="@@KEEP_INTERMEDIATE@@"
+# Literally "--save-systematics" or "--no-save-systematics". Always one of the
+# two, never empty: the flag this job ran under is then readable straight off
+# the worker script, instead of having to infer it from the output columns.
+SAVE_SYSTEMATICS_FLAG="@@SAVE_SYSTEMATICS_FLAG@@"
 
 if [ ! -d "$CALIB_REPO" ]; then
   echo "ERROR: Calib_ChargeTagger_JH repo not found: $CALIB_REPO" >&2
@@ -105,6 +109,7 @@ mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
     --files-name "$FILES_NAME" \
     --naming-tag "$BATCH_ID" \
     --save-root \
+    "$SAVE_SYSTEMATICS_FLAG" \
     --chunksize "$CHUNKSIZE" \
     --maxchunks "$MAXCHUNKS" \
     --batch-size "$BATCH_SIZE" \

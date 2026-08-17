@@ -25,6 +25,64 @@ def make_abs(path: str | Path) -> Path:
     return Path(os.path.abspath(os.path.expandvars(os.path.expanduser(str(path)))))
 
 
+def git_provenance(repo: Path) -> dict[str, object]:
+    """
+    Which code this campaign ran, as `{commit, branch, dirty, dirty_files}`.
+
+    Worth recording because the workers do **not** get a copy of the repo: the
+    generated script puts `$CALIB_REPO/src` on `PYTHONPATH` and imports from the
+    live checkout. Nothing else in the campaign says what that checkout
+    contained, so without this a finished skim cannot be tied back to a version
+    of the skimmer.
+
+    `dirty` is the field that actually matters. A commit hash recorded against a
+    modified working tree is worse than no hash at all -- it names code that is
+    not what ran. And because jobs start over a span of hours while importing
+    from that same live tree, an edit made mid-queue splits the campaign across
+    two versions with nothing to mark the boundary; `dirty: true` is the only
+    warning the output will ever carry.
+
+    Any git failure (not a repo, git missing) degrades to `available: false`
+    rather than blocking submission -- provenance is worth recording, not worth
+    refusing to run over.
+    """
+
+    def run(*cmd: str) -> str | None:
+        try:
+            out = subprocess.run(
+                ["git", "-C", str(repo), *cmd],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return None
+        return out.stdout.strip()
+
+    commit = run("rev-parse", "HEAD")
+    if commit is None:
+        return {"available": False}
+
+    # `--porcelain` lines are "XY path", but `run` has already stripped the
+    # output, which removes the leading space of the *first* line only. Splitting
+    # on whitespace is immune to that, where a fixed `line[3:]` slice is not (it
+    # ate the R of README.md). maxsplit=1 keeps rename arrows and git's own
+    # quoting of paths-with-spaces intact.
+    status = run("status", "--porcelain") or ""
+    dirty_files = []
+    for line in status.splitlines():
+        parts = line.strip().split(maxsplit=1)
+        if len(parts) == 2:
+            dirty_files.append(parts[1])
+    return {
+        "available": True,
+        "commit": commit,
+        "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
+        "dirty": bool(dirty_files),
+        "dirty_files": dirty_files,
+    }
+
+
 def render_template(template_path: Path, replacements: dict[str, str]) -> str:
     """Replace @@KEY@@ tokens in a template file."""
     text = template_path.read_text()
@@ -138,8 +196,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--year", default="2024", help="Year passed to vcb.run.")
     parser.add_argument(
         "--files-name",
-        default="TTtoLNuCB",
-        help="Dataset name used with --files so gen-selection logic matches.",
+        required=True,
+        help=(
+            "Dataset name passed through to `vcb.run --files-name`. Required, and with "
+            "no default on purpose: it selects the cross section, the gen selection and "
+            "the top-pT columns, so the wrong label rescales a whole campaign silently. "
+            "e.g. TTtoLNuCB, TTtoLNu2Q."
+        ),
     )
     parser.add_argument("--skimmer", default="vcbSkimmer", help="Skimmer module to run.")
     parser.add_argument(
@@ -185,6 +248,19 @@ def parse_args() -> argparse.Namespace:
         "--keep-intermediate",
         action="store_true",
         help="Keep per-job parquet and helper files in the worker work directory.",
+    )
+    parser.add_argument(
+        "--save-systematics",
+        action="store_true",
+        help=(
+            "Pass --save-systematics to vcb.run, adding 18 weight_*Up/Down columns "
+            "(pileup, ISR/FSR parton shower, and the six lepton SFs) plus their np_* "
+            "denominators in the totals pickle. Strongly recommended: the raw PSWeight "
+            "array is NOT written to the skim, so ISR/FSR variations cannot be rebuilt "
+            "afterwards and recovering them costs a second full production. Pileup and "
+            "lepton SFs are re-derivable from nTrueInt / TriggerLeptonPt+Eta, and the "
+            "mu_R/mu_F scale weights are written either way."
+        ),
     )
     parser.add_argument(
         "--batch-names",
@@ -313,6 +389,12 @@ def main() -> None:
                 "BATCH_SIZE": str(args.batch_size),
                 "MAMBA_ENV": args.mamba_env,
                 "KEEP_INTERMEDIATE": "1" if args.keep_intermediate else "0",
+                # Spelled out either way -- `vcb.run` takes both spellings
+                # (boostedhh.utils.add_bool_arg), so the worker script records the
+                # choice instead of leaving it to the default.
+                "SAVE_SYSTEMATICS_FLAG": (
+                    "--save-systematics" if args.save_systematics else "--no-save-systematics"
+                ),
             },
         )
         exec_path.write_text(exec_contents)
@@ -351,8 +433,12 @@ def main() -> None:
     submit_all_path.write_text("\n".join(submit_all_lines))
     submit_all_path.chmod(0o755)
 
+    provenance = git_provenance(calib_repo)
+
     campaign_config = {
         "tag": args.tag,
+        "submitted_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "calib_repo_git": provenance,
         "input_root": str(input_root),
         "calib_repo": str(calib_repo),
         "run_dir": str(run_dir),
@@ -373,6 +459,7 @@ def main() -> None:
         "request_memory": args.request_memory,
         "request_disk": args.request_disk,
         "keep_intermediate": args.keep_intermediate,
+        "save_systematics": args.save_systematics,
         "selected_batches": [summary["batch"] for summary in batch_summaries],
         "jobs": batch_summaries,
     }
@@ -386,6 +473,30 @@ def main() -> None:
     print(f"Run directory: {run_dir}")
     print(f"Processed outputs: {processed_dir}")
     print(f"Submit helper: {submit_all_path}")
+    print(f"Systematics: {'ON' if args.save_systematics else 'OFF'}")
+
+    # Both warnings below are printed, not enforced: there are legitimate reasons
+    # to run either way, and a submitter that refuses is a submitter people work
+    # around. They are loud because both are silent in the output otherwise.
+    if not args.save_systematics:
+        print(
+            "  WARNING: no weight_*Up/Down columns. ISR/FSR cannot be recovered from the\n"
+            "           skim afterwards (raw PSWeight is not saved) -- getting them later\n"
+            "           means re-running this whole campaign. Pass --save-systematics."
+        )
+
+    if provenance.get("available"):
+        print(f"Code: {provenance['commit'][:12]} on {provenance['branch']}")
+        if provenance["dirty"]:
+            n = len(provenance["dirty_files"])
+            print(
+                f"  WARNING: {n} uncommitted file(s) -- the recorded commit is NOT what will\n"
+                "           run. Workers import from the live tree, so editing it while jobs\n"
+                "           are queued splits the campaign across code versions. Commit first."
+            )
+    else:
+        print("Code: git provenance unavailable (not a git repo?)")
+
     if not args.submit:
         print("Jobs were not submitted. Use submit_all.sh or rerun with --submit.")
 
