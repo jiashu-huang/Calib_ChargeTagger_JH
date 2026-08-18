@@ -142,6 +142,48 @@ def select_batches(all_batches: list[Path], args: argparse.Namespace) -> list[Pa
     return selected
 
 
+def build_jobs(selected_batches: list[Path], files_per_job: int) -> list[tuple[str, list[Path]]]:
+    """
+    Group the input ROOTs into one unit of work per Condor job.
+
+    With `files_per_job = 0` the input directory layout sets the granularity --
+    one job per `batch_*` directory, whatever it holds -- which is what every
+    campaign through 2026-08-16 ran (5 files a job on both 2024 samples).
+
+    A positive value ignores those boundaries and cuts the flat sorted file list
+    into fixed-size chunks. Cutting *within* each directory instead would make
+    the jobs uneven for no gain (5 files at 2 a job gives 2+2+1), and the
+    boundaries carry no physics: they are how the CMSSW step happened to write
+    its output.
+
+    Jobs stay named `batch_<n>`, zero-padded to the job count, because the worker
+    renames its outputs to `roots/<name>.root` and `pickles/<name>.pkl` and
+    `normalize.py` pairs the two by that stem.
+    """
+    if files_per_job < 0:
+        raise ValueError("--files-per-job cannot be negative.")
+
+    def batch_files(batch_dir: Path) -> list[Path]:
+        found = sorted(path for path in batch_dir.glob("*.root") if path.is_file())
+        if not found:
+            raise FileNotFoundError(f"No ROOT files found in {batch_dir}")
+        return found
+
+    if files_per_job == 0:
+        return [(batch_dir.name, batch_files(batch_dir)) for batch_dir in selected_batches]
+
+    all_files: list[Path] = []
+    for batch_dir in selected_batches:
+        all_files.extend(batch_files(batch_dir))
+
+    chunks = [
+        all_files[start : start + files_per_job]
+        for start in range(0, len(all_files), files_per_job)
+    ]
+    width = max(3, len(str(len(chunks) - 1)))
+    return [(f"batch_{index:0{width}d}", chunk) for index, chunk in enumerate(chunks)]
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -222,6 +264,19 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=9999,
         help="run.py batch size; keep this large so one Condor job yields one ROOT file.",
+    )
+    parser.add_argument(
+        "--files-per-job",
+        type=int,
+        default=0,
+        help=(
+            "Input ROOT files per Condor job. 0 (the default) keeps the input directory "
+            "layout: one job per batch_* directory. A positive value ignores those "
+            "boundaries, cutting the flat sorted file list into chunks of this size and "
+            "renumbering the jobs from batch_0000. Note this is NOT --batch-size, which "
+            "groups files into output ROOTs inside a job. Sizing down costs scheduling: "
+            "most of a job's wall time is fixed startup, not skimming."
+        ),
     )
     # Defaults sized from a measured 5-file batch (208,780 events, 2026-07-26):
     # 104% of one core, 1.29 GB peak RSS, 129 MB of transient files, ~60 s wall.
@@ -313,6 +368,8 @@ def main() -> None:
         raise ValueError("--chunksize must be positive.")
     if args.batch_size <= 0:
         raise ValueError("--batch-size must be positive.")
+    if args.files_per_job < 0:
+        raise ValueError("--files-per-job cannot be negative.")
     if args.request_cpus <= 0:
         raise ValueError("--request-cpus must be positive.")
 
@@ -355,12 +412,8 @@ def main() -> None:
     submit_commands: list[str] = []
     batch_summaries: list[dict[str, object]] = []
 
-    for batch_dir in selected_batches:
-        input_files = sorted(path for path in batch_dir.glob("*.root") if path.is_file())
-        if not input_files:
-            raise FileNotFoundError(f"No ROOT files found in {batch_dir}")
-
-        job_dir = run_dir / batch_dir.name
+    for job_name, input_files in build_jobs(selected_batches, args.files_per_job):
+        job_dir = run_dir / job_name
         work_dir = job_dir / "work"
         job_dir.mkdir(parents=True, exist_ok=False)
 
@@ -376,7 +429,7 @@ def main() -> None:
                 "CALIB_REPO": str(calib_repo),
                 "SUBMITTER_HOME": str(submitter_home),
                 "MICROMAMBA_BIN_HINT": args.micromamba_bin,
-                "BATCH_ID": batch_dir.name,
+                "BATCH_ID": job_name,
                 "INPUT_LIST": str(input_list_path),
                 "OUTPUT_ROOTS_DIR": str(roots_dir),
                 "OUTPUT_PICKLES_DIR": str(pickles_dir),
@@ -418,7 +471,7 @@ def main() -> None:
         submit_commands.append(f'condor_submit "{job_path}"')
         batch_summaries.append(
             {
-                "batch": batch_dir.name,
+                "batch": job_name,
                 "n_input_files": len(input_files),
                 "job_dir": str(job_dir),
                 "job_file": str(job_path),
@@ -460,7 +513,8 @@ def main() -> None:
         "request_disk": args.request_disk,
         "keep_intermediate": args.keep_intermediate,
         "save_systematics": args.save_systematics,
-        "selected_batches": [summary["batch"] for summary in batch_summaries],
+        "files_per_job": args.files_per_job,
+        "selected_batches": [batch_dir.name for batch_dir in selected_batches],
         "jobs": batch_summaries,
     }
     (run_dir / "campaign.json").write_text(json.dumps(campaign_config, indent=2) + "\n")
