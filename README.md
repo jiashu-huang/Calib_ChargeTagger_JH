@@ -1,302 +1,183 @@
 # Calib_ChargeTagger_JH
 
-Standalone Vcb skimmer for the jet-charge-tagger calibration, targeting the
-**2024 (Summer24)** private NanoAOD production. This is a clean-room port of
-the Vcb pipeline from `Vcb/Calib_ChargeTagger` (an LPC-HH/bbtautau fork) with
-the `boostedhh` framework **vendored** under [src/boostedhh](src/boostedhh)
-(see [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md)) and the analysis
-code renamed `bbtautau` → `vcb`. Lineage: [docs/history.md](docs/history.md).
+NanoAOD skimmer for the |Vcb| analysis and jet-charge-tagger calibration.
+It processes the private 2024 Summer24 `TTtoLNu2Q` and `TTtoLNuCB` MC samples
+into ROOT files containing selected events, calibrated objects, generator
+labels, and weights for analysis and SPANet input preparation.
 
-## State of the repo (2026-08-04)
+Start with these two guides:
 
-**Feature-complete and production-validated on 2024 MC.** The full 2024
-TTtoLNuCB campaign (93 `batch_*` dirs) has been skimmed via HTCondor and
-normalized. All calibration inputs are real Summer24 values — luminosity
-124 fb⁻¹, σ(TTtoLNuCB) ≈ 0.345 pb, `Collisions24_CDEFGHI_goldenJSON` pile-up
-weights, Summer24 V5 JEC + JRV2 JER, and the EGM/MUO lepton reco/ID/isolation/
-trigger scale factors — with no placeholders left
-([docs/2024-inputs.md](docs/2024-inputs.md)). The lepton SFs — and the ECAL
-crack veto they motivated — landed after that production, so a re-skim is
-needed to pick them up.
+- [Event synopsis](docs/event-synopsis.md): processing order, event vetoes,
+  weight factors, and second-pass normalization.
+- [Object synopsis](docs/object-synopsis.md): electron, muon, jet, and MET
+  processing, followed by their output fields.
 
-Normalization is deliberately a **second pass**: the skimmer writes `weight`
-and never `finalWeight`; each batch ROOT carries its own `np_nominal` in a
-single-entry `Norm` tree, and
-[condor/scripts/normalize.py](condor/scripts/normalize.py) appends the
-`finalWeight` branch in place afterwards. Why it is built this way:
-[docs/normalization.md](docs/normalization.md).
+## Processing and output
 
-Known gaps:
+1. Correct and select leptons and AK4 jets, choose a trigger lepton, and
+   calculate PUPPI MET.
+2. Apply trigger, event-quality, jet-veto-map, and lepton requirements. Save
+   passing events with generator labels and first-pass weights.
+3. Normalize the completed outputs for each dataset in a second pass to
+   obtain `finalWeight`.
+4. Apply analysis selections and prepare training inputs downstream.
 
-- **The committed 2024 outputs predate the MET fix (2026-07-29).** They carry
-  PF MET copied straight from NanoAOD, inconsistent with their own recorrected
-  jets by a median ~8.5 GeV. Both samples need a re-skim before the outputs are
-  used for training or data/MC — see [MET: PUPPI, not PF](#met-puppi-not-pf-2024).
-- **No jet-energy variations.** JER up/down and JES systematics aren't wired —
-  the Vcb skimmer consumes none (`jec_shifted_jetvars` unused). Nominal only.
-- **2024 data L2L3Residual JEC and AK8 jets are no-ops** — this production is
-  MC AK4 only.
-- **Top-pT reweighting is written but never applied.** Four `topPtWeight_*`
-  branches ship as raw scale factors; applying one is a downstream choice. On
-  these 13.6 TeV samples the column to use is `topPtWeight_NNLONLO_13p6TeV`
-  — the other three are 13 TeV fits. See
-  [Top-pT reweighting](#top-pt-reweighting) below.
+The ROOT `Events` tree has fixed slots for up to three electrons, three muons,
+10 reconstructed jets, and 25 generator jets, plus a chosen trigger lepton,
+MET, and event quantities. The processor keeps analysis jets above 15 GeV;
+the later 20 GeV cut belongs downstream. It imposes no minimum jet count,
+b-tag count, or MET magnitude.
 
-## What the pipeline does
+`GenQ1` is the down-type W daughter and `GenQ2` the up-type daughter. For
+W → cb, Q1 is b and Q2 is c. The four `Gen*JetIdx` labels identify distinct
+saved jet slots, with `-1` for an unmatched parton. Field names and padding
+conventions are in the [object synopsis](docs/object-synopsis.md).
 
-NanoAOD → `vcb.processors.vcbSkimmer` (object selection: tight leptons with
-trigger matching, AK4 jets with JEC + tight jet ID + jet-veto map + lepton
-cleaning;
-gen-truth Vcb branches via `gen_selection_Vcb`; custom charge branches
-`JetQk_QkCharge05/10`, `Jet_PflavCharge` pass through) → per-event weights
-(genWeight, pileup, PS ISR/FSR, lepton SFs, xsec×lumi normalization; plus
-standalone top-pT reweighting columns that are *not* folded into `weight`)
-→ parquet/ROOT skim +
-pickle totals → `finalWeight = weight / np_nominal` appended in a second pass
-by `condor/scripts/normalize.py` (the skimmer itself never writes it — the
-denominator sums over every batch of a campaign).
+## Current scope
 
-### Gen-truth conventions worth knowing before you read a branch
+- The supported production target is 2024 MC with AK4 PUPPI jets. Nominal
+  electron smearing, JEC/JER, pileup weights, and trigger-lepton efficiency
+  scale factors are applied. The 2024 data JEC and AK8 paths are incomplete.
+- `--save-systematics` writes PU, shower, and lepton-SF weight alternatives.
+  JES/JER variations and ttbar PDF-weight output are not implemented. The six
+  renormalization/factorization-scale alternatives are saved independently of
+  this flag when available in the input.
+- Four top-pT factors are saved separately. They are not applied to `weight`
+  or `finalWeight`; the
+  [event synopsis](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives)
+  describes their use and normalization.
 
-Two conventions are enforced in the code rather than left to chance, because
-both are easy to assume wrongly and neither would raise an error if it broke.
-
-**`GenQ1` is the down-type quark, `GenQ2` the up-type — always.** A W decays to
-exactly one of each, so the split is total and unambiguous, and the branch name
-answers "which one is the c?" without a per-event PDG-ID check. For the W→cb
-signal that means **`GenQ2` is the c and `GenQ1` the b, in every event**;
-`GenQ1PdgId` / `GenQ2PdgId` still carry the signed IDs if you need the charge.
-Down-type is odd \|pdgId\| (d=1, s=3, b=5), up-type even (u=2, c=4) — PDG
-numbering, not a convention of this analysis. The six `GenWto*` flavor tags are
-deliberately *unordered* and unaffected by this.
-
-**The gen match is a one-to-one assignment**, reported as four integers —
-`GenHadBJetIdx`, `GenLepBJetIdx`, `GenHadQ1JetIdx`, `GenHadQ2JetIdx` — each a
-saved jet slot in `0..9`, or `-1` if that parton has no jet. No jet is ever
-claimed by two partons and no parton by two jets. Details, and why this replaced
-40 per-slot booleans, in
-[docs/processor.md](docs/processor.md#jetparton-assignment).
-
-> Both conventions post-date the committed 2024 production, which needs a
-> re-skim regardless (see the MET note below). Older skims have neither the
-> `Gen*JetIdx` branches nor the enforced Q1/Q2 ordering — though the ordering
-> happened to hold there anyway, in all 9.8 M events checked.
-
-## Documentation map
-
-| Document | What it covers |
-|---|---|
-| [docs/processor.md](docs/processor.md) | How the skimmer works internally: object selection, the per-event trigger lepton, JEC/JER, jet-veto map, gen truth, cutflow, weights, pile-up |
-| [docs/cli.md](docs/cli.md) | Every `python -m vcb.run` flag — defaults, overlaps, and the inert ones inherited from `boostedhh` |
-| [condor/README.md](condor/README.md) | Batch production on HTCondor: submit, normalize, validate, merge |
-| [docs/normalization.md](docs/normalization.md) | Design record: why `finalWeight` is a second pass, the failure mode it closes |
-| [docs/2024-inputs.md](docs/2024-inputs.md) | Provenance of the 2024 calibration inputs (lumi, σ, pile-up, JEC/JER, lepton SFs) |
-| [docs/tests.md](docs/tests.md) | Test suite details and the jet-tagger round-trip check |
-| [docs/history.md](docs/history.md) | Lineage back to the old `Calib_ChargeTagger` repo |
-| [src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) | Bundled jet + pile-up payloads: origin, snapshot pins, md5s |
-| [src/vcb/corrections/README.md](src/vcb/corrections/README.md) | Bundled lepton scale-factor payloads: origin, working-point rationale, md5s |
-| [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md) | What "vendored" means here and the local deltas vs upstream |
-| [AGENTS.md](AGENTS.md) | Operating notes: environment, ground rules, pre-commit checks |
+The synopses include the MET direction and `CorrT1METJet` updates currently
+implemented in the working tree; those code changes are not yet committed.
+Existing August 2026 skims predate these updates and need reprocessing to
+include them.
 
 ## Setup
 
-**One-time, per machine / per environment**:
+Run commands from this repository's root directory. Create the `ttbar`
+environment if it does not already exist, then install the package:
 
 ```bash
-micromamba create -f environment.yaml    # only if the `ttbar` env doesn't exist yet
+micromamba create -f environment.yaml
 micromamba run -n ttbar pip install -e ".[diagnostics,test]"
 ```
 
-The install is **editable**: `vcb` and the vendored `boostedhh` are linked
-straight to `src/` in this repo, so edits to the source take effect on the next
-run with no reinstall. Re-run `pip install -e ...` only when:
+This editable install uses `src/vcb` and the bundled `src/boostedhh` directly.
+Source edits take effect on the next run. Reinstall when dependencies change.
+Do not install a separate `bbtautau` or upstream `boostedhh` into this environment;
+it would conflict with the bundled framework.
 
-- the `ttbar` environment is recreated or you move to another machine,
-- the dependency lists in [pyproject.toml](pyproject.toml) change (`dependencies`
-  or the `diagnostics` / `test` extras),
-- `git pull` brings in such a change.
+The commands below use `micromamba run -n ttbar`. Alternatively, activate
+`ttbar` once in your shell and omit that prefix.
 
-Renaming or adding *files* under `src/` does **not** need a reinstall.
+## Run locally
 
-**For every shell session**: you need the `ttbar` environment active before you
-run the code. There are two equivalent ways to get it:
+Process one input file with nominal weights:
 
 ```bash
-# (a) activate once per terminal, then run as many commands as you like
-micromamba activate ttbar
-python -m vcb.run ...
-pytest tests/
-
-# (b) don't activate at all — prefix each command (what condor/ and AGENTS.md use)
-micromamba run -n ttbar python -m vcb.run ...
-micromamba run -n ttbar pytest tests/
-```
-
-Activation does not persist across terminals, reconnects, or condor jobs — those
-start a fresh shell, so they need (a) again or (b). Every command in this README
-assumes one of the two; they are written in the bare form for readability.
-
-> The old repo's `bbtautau`/`boostedhh` editable installs have been
-> uninstalled from the `ttbar` env — this repo's `vcb` + vendored `boostedhh`
-> replace them. (To run the *old* repo locally now, it needs
-> `PYTHONPATH=src:boostedhh/src`.)
-
-## Run
-
-Single file, local:
-
-```bash
-python -m vcb.run \
+micromamba run -n ttbar python -m vcb.run \
   --year 2024 \
-  --files /path/to/<file>_CMSSW_15_CHARGE_NanoAOD.root \
+  --files /path/to/input_CMSSW_15_CHARGE_NanoAOD.root \
   --files-name TTtoLNuCB \
-  --save-root --chunksize 100000 --maxchunks 0
+  --root-only --no-save-systematics \
+  --chunksize 100000 --maxchunks 0 --batch-size 9999
 ```
 
-`--files-name` is the dataset label and is required alongside `--files`: it
-selects the cross section, the gen selection and the top-pT columns. Use
-`TTtoLNu2Q` for the inclusive semileptonic sample.
+Use `--files-name TTtoLNu2Q` for the inclusive semileptonic sample. The label
+is required with `--files` and determines the cross section and truth routines.
+`--maxchunks 0` processes the whole input; use `--maxchunks 1` for a short check.
 
-Outputs land in `outputs/<timestamp>/` (symlinked from `outputs/latest`):
-per-batch parquet + ROOT skims and `outfiles/<tag>.pkl` totals. The ROOT also
-carries a single-entry `Norm` tree holding this run's `np_nominal`, making it
-self-describing for normalization. No `finalWeight` is written — append it
-afterwards with [condor/scripts/normalize.py](condor/scripts/normalize.py),
-which must see the whole sample to know the denominator.
+Outputs go to `outputs/<timestamp>/`, linked by `outputs/latest`:
 
-When only the ROOT skim is wanted:
+- `nano_skim_<tag>_batch_0.root`: selected events and a `Norm` tree with the
+  run's normalization totals when the run produces one ROOT file.
+- `outfiles/<tag>.pkl`: cutflow and normalization totals, including totals
+  for requested weight variations.
+
+`--root-only` retains the ROOT and pickle outputs. Replace it with
+`--save-root` to retain a Parquet copy as well. Use `--outdir` to choose the
+run directory or `--output-root-location` to send ROOT files elsewhere.
+Replace `--no-save-systematics` with `--save-systematics` to save the weight
+alternatives. See the [CLI reference](docs/cli.md) for all options.
+
+## Batch production and normalization
+
+The [Condor guide](condor/README.md) covers submission and output collection.
+Its processed directory contains `roots/`, `pickles/`, and `metadata/`.
+After the jobs finish, normalize and validate that dataset's outputs:
 
 ```bash
-python -m vcb.run \
-  --year 2024 \
-  --files /path/to/<file>_CMSSW_15_CHARGE_NanoAOD.root \
-  --files-name TTtoLNuCB \
-  --root-only --output-root-location /where/the/roots/go \
-  --chunksize 100000 --maxchunks 0
+micromamba run -n ttbar python condor/scripts/normalize.py \
+  --processed-dir /path/to/processed-nano/production_tag
+
+micromamba run -n ttbar python condor/scripts/validate_processed.py \
+  --processed-dir /path/to/processed-nano/production_tag
 ```
 
-| Flag | Effect |
-|---|---|
-| `--root-only` | Write only the skim ROOT: no parquet, no `num_batches_<tag>.txt`, and the `outparquet/` scratch is deleted after the batches are assembled. Implies `--save-root`. `outfiles/<tag>.pkl` is still written — it carries `np_nominal`, without which the run cannot be normalized. |
-| `--output-root-location <dir>` | Send the skim ROOT file(s) to `<dir>` instead of the run output directory. Created if missing. Works with or without `--root-only`. |
+The skimmer writes `weight`, which already includes cross section × luminosity.
+The second pass appends:
 
-Every other flag — including the overlapping tag flags and the inert ones
-inherited from `boostedhh` — is catalogued in [docs/cli.md](docs/cli.md).
+```text
+finalWeight = weight / global_np_nominal
 
-Full 2024 production (93 `batch_*` dirs under
-`Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/`)
-via HTCondor: see [condor/README.md](condor/README.md).
+global_np_nominal = sum(genWeight × pileup weight over all processed input events)
+```
 
-## Tests
+Rejected events contribute to the denominator. Lepton SFs appear only in the
+numerator. Normalize each dataset separately, and use `finalWeight` for
+analysis yields. Existing `finalWeight` branches are skipped; use `--force`
+to recompute them if the contributing batch set changes. Details are in the
+[event synopsis](docs/event-synopsis.md#second-pass-finalweight).
+
+An optional final merge is handled by `condor/scripts/merge_processed.py`;
+see the [Condor guide](condor/README.md). Workers use the live checkout, so
+keep the source fixed while a production is running. `campaign.json` records
+the commit, branch, and working-tree status at submission.
+
+## Checks
 
 ```bash
-# unit tests (7 tests, ~10 s, no input data needed)
-pytest tests/
-
-# integration run: skims the ~1 GB fixture, regenerates the committed baselines
-# in tests/outfile/, and runs the jet-tagger round-trip check (~ minutes)
-python tests/test_run.py
+micromamba run -n ttbar ruff check src/vcb tests condor
+micromamba run -n ttbar python -m pytest tests/ -q
 ```
 
-Three files in `tests/outfile/` are **committed baselines**
-(`test-output-schema.csv`, `test-output-0th-event.txt`,
-`test-jet-tagger-roundtrip.txt`): an unexplained diff in any of them is a bug;
-an expected diff should be reviewed and committed with the change that caused
-it. What each artifact catches, the fixture location, and how the round-trip
-check works: [docs/tests.md](docs/tests.md).
+The integration check needs `tests/data/test-input.root`:
 
-## 2024 calibration inputs
-
-| Input | Value in place | Where |
-|---|---|---|
-| 2024 luminosity | 124,000 pb⁻¹ (124 fb⁻¹), CMS DP-2026/003 | `LUMI["2024"]` in [src/boostedhh/hh_vars.py](src/boostedhh/hh_vars.py) |
-| σ(TTtoLNuCB) | ≈0.345 pb = σ_tt(923.6, NNLO+NNLL) × 2 × BR(W→ℓν) × BR(W→cb) | [src/boostedhh/xsecs.py](src/boostedhh/xsecs.py) |
-| 2024 pileup weights | real Summer24 `Collisions24_CDEFGHI_goldenJSON` (eras C–I, no commissioning era B) | bundled `corrections/2024_puWeights.json.gz` |
-| 2024 JEC + JER | compound `Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi` on raw pT, then nominal JRV2 smearing on the corrected pT | bundled `corrections/2024_jet_jerc.json.gz` + `jer_smear.json.gz` |
-| 2024 MET | **PUPPI**, rebuilt Type-1 from `RawPuppiMET` so it matches the recorrected jets | `MET_COLLECTION` in [src/vcb/processors/vcbSkimmer.py](src/vcb/processors/vcbSkimmer.py), `JECs.type1_met_2024` |
-| 2024 AK4 jet ID | Run-3 AK4 PUPPI **Tight**, recomputed from the PF fractions — NanoAOD ships no `Jet_jetId`. Thresholds transcribed from `POG/JME/2024_Summer24/jetid.json.gz` (identical across all Run-3 eras) | `objects.ak4_jet_id` in [src/vcb/processors/objects.py](src/vcb/processors/objects.py) |
-| 2024 lepton SFs | EGM reco + `wp90iso` ID + Ele30 trigger; MUO tight ID + tight PFIso + IsoMu24 trigger, on the event's trigger lepton | [src/vcb/processors/lepton_sf.py](src/vcb/processors/lepton_sf.py) + bundled `src/vcb/corrections/2024_*.json.gz` |
-| Top-pT reweighting | TOP PAG fits (twiki r31 2020-09-24) + the 13→13.6 TeV extrapolation from AN-25-050 (v11), TOP-25-018. Four `topPtWeight_*` columns, written but never applied | [src/vcb/processors/top_pt.py](src/vcb/processors/top_pt.py) — coefficients hardcoded, no payload file |
-
-Provenance for every number — which source it came from and why:
-[docs/2024-inputs.md](docs/2024-inputs.md),
-[src/boostedhh/corrections/README.md](src/boostedhh/corrections/README.md) and
-[src/vcb/corrections/README.md](src/vcb/corrections/README.md).
-
-### MET: PUPPI, not PF (2024)
-
-Per JME guidance, 2024 uses **`PuppiMET`**, not `PFMET`. `METPt`/`METPhi` in
-the skim are PUPPI from 2026-07-29 onward; earlier outputs are PF.
-
-This is forced by the jets, not a preference: `events.Jet` in this NanoAOD *is*
-the PUPPI collection (hence the `AK4PFPuppi` JEC), and raw PF MET sums
-unweighted PF candidates while a PUPPI jet is built from pileup-weighted ones.
-Propagating our jets onto PF MET would subtract energy that was never in the
-total. Measured on the test fixture, our Type-1 shift reproduces NanoAOD's
-`PuppiMET` shift exactly (corr 1.000, rms 0.17 GeV) but its `PFMET` shift only
-loosely (corr 0.74) — the two are built from different jets.
-
-MET is also now **rebuilt**, not copied. It is minus the vector sum of the
-event, so recorrecting jets to V5 + JRV2 invalidates the MET NanoAOD shipped
-(which carries the NanoAOD-era JEC and no JER smearing at all).
-`JECs.type1_met_2024` recomputes it from raw MET as
-`MET_raw − Σ(pT_L1L2L3Res − pT_L1)`, over jets above 15 GeV with EM fraction
-below 0.9 and muons subtracted. The L1 reference matters: L1 removes pileup
-energy that really is in the event and must stay in MET. Effect on the test
-fixture: median **8.5 GeV** vector shift (~13% of median MET), of which ~8.7
-is the V1→V5 recalibration and ~3.8 the previously-absent JER smearing.
-
-> ⚠️ Do **not** substitute the gridpack/GenXsecAnalyzer cross section: the
-> private POWHEG sample forces W→cb, so its generated xsec carries no `|Vcb|²`
-> and would overcount the signal by ~2200×. Details in
-> [docs/2024-inputs.md](docs/2024-inputs.md) item 2.
-
-### Top-pT reweighting
-
-Simulation makes too many hard top quarks: the top pT spectrum in data is
-softer than POWHEG+Pythia8 predicts, mostly because the generator stops at NLO
-in QCD. The correction is a per-event weight,
-`w = sqrt(SF(pT_t) × SF(pT_t̄))`, evaluated on the `isLastCopy` parton-level
-tops.
-
-Four parameterisations are written to ttbar MC, one branch each:
-
-| Branch | `SF(pT)` | √s | Use |
-|---|---|---|---|
-| `topPtWeight_dataNLO` | `exp(0.0615 − 0.0005·pT)` | 13 TeV | ttbar MC modelling detector response / efficiencies (TOP PAG use case 1) |
-| `topPtWeight_dataNNLO` | `exp(0.0416 − 0.0003·pT)` | 13 TeV | cross-check only |
-| `topPtWeight_NNLONLO` | `0.103·exp(−0.0118·pT) − 0.000134·pT + 0.973` | 13 TeV | NLO-QCD signal where SM ttbar is signal *and* background (use case 3.2) |
-| **`topPtWeight_NNLONLO_13p6TeV`** | the row above **×** `(0.991 + 0.000075·pT)` | **13.6 TeV** | **the Run 3 column — use this one on Summer24** |
-
-The last row is AN-25-050 (v11) §4.7, the analysis note for **TOP-25-018**: its
-eq. 2 is the 13 TeV NNLO-NLO fit, its eq. 3 the 13→13.6 TeV extrapolation,
-fitted to the ratio of the generator-level top pT spectrum between the two beam
-energies and applied multiplicatively on top. The procedure comes from the
-13.6 TeV tW measurement (TOP-23-008, JHEP 01 (2025) 107).
-
-**None of them is applied.** They are raw scale factors in their own columns —
-not in `weight`, not in `finalWeight`, not in the `np_nominal` denominator, and
-(unlike `single_weight_*`) not scaled by σ×L. Multiply one in downstream if you
-want it. This is deliberate: the recommended systematic is **on/off** (AN-25-050
-takes the uncertainty as the difference against no reweighting, symmetrised),
-and folding a factor into `weight` would silently settle a normalization
-question that cannot be un-settled without a re-skim.
-
-> ⚠️ **The three 13 TeV columns have no Run 3 counterpart.** The twiki they come
-> from is at revision **r31, 2020-09-24**, and the `data*` fits use 2.2–2.3 fb⁻¹
-> of *2015* data. Only `NNLONLO` could be carried to 13.6 TeV, because it is a
-> ratio of two calculations rather than a fit to a dataset; no 13.6 TeV
-> differential ttbar measurement exists to update the `data*` ones from. Full
-> reasoning, the clamping rules, and the open item on the private sample's
-> Pythia tune: [docs/processor.md](docs/processor.md#top-pt-reweighting).
-
-## Repo layout
-
+```bash
+micromamba run -n ttbar python tests/test_run.py
 ```
-src/vcb/                 analysis package (run.py, HLTs.py, processors/, corrections/)
-src/boostedhh/           vendored framework (do not auto-format; see VENDORED.md)
-condor/                  batch submission + post-processing scripts
-tests/                   pytest units + integration script + committed baselines
-diagnostics/             plotting / checking helper scripts (not part of the package)
-docs/                    processor, CLI, normalization, tests, history + archive/
+
+It regenerates the tracked schema, example-event, and jet-tagger round-trip
+baselines in `tests/outfile/`. Review any changes; the round-trip report must
+end in `VERDICT: PASS`. Fixture setup and check details are in
+[docs/tests.md](docs/tests.md).
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [Event synopsis](docs/event-synopsis.md) | Event selection, all weight terms, and second-pass normalization |
+| [Object synopsis](docs/object-synopsis.md) | Object processing and output fields |
+| [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
+| [CLI reference](docs/cli.md) | Run options and defaults |
+| [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
+| [2024 inputs](docs/2024-inputs.md) | Calibration and cross-section sources |
+| [Tests](docs/tests.md) | Unit tests, integration fixture, and baselines |
+| [Processor walkthrough](docs/processor.md) | Longer implementation notes; use the synopses for the current processing sequence |
+| [Normalization design](docs/normalization.md) | Design history of the second pass |
+| [Project history](docs/history.md) | Origins in `Calib_ChargeTagger` and earlier changes |
+| [Jet and PU payloads](src/boostedhh/corrections/README.md) | Bundled corrections and their sources |
+| [Lepton payloads](src/vcb/corrections/README.md) | Bundled electron and muon corrections |
+| [Bundled framework](src/boostedhh/VENDORED.md) | Upstream version and local changes to `boostedhh` |
+| [Agent instructions](AGENTS.md) | Repository conventions and required checks |
+
+## Repository layout
+
+```text
+src/vcb/        analysis code and lepton corrections
+src/boostedhh/  bundled framework and jet/pileup corrections
+condor/        production and post-processing scripts
+tests/         unit tests, integration check, and regression baselines
+diagnostics/   analysis and validation scripts
+docs/          synopses, references, and historical notes
 ```
