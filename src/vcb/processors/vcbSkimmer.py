@@ -616,7 +616,7 @@ class vcbSkimmer(SkimmerABC):
             # it requires MetUnclustEnUpDeltaX/Y, which NanoAODv15 does not ship
             # (it has ptUnclusteredUp/Down instead). Rebuild Type-1 explicitly.
             if RAW_MET_COLLECTION in events.fields:
-                type1_met = JEC_loader.type1_met_2024(events[RAW_MET_COLLECTION], jets)
+                type1_met = JEC_loader.type1_met_2024(events[RAW_MET_COLLECTION], jets, events)
                 if type1_met is not None:
                     met = type1_met
             else:

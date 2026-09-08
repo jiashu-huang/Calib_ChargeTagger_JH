@@ -404,8 +404,39 @@ population, to save 6.4 % of the file. See [`docs/history.md`](history.md).
 
 ### MET
 
-`events.PFMET` for MC (a JEC-corrected MET factory is used for data when
-available).
+For 2024 MC, `METPt` and `METPhi` are rebuilt from `RawPuppiMET` using the
+recalibrated AK4 PUPPI jets. The Type-1 sum removes muons from each jet using
+`muonSubtrFactor` and `muonSubtrDeltaEta/Phi`; JEC evaluation and transverse
+momentum propagation both use the resulting direction. The angular correction
+was added on 2026-09-06 and is absent from the existing August productions.
+
+`CorrT1METJet` supplies the low-pT jets omitted from NanoAOD's regular `Jet`
+table. Starting with the 2026-09-06 correction, these receive the same nominal
+Summer24 V5 JEC and JRV2 JER smearing. Since they have no `genJetIdx`, the
+hybrid JER match uses the closest `GenJet` satisfying ΔR < 0.2 and the
+three-resolution pT window; unmatched jets use deterministic stochastic
+smearing.
+
+Both collections contribute when the muon-subtracted, corrected and smeared
+pT exceeds 15 GeV and the EM fraction is below 0.9 (`chEmEF + neEmEF` for
+`Jet`, `EmEF` for `CorrT1METJet`). Their transverse contribution is
+`(pT_full × JER − pT_L1) × (cos(phi), sin(phi))`, subtracted from raw MET.
+Auxiliary jets affect only `METPt`/`METPhi`; they are not added to the analysis
+jets. The downstream 20 GeV jet cut therefore does not remove their MET
+contribution. The August productions lack this auxiliary-jet correction.
+
+The 15 GeV threshold remains **after nominal JER**, preserving this
+processor's existing regular-jet convention. This differs from the older
+[NanoAODTools implementation](https://github.com/cms-nanoAOD/nanoAOD-tools/blob/master/python/postprocessing/modules/jme/jetmetUncertainties.py#L634-L655),
+which tests JEC-only pT before propagating JER. Threshold placement matters
+for these low-pT jets; it is not controlled by the analysis jet cut.
+
+Fixture validation: including auxiliary jets changed only `METPt`/`METPhi`
+across 59,575 selected events and 681 output branches. Relative to the
+muon-direction fix alone, 14,401 events (24.2%) changed by more than 1 GeV in
+the MET vector; the 95th percentile was 10.67 GeV and the maximum 34.34 GeV.
+The first-event/schema baselines and jet-tagger round-trip report were
+unchanged (`VERDICT: PASS`).
 
 ---
 

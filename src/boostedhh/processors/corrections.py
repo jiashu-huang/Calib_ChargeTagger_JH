@@ -319,7 +319,8 @@ class JECs:
             self.met_factory = jmestuff["met_factory"]
 
     def _apply_correctionlib_jec_2024(
-        self, jets: JetArray, isData: bool, fatjets: bool, event: ak.Array | None = None
+        self, jets: JetArray, isData: bool, fatjets: bool, event: ak.Array | None = None,
+        gen_jets: ak.Array | None = None,
     ):
         """
         Apply the Summer24 compound JEC (V5 L1L2L3Res) on raw jet pT/mass via
@@ -352,7 +353,7 @@ class JECs:
 
         # JER smearing (nominal) on the JEC-corrected pT; fold into `factor` so
         # rawFactor stays consistent with the final energies.
-        smear = self._jer_smear_2024(jets, event)
+        smear = self._jer_smear_2024(jets, event, gen_jets=gen_jets)
         if smear is not None:
             jets["pt"] = jets.pt * smear
             jets["mass"] = jets.mass * smear
@@ -373,13 +374,17 @@ class JECs:
 
         return jets, None
 
-    def _jer_smear_2024(self, jets: JetArray, event: ak.Array | None):
+    def _jer_smear_2024(
+        self, jets: JetArray, event: ak.Array | None, gen_jets: ak.Array | None = None
+    ):
         """
         Nominal Summer24 JRV2 JER smear factor per jet (jagged float32), applied
         on the JEC-corrected pT, or None if inputs are unavailable (smearing
         skipped). Hybrid method: the JERSmear correction branches on GenPt
         (>= 0 -> scaling, -1 -> stochastic with a deterministic hashprng seed);
         the gen match (dR < 0.2 and the 3-sigma window) is decided here.
+        When ``gen_jets`` is provided, find a match geometrically instead of
+        using Jet_genJetIdx: CorrT1METJet has no stored gen-jet association.
         """
         if self.correctionlib_cset is None or self.jersmear_cset is None or event is None:
             return None
@@ -393,17 +398,36 @@ class JECs:
         reso = self.correctionlib_cset[JER_2024_MC_RESO].evaluate(eta, pt, rho)
         sf = self.correctionlib_cset[JER_2024_MC_SF].evaluate(eta, pt)
 
-        # hybrid gen match: pt_gen (0 if unmatched) and dr_gen were stored in
-        # _add_jec_variables. Pass the matched gen pT only inside dR < 0.2 and the
-        # 3-sigma window; otherwise the -1 sentinel selects stochastic smearing.
-        genpt = ak.values_astype(jets.pt_gen, np.float64)
         reso_j = ak.unflatten(reso, nj)
-        matched = (
-            (genpt > 0)
-            & (jets.dr_gen < 0.2)
-            & (np.abs(jets.pt - genpt) < 3.0 * reso_j * jets.pt)
-        )
-        genpt_in = np.array(ak.flatten(ak.where(matched, genpt, -1.0)), dtype=np.float64)
+        if gen_jets is None:
+            # The regular Jet collection already has NanoAOD's association.
+            genpt = ak.values_astype(jets.pt_gen, np.float64)
+            matched = (
+                (genpt > 0)
+                & (jets.dr_gen < 0.2)
+                & (np.abs(jets.pt - genpt) < 3.0 * reso_j * jets.pt)
+            )
+            genpt = ak.where(matched, genpt, -1.0)
+        else:
+            # For auxiliary jets, take the closest gen jet satisfying both
+            # hybrid-match cuts. No match (including an empty GenJet event)
+            # selects the deterministic stochastic-smearing branch.
+            pairs = ak.cartesian(
+                {"jet": jets[["pt", "eta", "phi"]],
+                 "gen": gen_jets[["pt", "eta", "phi"]]},
+                axis=1, nested=True,
+            )
+            deta = pairs.jet.eta - pairs.gen.eta
+            dphi = (pairs.jet.phi - pairs.gen.phi + np.pi) % (2.0 * np.pi) - np.pi
+            dr = np.hypot(deta, dphi)
+            matched = (
+                (pairs.gen.pt > 0)
+                & (dr < 0.2)
+                & (abs(pairs.jet.pt - pairs.gen.pt) < (3.0 * reso_j * jets.pt)[:, :, None])
+            )
+            closest = ak.argmin(ak.mask(dr, matched), axis=2, keepdims=True)
+            genpt = ak.fill_none(ak.firsts(pairs.gen.pt[closest], axis=2), -1.0)
+        genpt_in = np.array(ak.flatten(genpt), dtype=np.float64)
 
         # deterministic entropy source: event number broadcast to each jet
         evid = np.array(
@@ -417,7 +441,7 @@ class JECs:
         smear = np.maximum(smear, 0.0)
         return ak.unflatten(ak.values_astype(smear, np.float32), nj)
 
-    def type1_met_2024(self, raw_met: ak.Array, jets: JetArray):
+    def type1_met_2024(self, raw_met: ak.Array, jets: JetArray, events: NanoEventsArray):
         """
         Rebuild Type-1 corrected MET from *raw* MET so it is consistent with the
         jet energies this class just produced (Summer24 V5 JEC + JRV2 smearing).
@@ -438,35 +462,74 @@ class JECs:
 
         Only jets above ``TYPE1_MET_MIN_PT`` with EM fraction below
         ``TYPE1_MET_MAX_EMEF`` contribute, and muons are removed from the jet
-        first (``muonSubtrFactor``) since muon momenta come from the tracker and
-        muon system and must not be rescaled by a jet correction.
+        first (``muonSubtrFactor`` and ``muonSubtrDeltaEta/Phi``) since muon
+        momenta come from the tracker and muon system and must not be rescaled
+        by a jet correction. Both the JEC evaluation and the MET vector use
+        the direction of the remaining jet after this subtraction.
 
         ``jets`` must be the full corrected collection straight out of
-        ``get_jec_jets`` -- before lepton cleaning or any analysis pT cut, since
-        Type-1 sums over all jets in the event.
+        ``get_jec_jets`` -- before lepton cleaning or any analysis pT cut.
+        ``events.CorrT1METJet`` supplies the disjoint low-pT jets omitted from
+        NanoAOD's Jet table. Recalibrate and smear them before applying the
+        Type-1 threshold. They contribute only to MET, not the analysis jets.
 
         Returns an ``ak.Array`` with ``pt``/``phi`` fields, or None if the 2024
         correctionlib payload is unavailable (caller keeps the input MET).
         """
         if self.correctionlib_cset is None:
             return None
-        if "jer_smear" not in ak.fields(jets):
+        if "jer_smear" not in ak.fields(jets) and ak.any(ak.num(jets)):
             # get_jec_jets bailed out (e.g. a nano_version that disables JECs), so
             # the jets are untouched NanoAOD and their MET is already consistent.
             print("WARNING: jets carry no 2024 JEC; leaving MET as-is.")
             return None
 
+        if "CorrT1METJet" not in events.fields:
+            raise KeyError("CorrT1METJet is required to rebuild 2024 Type-1 MET completely.")
+
+        dx = np.zeros(len(raw_met), dtype=np.float64)
+        dy = np.zeros(len(raw_met), dtype=np.float64)
+        if ak.any(ak.num(jets)):
+            dx, dy = self._type1_met_shift_2024(jets, jets.neEmEF + jets.chEmEF)
+
+        low = events.CorrT1METJet
+        if ak.any(ak.num(low)):
+            rho = (
+                events.Rho.fixedGridRhoFastjetAll
+                if "Rho" in events.fields
+                else events.fixedGridRhoFastjetAll
+            )
+            # CorrT1METJet stores raw momenta directly and a combined EM
+            # fraction. Use a new record so the input collection stays intact.
+            low = ak.with_field(low, low.rawPt, "pt_raw")
+            low = ak.with_field(low, low.rawMass, "mass_raw")
+            low = ak.with_field(low, ak.broadcast_arrays(rho, low.rawPt)[0], "event_rho")
+            low, _ = self._apply_correctionlib_jec_2024(
+                low, isData=False, fatjets=False, event=events.event, gen_jets=events.GenJet
+            )
+            low_dx, low_dy = self._type1_met_shift_2024(low, low.EmEF)
+            dx = dx + low_dx
+            dy = dy + low_dy
+
+        met_x = raw_met.pt * np.cos(raw_met.phi) - dx
+        met_y = raw_met.pt * np.sin(raw_met.phi) - dy
+        return ak.zip({"pt": np.hypot(met_x, met_y), "phi": np.arctan2(met_y, met_x)})
+
+    def _type1_met_shift_2024(self, jets: ak.Array, em_fraction: ak.Array):
+        """Transverse correction from one jet collection, after muon subtraction."""
         l1_corr = self.correctionlib_cset[JEC_2024_MC_L1]
         full_corr = self.correctionlib_cset.compound[JEC_2024_MC_COMPOUND]
 
         j, nj = ak.flatten(jets), ak.num(jets)
 
-        # Raw jet pT with muons removed, which is what both corrections below
-        # are evaluated on -- matching CMSSW's Type1METProducer.
+        # NanoAOD stores the muon-subtracted raw jet as a pT ratio and angular
+        # offsets. Removing a muon changes the direction as well as the pT.
         pt_raw_ms = np.array(j.pt_raw * (1.0 - j.muonSubtrFactor), dtype=np.float64)
         area = np.array(j.area, dtype=np.float64)
-        eta = np.array(j.eta, dtype=np.float64)
-        phi = np.array(j.phi, dtype=np.float64)
+        eta = np.array(j.eta, dtype=np.float64) + np.array(j.muonSubtrDeltaEta, dtype=np.float64)
+        phi = np.array(j.phi, dtype=np.float64) + np.array(j.muonSubtrDeltaPhi, dtype=np.float64)
+        # Keep the reconstructed direction inside the JEC payload's phi range.
+        phi = (phi + np.pi) % (2.0 * np.pi) - np.pi
         rho = np.array(j.event_rho, dtype=np.float64)
 
         pt_l1 = pt_raw_ms * l1_corr.evaluate(area, eta, pt_raw_ms, rho)
@@ -478,17 +541,14 @@ class JECs:
             * np.array(j.jer_smear, dtype=np.float64)
         )
 
-        emef = np.array(j.neEmEF + j.chEmEF, dtype=np.float64)
+        emef = np.array(ak.flatten(em_fraction), dtype=np.float64)
         contributes = (pt_full > TYPE1_MET_MIN_PT) & (emef < TYPE1_MET_MAX_EMEF)
         dpt = np.where(contributes, pt_full - pt_l1, 0.0)
 
         dx = ak.sum(ak.unflatten(dpt * np.cos(phi), nj), axis=1)
         dy = ak.sum(ak.unflatten(dpt * np.sin(phi), nj), axis=1)
 
-        met_x = raw_met.pt * np.cos(raw_met.phi) - dx
-        met_y = raw_met.pt * np.sin(raw_met.phi) - dy
-
-        return ak.zip({"pt": np.hypot(met_x, met_y), "phi": np.arctan2(met_y, met_x)})
+        return dx, dy
 
     def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
         """add variables needed for JECs"""

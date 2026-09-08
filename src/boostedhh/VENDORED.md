@@ -32,6 +32,11 @@ git submodule and is not pip-installed from upstream.
 - `processors/corrections.py` — 2024 wiring: `get_pog_json` year→dir map,
   Summer24 jet-veto key, correctionlib-based 2024 JEC in `JECs`
   (no pickle factories exist for 2024).
+  Type-1 MET uses `muonSubtrDeltaEta/Phi` to reconstruct the muon-subtracted
+  jet direction for JEC evaluation and transverse-vector propagation
+  (2026-09-06). It also includes `CorrT1METJet` after nominal JEC/JER and the
+  Type-1 pT/EM-fraction cuts. Auxiliary jets use geometric hybrid gen matching
+  for JER because they have no `genJetIdx`; they do not enter analysis jets.
 - `xsecs.py` — added `xsecs["TTtoLNuCB"]`.
 - **Pileup overhaul (2026-07-24)** — `add_pileup_weight` rewritten:
   - takes `Pileup_nTrueInt` (the Poisson mean the LUM weights are derived in);

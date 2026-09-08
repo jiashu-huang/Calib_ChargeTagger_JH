@@ -47,10 +47,16 @@ conventions are in the [object synopsis](docs/object-synopsis.md).
   [event synopsis](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives)
   describes their use and normalization.
 
-The synopses include the MET direction and `CorrT1METJet` updates currently
-implemented in the working tree; those code changes are not yet committed.
-Existing August 2026 skims predate these updates and need reprocessing to
-include them.
+Type-1 MET uses the jet direction after muon subtraction and includes the
+auxiliary `CorrT1METJet` collection after nominal JEC/JER. These auxiliary jets
+contribute to MET only. Existing August 2026 skims predate both updates and
+need reprocessing to include them.
+
+The 2026-09-07 audit checked the headers and required branches of all 465
+signal and 11,014 inclusive-sample input files; every file passed. Fresh
+processing of eight complete files passed the event-selection, truth-matching,
+jet-tagger, and second-pass weight checks. The audit did not read every event
+in the full input set.
 
 ## Setup
 
@@ -113,6 +119,15 @@ micromamba run -n ttbar python condor/scripts/normalize.py \
 micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir /path/to/processed-nano/production_tag
 ```
+
+The validator's default schema covers the 681 first-pass branches from a
+nominal run and also allows `finalWeight`. For a run with `--save-systematics`,
+use `--schema-baseline /path/to/systematics-schema.csv` with the matching
+699-branch schema. Otherwise the validator reports the 18 expected up/down
+weight branches as unexpected extras. This is a schema-check limitation;
+the audit passed all remaining checks and passed schema validation with the
+matching baseline. See the
+[weight-variation list](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives).
 
 The skimmer writes `weight`, which already includes cross section × luminosity.
 The second pass appends:
