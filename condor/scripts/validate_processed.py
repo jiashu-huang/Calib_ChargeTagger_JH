@@ -10,7 +10,7 @@ made it fail; exit code is non-zero if anything failed.
     micromamba run -n ttbar python condor/scripts/validate_processed.py \\
         --processed-dir <input-root>/processed-nano/<tag>
 
-Checks per file: schema against tests/outfile/test-output-schema.csv, entry
+Checks per file: nominal or systematic schema based on the committed CSV, entry
 count vs the cutflow, the Norm tree, finite weights, sigma*L constant, nTrueInt
 sanity, and finalWeight == weight / global_np_nominal. Campaign-wide: the
 denominator matches the pickle sum, and Sum(finalWeight) == sigma*L x weighted
@@ -32,6 +32,17 @@ import uproot
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_BASELINE = REPO_ROOT / "tests" / "outfile" / "test-output-schema.csv"
+# Complete set written by the supported 2024 MC --save-systematics path.
+# Keep this explicit: accepting arbitrary weight_* names would hide typos.
+SYSTEMATIC_WEIGHT_BRANCHES = {
+    f"weight_{source}{direction}"
+    for source in (
+        "pileup", "ISRPartonShower", "FSRPartonShower",
+        "electron_reco", "electron_id", "electron_trigger",
+        "muon_id", "muon_iso", "muon_trigger",
+    )
+    for direction in ("Up", "Down")
+}
 PAD_VAL = -99999
 
 
@@ -68,21 +79,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--target", choices=["batches", "merged"], default="batches", help="Which ROOTs to check."
     )
-    parser.add_argument(
+    schema = parser.add_mutually_exclusive_group()
+    schema.add_argument(
+        "--schema-mode",
+        choices=["auto", "nominal", "systematics"],
+        default="auto",
+        help=(
+            "Expected output mode for the committed nominal baseline. Auto detects "
+            "the mode from the first ROOT and requires it for all files."
+        ),
+    )
+    schema.add_argument(
         "--schema-baseline",
         type=Path,
-        default=SCHEMA_BASELINE,
-        help="CSV of expected branch names (finalWeight may be extra).",
+        help="Custom CSV of exact expected branch names (only finalWeight may be extra).",
     )
     return parser.parse_args()
 
 
-def load_baseline_branches(path: Path) -> set[str] | None:
-    """Branch names from the committed schema CSV, or None if unavailable."""
-    if not path.is_file():
-        return None
+def load_baseline_branches(path: Path) -> set[str]:
+    """Read expected branch names; an unavailable or empty schema is an error."""
     with path.open() as handle:
-        return {row["variable_name"] for row in csv.DictReader(handle)}
+        branches = {row["variable_name"] for row in csv.DictReader(handle)}
+    if not branches or any(not name for name in branches):
+        raise ValueError("schema must contain non-empty variable_name entries")
+    return branches
 
 
 def main() -> int:
@@ -101,7 +122,13 @@ def main() -> int:
         return 2
 
     rep = Report()
-    baseline = load_baseline_branches(args.schema_baseline)
+    baseline_path = args.schema_baseline or SCHEMA_BASELINE
+    try:
+        baseline = load_baseline_branches(baseline_path)
+    except (OSError, ValueError, KeyError, csv.Error) as exc:
+        print(f"ERROR: cannot load schema {baseline_path}: {exc}", file=sys.stderr)
+        return 2
+    schema_mode = "custom" if args.schema_baseline is not None else args.schema_mode
 
     # campaign-level denominator, if normalize.py has run
     summary_path = metadata_dir / "normalization.json"
@@ -153,16 +180,22 @@ def main() -> int:
             "hadd sums TParameter, so it must not carry the denominator",
         )
 
-        if baseline is not None:
-            missing = baseline - branches
-            extra = branches - baseline - {"finalWeight"}
-            rep.check(
-                not missing and not extra,
-                "schema matches baseline",
-                f"{len(branches)} branches"
-                + (f", missing {sorted(missing)[:3]}" if missing else "")
-                + (f", extra {sorted(extra)[:3]}" if extra else ""),
-            )
+        if schema_mode == "auto":
+            # Pin one mode for the entire campaign. Even a partial set selects
+            # systematics, so missing variations cannot pass as nominal output.
+            schema_mode = "systematics" if branches & SYSTEMATIC_WEIGHT_BRANCHES else "nominal"
+        expected = baseline
+        if schema_mode == "systematics":
+            expected = baseline | SYSTEMATIC_WEIGHT_BRANCHES
+        missing = expected - branches
+        extra = branches - expected - {"finalWeight"}
+        rep.check(
+            not missing and not extra,
+            "schema matches baseline",
+            f"{schema_mode}, {len(branches)} branches"
+            + (f", missing {sorted(missing)[:3]}" if missing else "")
+            + (f", extra {sorted(extra)[:3]}" if extra else ""),
+        )
 
         rep.check(has_norm, "Norm tree present", f"np_nominal={norm_np:,.2f}" if has_norm else "")
 

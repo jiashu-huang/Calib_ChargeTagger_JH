@@ -120,14 +120,13 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir /path/to/processed-nano/production_tag
 ```
 
-The validator's default schema covers the 681 first-pass branches from a
-nominal run and also allows `finalWeight`. For a run with `--save-systematics`,
-use `--schema-baseline /path/to/systematics-schema.csv` with the matching
-699-branch schema. Otherwise the validator reports the 18 expected up/down
-weight branches as unexpected extras. This is a schema-check limitation;
-the audit passed all remaining checks and passed schema validation with the
-matching baseline. See the
-[weight-variation list](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives).
+The validator automatically recognizes nominal output (681 branches) or output
+with all 18 supported weight variations (699 branches), and allows `finalWeight`
+after normalization. Every file must match the mode detected from the first
+file; missing branches, unknown extras, and incomplete variation sets fail.
+Use `--schema-mode systematics` or `--schema-mode nominal` to require a specific
+mode. `--schema-baseline /path/to/schema.csv` instead uses an exact custom
+column list. No separate schema is needed for `--save-systematics`.
 
 The skimmer writes `weight`, which already includes cross section × luminosity.
 The second pass appends:

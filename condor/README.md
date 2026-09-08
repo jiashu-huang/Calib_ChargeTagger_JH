@@ -163,7 +163,21 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir "$INPUT/processed-nano/<tag>"     # add --target merged for the merge
 ```
 
-Per file: schema against the committed `tests/outfile/test-output-schema.csv`,
+The default `--schema-mode auto` detects nominal or systematic output from
+the first ROOT file and requires that mode for every file checked. Nominal
+output must match the committed `tests/outfile/test-output-schema.csv` (681
+branches); systematic output must also contain all 18 supported up/down weight
+branches (699 total). `finalWeight` is allowed in either mode. Missing columns,
+unknown extras, incomplete variation sets, and mixed modes fail validation.
+
+Use `--schema-mode systematics` for a campaign run with `--save-systematics`
+to catch even the absence of all 18 variations. Use `--schema-mode nominal`
+to require nominal output. These modes work for both batches and merged files.
+For a different schema, `--schema-baseline /path/to/schema.csv` replaces mode
+detection with an exact column list, allowing only `finalWeight` as an extra.
+The two options are mutually exclusive; a missing or invalid CSV is an error.
+
+Per file: the branch-name check above,
 non-empty, required branches present, `Norm` tree, finite weights, a single
 σ×L across every event, `nTrueInt` in range, and `finalWeight == weight /
 global_np_nominal` bit-exact with matching provenance. Campaign-wide: the
