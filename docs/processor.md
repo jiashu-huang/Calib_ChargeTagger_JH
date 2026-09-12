@@ -1098,7 +1098,7 @@ per the twiki — the measurements they are fitted to do not extend further. The
 twiki gives no equivalent rule for `NNLONLO`; we clamp it at 2000 GeV, the edge
 of its published figure. That one is **our choice, not twiki text**, and exists
 so a pathological gen pT cannot walk the linear term down to a negative weight
-(it crosses zero around 7.3 TeV). No top in 124 fb⁻¹ comes close. The
+(it crosses zero around 7.3 TeV). The
 extrapolation shares that 2000 GeV clamp, so the product stays flat past the fit
 range instead of turning back upward — the rising factor must not outlive the
 falling one it multiplies.
@@ -1125,7 +1125,7 @@ Still open:
   successor, for the structural reason given above. If a use case genuinely
   needs the data-based correction (case 1 is where the TOP PAG points), the
   fallback is case 3.1: derive a reweighting from a ttbar-enriched control
-  region in our own 124 fb⁻¹ once a data skim exists. Note that a self-derived
+  region in our own 2024 C–I data once a data skim exists. Note that a self-derived
   function is based on *reconstructed* tops and must then be applied on
   reconstructed top pT — not the `isLastCopy` gen pT these four columns use.
 

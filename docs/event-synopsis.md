@@ -77,13 +77,15 @@ np_nominal    = sum(w_np over every input event processed by the job)
 of MC processed. Signed generator weights are retained; neither absolute
 weights nor event counts replace them in the denominator.
 
-The configured luminosity is `LUMI["2024"] = 124000 pb^-1` (124 fb^-1).
+The configured luminosity is `LUMI["2024"] = 109820 pb^-1` (109.82 fb^-1),
+the documented C–I analysis reference. Its sources and the treatment of older
+outputs are recorded in [2024-inputs.md](2024-inputs.md).
 The current cross sections and resulting constants are:
 
 | Dataset | Cross section in pb | `C = sigma × L` |
 | --- | ---: | ---: |
-| `TTtoLNu2Q` | 410.2834392 | 50875146.4608 |
-| `TTtoLNuCB` | 0.3448432306476 | 42760.5606003 |
+| `TTtoLNu2Q` | 410.2834392 | 45057327.292944 |
+| `TTtoLNuCB` | 0.3448432306476 | 37870.6835897 |
 
 The signal cross section already includes the configured `|Vcb| = 0.0410`:
 `923.6 × 2 × 0.333 × (0.667 × 0.0410^2 / 2)` pb. There is no additional

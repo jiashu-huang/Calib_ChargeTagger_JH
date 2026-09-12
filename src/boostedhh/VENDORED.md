@@ -19,7 +19,10 @@ git submodule and is not pip-installed from upstream.
 
 - `hh_vars.py` — trimmed: HH sample dictionaries and SF tables dropped; only
   symbols imported by `boostedhh.utils`/`run_utils` and the `vcb` package kept.
-  2024 added to `years` and `LUMI`.
+  2024 added to `years` and `LUMI`. On 2026-09-11 the luminosity was corrected
+  from 124,000 pb^-1 (delivered) to the C-I analysis reference of 109,820 pb^-1,
+  documented in AN-25-214 Table 1 and the public CMS-DP-2026-101 page. See
+  `docs/2024-inputs.md` for the data definition and calculation limitations.
 - `run_utils.py` — `--year` choices extended with `"2024"`; `run()` gained a
   `root_dir` argument (skim ROOT files can land outside the run output
   directory), writes `num_batches_<tag>.txt` only when parquet is kept, and

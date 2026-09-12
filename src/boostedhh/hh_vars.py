@@ -15,7 +15,7 @@ years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
 
 # in pb^-1
 LUMI = {
-    "2024": 124000.0,  # Data from CMS DP -2026/003 [https://cds.cern.ch/record/2952191/files/DP2026_003.pdf?version=1]
+    "2024": 109820.0,  # C-I reference: AN-25-214 Table 1 / CMS-DP-2026-101; see docs/2024-inputs.md.
     "2022": 7971.4,
     "2022EE": 26337.0,
     "2022All": 34308.0,

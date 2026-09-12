@@ -205,8 +205,7 @@ DATA_PT_CLAMP = 500.0
 # The twiki gives no equivalent rule for NNLO-NLO. Its figure is drawn to
 # 2000 GeV, so that is where we clamp: **our choice, not twiki text**, made so
 # a pathological gen pT cannot walk the linear term down to a negative weight
-# (it would cross zero around 7.3 TeV). No top in 124 fb-1 comes close, so
-# this is a guard rail rather than a physics statement.
+# (it would cross zero around 7.3 TeV).
 NNLO_PT_CLAMP = 2000.0
 
 # Emit the Run 2 provenance warning once per process, not once per chunk.

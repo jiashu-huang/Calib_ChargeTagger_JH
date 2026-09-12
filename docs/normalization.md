@@ -11,6 +11,13 @@ written, existing branches untouched), and records provenance in each file and
 in `metadata/normalization.json`. Sections below are kept as the design record;
 references to `fix_final_weight.py` describe the retired implementation.
 
+The numerical examples below retain the historical 124 fb⁻¹ setting. Since
+2026-09-11 the C–I luminosity reference is 109.82 fb⁻¹, giving
+`σ × L = 37,870.6836` for TTtoLNuCB. See
+[the luminosity provenance](2024-inputs.md).
+The second pass reads the luminosity already present in each skim's weights;
+rerunning it on an old skim does not adopt a changed source-code luminosity.
+
 ## The question
 
 `finalWeight` is what turns a skimmed MC event into a predicted number of real

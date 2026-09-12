@@ -1,6 +1,6 @@
 # 2024 calibration inputs — provenance
 
-Last update: **2026-08-12**
+Last update: **2026-09-11**
 
 This repo is copied from Calib_ChargeTagger, which could only process files up
 to 2023. This document records, for each 2024 calibration input, what was
@@ -15,16 +15,47 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
 
 ---
 
-## 1. Certified 2024 luminosity  (done)
+## 1. Certified-data luminosity reference for 2024 C–I
 
-- **Get:** the certified 2024 golden-JSON integrated luminosity in pb⁻¹
-  (BRIL / `brilcalc` with the 2024 Collisions golden JSON, or the
-  LumiPOG TWiki "LumiRecommendationsRun3" page).
-- **Set (2026-07-23):** `LUMI["2024"] = 124000.0` pb⁻¹ (124 fb⁻¹), from
-  CMS DP-2026/003 (<https://cds.cern.ch/record/2952191>).
+- **Corrected (2026-09-11):** `LUMI["2024"] = 109820.0` pb⁻¹
+  (**109.82 fb⁻¹**). The former 124,000 pb⁻¹ value came from
+  [CMS DP-2026/003](https://twiki.cern.ch/twiki/bin/view/CMSPublic/LumiCalibration2024pp),
+  which reports delivered luminosity, and was incorrectly labeled certified
+  analysis luminosity here.
+- **Data definition:** adopt the C–I reference in
+  [AN-25-214](/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf),
+  §2.1 and Table 1 (PDF pages 6 and 8): Muon and EGamma Run2024 C–I,
+  MINIv6NANOv15, with `Cert_Collisions2024_378981_386951_Golden.json`.
+  This matches the CDEFGHI choice of the pileup payload in item 3.
+  The rounded per-era luminosities are C: 7.26, D: 7.98, E: 11.42,
+  F: 28.04, G: 38.07, H: 5.49, I: 11.56 fb⁻¹.
+- **Public cross-check:** the
+  [CMS-DP-2026-101 samples section](https://twiki.cern.ch/twiki/bin/view/CMSPublic/DP2026101#Samples_and_events)
+  independently lists 109.82 fb⁻¹ analyzed for 2024 C–I. It corroborates the
+  period's reference value; its zero-bias/multijet study does not establish
+  this analysis's single-lepton trigger coverage.
+- **Uncertainty:** 1.6%, applied as a correlated luminosity rate nuisance to
+  simulated processes in the final fit, as specified in the supplied
+  [LumiRecommendationsRun3 PDF](/isilon/export/home/jhuan166/.codex/attachments/da14dc9c-6865-46a8-b359-245635000e10/CMS_LumiRecommendationsRun3.pdf),
+  PDF pages 3–4, and AN-25-214 §6 (PDF page 61). This constant does not itself
+  add a luminosity nuisance to the skim.
+- **Provenance limit:** 109.82 fb⁻¹ is the documented analysis reference,
+  not a fresh `brilcalc` result for the latest JSON. Before using a different
+  data subset, extra lumisection exclusions, or restricted trigger coverage,
+  calculate its recorded luminosity with the actual analysis JSON and
+  `normtag_PHYSICS.json`, and record their versions. The note does not pin
+  hashes of its JSON/normtag. The LumiPOG PDF's 110.11 fb⁻¹ combination example
+  does not specify this processor's C–I selection and is not used here.
 - **Location:** [src/boostedhh/hh_vars.py](../src/boostedhh/hh_vars.py) — the
   `LUMI["2024"]` entry at the top of the `LUMI` dict.
-- **Impact:** pure overall scale of `weight`/`finalWeight`.
+- **Impact:** new luminosity-bearing weights are multiplied by
+  `109820 / 124000 = 0.8856451613` relative to the old setting, a **11.4355%**
+  decrease. `weight_noxsec`, normalization denominators, selections and bare
+  top-pT factors are unchanged. Existing output files are not updated by this
+  source change. `normalize.py` derives the old scale from each file's stored
+  weights, so rerunning that pass alone does not apply the correction. A
+  documented luminosity-only rescaling can correct old yields without
+  reselecting events; do not mix old and new luminosities in one production.
 
 ## 2. σ(TTtoLNuCB) cross section  (done)
 
