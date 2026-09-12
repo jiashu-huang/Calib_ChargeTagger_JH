@@ -66,8 +66,11 @@ angles in radians, and impact parameters in cm.
 
 ## Muons
 
-1. Read the input muon four-momenta and charges. The processor applies no
-   additional muon momentum scale correction or smearing.
+1. Preserve input pT and muon identity. For tight, PF-isolated 2024 muons in
+   26–200 GeV and |eta| < 2.4, apply the pinned MuonScaReKIT scale correction
+   and residual MC resolution smearing. Data receives scale only. Preserve
+   input momentum outside the validated range and record coverage status.
+   Physical charge and PF relative isolation retain their NanoAOD definitions.
 2. Keep muons with `tightId`, `pfRelIso04_all < 0.15`, pT > 20,
    |eta| < 2.4, |dz| < 0.2, and |dxy| < 0.045.
 3. Mark a muon as trigger-matched when `HLT_IsoMu24` fired, pT >= 26, and a
@@ -86,18 +89,32 @@ angles in radians, and impact parameters in cm.
 **Output fields**
 
 - Kinematics and charge: `Muon{Pt,Eta,Phi,Mass,charge}{i}`.
+- Momentum reference and coverage: `Muon{PtRaw,PtNominal,PtScale,NanoIdx,MomentumStatus}{i}`.
+  `Pt` is active for this pass; `PtNominal` always records the nominal correction.
+- MC momentum alternatives: `MuonPt{Scale,Resolution}{Up,Down}{i}` and
+  `MuonPt{Scale,Resolution}{Stat,Syst}{Up,Down}{i}`. The four total shifts combine
+  statistical and systematic errors in quadrature within each source.
 - Isolation and matching: `MuonPfRelIso04All{i}`, `MuonTrigMatchMuon{i}`,
   `muonsNumlMatchedTop1{i}`. The last name expands to
   `muonsNumlMatchedTop10`, `muonsNumlMatchedTop11`, and `muonsNumlMatchedTop12`.
 - Count: `nMuons`.
 - Chosen lepton: `TriggerLepton{Pt,Eta,Phi,Mass,Charge,Flav,Isolation}`.
   `Flav = 13` identifies a muon; its isolation is input `pfRelIso04_all`.
+- `TriggerMuonMomentumStatus` is the chosen muon's coverage code, or padding
+  when an electron is chosen. `MuonMomentumVariation` identifies the active
+  pass. Codes and scope are in [the implementation record](muon-momentum-2024-plan.md).
 - W-decay lepton truth: `GenWLepton{Pt,Eta,Phi,Mass,Charge,Flavor}`.
 - Weight records: `single_weight_muon_{id,iso,trigger}`. As for electrons,
   these include cross section times luminosity.
 - Muon HLT decisions: `HLT_IsoMu24`,
   `HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8`, plus the three shared
   electron-muon HLT decisions listed above. The dimuon path does not select events.
+
+Run [`--muon-pt-variation all`](cli.md#muon-momentum-passes) to write nominal and
+all four total shifted skims from the input NanoAOD. Each pass repeats the
+selection, candidate choice, jet cleaning, matching and SF evaluation above.
+The varied columns in a nominal skim alone do not recover entering events.
+This does not implement the separate high-pT GE/TuneP or resolution treatment.
 
 ## Jets
 

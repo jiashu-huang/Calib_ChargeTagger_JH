@@ -153,6 +153,30 @@ deliberate.
 
 ### Muons — `objects.good_muons`
 
+For 2024, [`muon_ss.apply_muon_scale_smearing`](../src/vcb/processors/muon_ss.py)
+runs first on the full input collection. It applies the pinned April 2026
+ordinary-momentum scale correction to tight, PF-isolated muons with input
+pT in 26–200 GeV and |eta| < 2.4. MC receives residual Crystal Ball resolution
+smearing after scaling; data receives scale only. The active corrected or
+shifted pT is then used for every selection and SF below. Other years retain
+their input pT with an unsupported-year status.
+
+`MuonPtRaw`, `MuonPtNominal`, `MuonPtScale`, `MuonNanoIdx` and
+`MuonMomentumStatus` accompany each saved good muon. MC also carries the four
+total shifts and eight statistical/systematic component shifts. The default
+two-source model combines stat/syst in quadrature within scale and resolution;
+the sources remain independent. All shifts reuse the nominal random draw.
+Use [`--muon-pt-variation all`](cli.md#muon-momentum-passes) for complete varied
+skims, including entering events, changed trigger candidates and recalculated
+weights. These kinematic passes are independent of `--save-systematics`.
+
+The helper preserves input pT outside 26–200 GeV and records explicit coverage;
+the high-pT GE/TuneP and resolution prescription remains open. PF relative
+isolation and physical charge retain their input definitions. Lepton-to-MET
+propagation is not applied, an optional choice under the supplied JMAR guide.
+See the [implementation record](muon-momentum-2024-plan.md) for the formulas,
+status codes, validation results and remaining data/MC closure work.
+
 | Cut | Threshold |
 |-----|-----------|
 | Tight ID | `tightId == True` |
@@ -163,7 +187,7 @@ deliberate.
 | \|dxy\| | < 0.045 cm |
 
 Trigger matching against single-muon trigger objects: filter bit 3, ΔR < 0.2,
-offline pT > 26 GeV (`HLT_IsoMu24`, all years).
+offline pT >= 26 GeV (`HLT_IsoMu24`, all years).
 
 ### The per-event trigger lepton
 

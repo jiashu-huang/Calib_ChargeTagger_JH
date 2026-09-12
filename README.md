@@ -36,8 +36,13 @@ conventions are in the [object synopsis](docs/object-synopsis.md).
 ## Current scope
 
 - The supported production target is 2024 MC with AK4 PUPPI jets. Nominal
-  electron smearing, JEC/JER, pileup weights, and trigger-lepton efficiency
-  scale factors are applied. The 2024 data JEC and AK8 paths are incomplete.
+  electron smearing, muon scale/resolution corrections in 26–200 GeV, JEC/JER,
+  pileup weights, and trigger-lepton efficiency scale factors are applied.
+  High-pT muon treatment, the 2024 data JEC and AK8 paths remain incomplete.
+- `--muon-pt-variation all` writes nominal plus four complete muon momentum
+  variation passes, including events entering under a shift. See the
+  [CLI instructions](docs/cli.md#muon-momentum-passes). Existing skims need
+  reprocessing to include muon momentum corrections and selection migration.
 - `--save-systematics` writes PU, shower, and lepton-SF weight alternatives.
   JES/JER variations and ttbar PDF-weight output are not implemented. The six
   renormalization/factorization-scale alternatives are saved independently of
@@ -176,6 +181,7 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
 | [2024 inputs](docs/2024-inputs.md) | Calibration and cross-section sources |
+| [2024 muon momentum](docs/muon-momentum-2024-plan.md) | Implemented correction, uncertainty model, coverage and high-pT limits |
 | [Tests](docs/tests.md) | Unit tests, integration fixture, and baselines |
 | [Processor walkthrough](docs/processor.md) | Longer implementation notes; use the synopses for the current processing sequence |
 | [Normalization design](docs/normalization.md) | Design history of the second pass |

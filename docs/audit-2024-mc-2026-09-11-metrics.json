@@ -1,0 +1,2343 @@
+{
+  "audit_date": "2026-09-11",
+  "repository": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH",
+  "audited_commit": "d212f09313e4418bd8b14d96bfa61356b3ee9c9d",
+  "campaign": "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+  "scope_note": "Original read-only processor audit, followed by a source-backed luminosity correction. Historical fixture metrics describe the audited commit; luminosity_and_analysis_notes_followup records the changed working tree and its validation. These are not full-production effects or a CMS compliance certification.",
+  "test_suite": {
+    "command": "micromamba run -n ttbar python -m pytest tests/ -q",
+    "passed": 157,
+    "subtests_passed": 18,
+    "warnings": 3,
+    "warning_category": "Dependency deprecation warnings"
+  },
+  "processor_integration": {
+    "entries": 20000,
+    "selected": 5781,
+    "columns": 699,
+    "pdf_output": [],
+    "jet_variations": [],
+    "MET_output": [
+      "METPt",
+      "METPhi"
+    ],
+    "electron_pt_variations": [
+      "ElectronPt",
+      "ElectronPtRaw",
+      "ElectronPtScaleUp",
+      "ElectronPtScaleDown",
+      "ElectronPtSmearUp",
+      "ElectronPtSmearDown"
+    ],
+    "weight_variations": [
+      "weight_FSRPartonShowerDown",
+      "weight_electron_idDown",
+      "weight_muon_idUp",
+      "weight_muon_idDown",
+      "weight_muon_isoUp",
+      "weight_muon_triggerDown",
+      "weight_ISRPartonShowerUp",
+      "weight_electron_triggerUp",
+      "weight_electron_recoDown",
+      "weight_electron_idUp",
+      "weight_pileupDown",
+      "weight_electron_triggerDown",
+      "weight_FSRPartonShowerUp",
+      "weight_ISRPartonShowerDown",
+      "weight_electron_recoUp",
+      "weight_muon_isoDown",
+      "weight_pileupUp",
+      "weight_muon_triggerUp"
+    ],
+    "totals_keys": [
+      "nevents",
+      "np_nominal",
+      "np_FSRPartonShowerDown",
+      "np_ISRPartonShowerUp",
+      "np_pileupDown",
+      "np_FSRPartonShowerUp",
+      "np_ISRPartonShowerDown",
+      "np_pileupUp",
+      "np_scale_weights"
+    ]
+  },
+  "full_fixture_diagnostic": {
+    "input": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root",
+    "entries": 208780,
+    "selected": 59575,
+    "electron_channel": 24924,
+    "muon_channel": 34651,
+    "muon_trigger_without_iso_bit": 0,
+    "electron_generic_vs_ele30_events": 1,
+    "electron_track_pass_sceta_outside": 22,
+    "electron_id_dxy_rejected": 112,
+    "muon_tightiso_dxy_rejected": 60,
+    "both_flavors_ready": 38,
+    "electron_variations": {
+      "pt_scaleUp": {
+        "gained": 21,
+        "lost": 0
+      },
+      "pt_scaleDown": {
+        "gained": 0,
+        "lost": 15
+      },
+      "pt_smearUp": {
+        "gained": 18,
+        "lost": 25
+      },
+      "pt_smearDown": {
+        "gained": 22,
+        "lost": 15
+      }
+    },
+    "pileup": {
+      "nominal": {
+        "affected": 12,
+        "denom_official": 69827567.89948437,
+        "denom_capped": 69805971.43478914,
+        "numer_official": 18651335.918272868,
+        "numer_capped": 18646568.81086249,
+        "acceptance_official": 0.26710562145199096,
+        "acceptance_capped": 0.26711996735525145,
+        "relative_yield_change_after_own_normalization": 5.370872833942997e-05,
+        "denominator_relative_change": -0.0003092827853652391
+      },
+      "up": {
+        "affected": 935,
+        "denom_official": 69858595.11661291,
+        "denom_capped": 68532823.09135912,
+        "numer_official": 18512017.853130918,
+        "numer_capped": 18235177.29800125,
+        "acceptance_official": 0.26499270164579386,
+        "acceptance_capped": 0.2660794707623887,
+        "relative_yield_change_after_own_normalization": 0.00410112848333255,
+        "denominator_relative_change": -0.018977937117697796
+      },
+      "down": {
+        "affected": 0,
+        "denom_official": 69812269.94432032,
+        "denom_capped": 69812269.94432032,
+        "numer_official": 18718633.593099482,
+        "numer_capped": 18718633.593099482,
+        "acceptance_official": 0.2681281328916646,
+        "acceptance_capped": 0.2681281328916646,
+        "relative_yield_change_after_own_normalization": 0.0,
+        "denominator_relative_change": 0.0
+      }
+    },
+    "scale": {
+      "affected_events": 536,
+      "negative_entries": 852,
+      "above_four_entries": 91,
+      "denominator_relative_change": [
+        0.0017990631455038208,
+        0.001027197501741961,
+        0.00013754554380485118,
+        -5.443233161350758e-05,
+        -0.00046122479317001197,
+        -0.0005681722231795083
+      ],
+      "selected_zero_based_indices": [
+        0,
+        1,
+        3,
+        5,
+        7,
+        8
+      ],
+      "central_zero_based_index": 4,
+      "entries_per_event": 9
+    },
+    "muon_scale_only_delta_pt_GeV": {
+      "count": 34321,
+      "quantiles": [
+        -2.591416685344001,
+        -0.11913907482309298,
+        0.024367009220746638,
+        0.3353121937087509,
+        1.835936740923188
+      ],
+      "quantile_probabilities": [
+        0,
+        0.01,
+        0.5,
+        0.99,
+        1
+      ]
+    },
+    "muon_scale_only_abs_delta_pt_GeV_quantiles": [
+      0.028083583768776066,
+      0.17005340126952717,
+      0.35119166846110517,
+      2.591416685344001
+    ],
+    "pileup_up_relative_to_matching_nominal": {
+      "official": -0.007910428072278042,
+      "capped": -0.003895240790737886
+    },
+    "muon_scale_only_abs_delta_pt_GeV_quantile_probabilities": [
+      0.5,
+      0.95,
+      0.99,
+      1
+    ],
+    "pdf_input": {
+      "entries_per_event": 103,
+      "lha_ids": [
+        325300,
+        325402
+      ],
+      "pdf_set": "NNPDF31_nnlo_as_0118_mc_hessian_pdfas",
+      "error_type": "symmhessian+as",
+      "central_member_index": 0,
+      "pdf_eigenvector_member_indices": [
+        1,
+        100
+      ],
+      "alpha_s_member_indices": [
+        101,
+        102
+      ],
+      "alpha_s_values": [
+        0.116,
+        0.12
+      ]
+    }
+  },
+  "diagnostic_method": {
+    "integration": "Current processor with save_systematics=True; output captured in memory.",
+    "selection": "Current electron smearing, good-electron/good-muon and trigger matching, nominal JEC/JER, event quality filters and jet-veto selection. Muon channel takes priority.",
+    "electron_migrations": "Rerun electron selection and matching with each stored pT shift; hold muons, event-quality and nominal jet-veto requirements fixed.",
+    "pileup_normalized_yield": "sum_selected(genWeight * PU * nominal_lepton_SF) / sum_all(genWeight * PU). Compare official correction values against clip(PU, 0, 10), with each prescription normalized by its own denominator.",
+    "scale": "Compare six raw ratios LHEScaleWeight[:, [0,1,3,5,7,8]] / LHEScaleWeight[:,4] against get_scale_weights; signed genWeight enters all-event totals.",
+    "muon_scale_only": "Selected leading trigger muons with 26 <= pT <= 200 GeV. pT_scaled = 1 / (m_mc(eta,phi,nom)/pT + charge*a_mc(eta,phi,nom)). Resolution smearing and acceptance migrations not evaluated.",
+    "baseline_counts": "Additional dxy, electron supercluster edge and both-flavor-ready counts are before event-quality/jet-veto selection unless explicitly stated otherwise.",
+    "relative_changes": "Stored as dimensionless fractions, not percent."
+  },
+  "bundled_payload_manifest": [
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/boostedhh/corrections/2024_jet_jerc.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz",
+      "sha256_decompressed_bytes": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jet_jerc.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/boostedhh/corrections/2024_puWeights.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz",
+      "sha256_decompressed_bytes": "998c2abe13614c2afb9e83f2ed348b705a0f2b4716ada119a467700bfe3b91de",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_CDEFGHI.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/vcb/corrections/2024_electron.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electron.json.gz",
+      "sha256_decompressed_bytes": "2598d3b76eb16f72b45951af1778a2bf0de94542818b806609120358c70e55ab",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electron.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/vcb/corrections/2024_electronHlt.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronHlt.json.gz",
+      "sha256_decompressed_bytes": "d78e0928fb10a6a56ad1d99a88babaae2133e390ef33c6dad079b05bd8c1e273",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electronHlt.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/vcb/corrections/2024_electronSS_EtDependent.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronSS_EtDependent.json.gz",
+      "sha256_decompressed_bytes": "9678dbc2ce8cb93fe257867e90bd150a924121985108b24f634ca63c269bf0c7",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electronSS_EtDependent.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/vcb/corrections/2024_muon_Z.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_Z.json.gz",
+      "sha256_decompressed_bytes": "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47",
+      "matches_latest": true,
+      "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_Z.json.gz"
+    },
+    {
+      "bundled_path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/boostedhh/corrections/jer_smear.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/JER-Smearing/latest/jer_smear.json.gz",
+      "sha256_decompressed_bytes": "cb9411ec7a2a0371bf935d9e74496a80417fdf4bf94e468d6f5a75e015d0a8a9",
+      "matches_latest": true,
+      "date_note": "Repository provenance records 2025-11-03 as the CVMFS content mtime; this is not asserted to be a dated release directory."
+    }
+  ],
+  "external_jet_payload_comparison": [
+    {
+      "jsonpog_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jetid.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetid.json.gz",
+      "sha256_decompressed_bytes": "9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27",
+      "identical": true
+    },
+    {
+      "jsonpog_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jetvetomaps.json.gz",
+      "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetvetomaps.json.gz",
+      "sha256_decompressed_bytes": "61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2",
+      "identical": true
+    }
+  ],
+  "missing_muon_momentum_payload": {
+    "official_latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_scalesmearing.json.gz",
+    "matching_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-28/muon_scalesmearing.json.gz",
+    "sha256_decompressed_bytes": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+    "used_by_processor": true,
+    "bundled_path": "src/vcb/corrections/2024_muon_scalesmearing.json.gz",
+    "implemented_on": "2026-09-12",
+    "historical_key_note": "Absent at the original audit; ordinary 26-200 GeV implementation is recorded in muon_momentum_implementation."
+  },
+  "golden_json_comparison": {
+    "previous_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions24/2026-02-25/Cert_Collisions2024_378981_386951_Golden.json",
+    "current_snapshot": "/cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions24/2026-08-04/Cert_Collisions2024_378981_386951_Golden.json",
+    "current_sha256_bytes": "32572466413b0b2ee72ebe18b1e556e7e083f550e74e596830be4f10aa25bf9d",
+    "matches_latest": true,
+    "previous_lumisections": 287603,
+    "current_lumisections": 287601,
+    "removed_run_lumisection_pairs": [
+      [
+        385387,
+        1
+      ],
+      [
+        385387,
+        2
+      ]
+    ],
+    "added_run_lumisection_pairs": [],
+    "use_note": "Provenance check only. Not a luminosity calculation and not an MC event mask."
+  },
+  "official_release_notes": {
+    "JME": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/changes.md",
+    "LUM": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/changes.md",
+    "EGM": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/changes.md",
+    "MUO": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/changes.md",
+    "BTV": "/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-03-10/changes.md",
+    "MUO_momentum_fix": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-28/changes.md"
+  },
+  "public_references": {
+    "luminosity": "https://twiki.cern.ch/twiki/bin/view/CMSPublic/LumiCalibration2024pp",
+    "ttbar_cross_section": "https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO",
+    "generator_guidance": "https://cms-pdmv.gitbook.io/project/mccontact/info-for-mc-production-for-run3-campaigns",
+    "pdf_set_metadata": "https://lhapdfsets.web.cern.ch/current/NNPDF31_nnlo_as_0118_mc_hessian_pdfas/NNPDF31_nnlo_as_0118_mc_hessian_pdfas.info",
+    "luminosity_CI_reference": "https://twiki.cern.ch/twiki/bin/view/CMSPublic/DP2026101"
+  },
+  "login_required_http_401": [
+    "https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3",
+    "https://muon-wiki.docs.cern.ch/code/ptcorr/",
+    "https://muon-wiki.docs.cern.ch/guidelines/corrections/",
+    "https://cms-jerc.web.cern.ch/Recommendations/",
+    "https://twiki.cern.ch/twiki/bin/view/CMS/JetID13p6TeV",
+    "https://twiki.cern.ch/twiki/bin/view/CMS/EgammSFandSSRun3",
+    "https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2",
+    "https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting",
+    "https://twiki.cern.ch/twiki/bin/view/CMS/TopSystematics",
+    "https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer24/"
+  ],
+  "local_source_followup": {
+    "date": "2026-09-11",
+    "snapshot_root": "/isilon/export/home/jhuan166/cat-snapshot",
+    "snapshot_payload_count": 26,
+    "snapshot_payloads_matching_latest": 26,
+    "snapshot_payload_manifest": [
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-03-10/btagging.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/btagging.json.gz",
+        "snapshot_sha256": "29622840cf7d4586170bdf1eb62550de90d5d105af566470d6614a1c7fd9cb82",
+        "available": true,
+        "latest_sha256": "29622840cf7d4586170bdf1eb62550de90d5d105af566470d6614a1c7fd9cb82",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-03-10/ctagging.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/ctagging.json.gz",
+        "snapshot_sha256": "3ae9bbdeb1ae87654d59af5a00adb512c97f2b979c2e10e46ec77945ba785a69",
+        "available": true,
+        "latest_sha256": "3ae9bbdeb1ae87654d59af5a00adb512c97f2b979c2e10e46ec77945ba785a69",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electron.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electron.json.gz",
+        "snapshot_sha256": "2598d3b76eb16f72b45951af1778a2bf0de94542818b806609120358c70e55ab",
+        "available": true,
+        "latest_sha256": "2598d3b76eb16f72b45951af1778a2bf0de94542818b806609120358c70e55ab",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electronHlt.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronHlt.json.gz",
+        "snapshot_sha256": "d78e0928fb10a6a56ad1d99a88babaae2133e390ef33c6dad079b05bd8c1e273",
+        "available": true,
+        "latest_sha256": "d78e0928fb10a6a56ad1d99a88babaae2133e390ef33c6dad079b05bd8c1e273",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/electronSS_EtDependent.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronSS_EtDependent.json.gz",
+        "snapshot_sha256": "9678dbc2ce8cb93fe257867e90bd150a924121985108b24f634ca63c269bf0c7",
+        "available": true,
+        "latest_sha256": "9678dbc2ce8cb93fe257867e90bd150a924121985108b24f634ca63c269bf0c7",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/photon.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/photon.json.gz",
+        "snapshot_sha256": "168c7bdfdc3a47a351f343789ea213393ca84f2e43ea7d07b7016db466b8bcea",
+        "available": true,
+        "latest_sha256": "168c7bdfdc3a47a351f343789ea213393ca84f2e43ea7d07b7016db466b8bcea",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2025-12-15/photonSS_EtDependent.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/photonSS_EtDependent.json.gz",
+        "snapshot_sha256": "f248143b85a94937c69f9f0e8a84b258e4f6e06a4bb965b9e56c2c54178a8771",
+        "available": true,
+        "latest_sha256": "f248143b85a94937c69f9f0e8a84b258e4f6e06a4bb965b9e56c2c54178a8771",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/fatJet_jerc.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/fatJet_jerc.json.gz",
+        "snapshot_sha256": "c53f5830fdf51b0c3bbff28dc4810028f22a130abbec5b848212969abb39c94c",
+        "available": true,
+        "latest_sha256": "c53f5830fdf51b0c3bbff28dc4810028f22a130abbec5b848212969abb39c94c",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jet_jerc.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz",
+        "snapshot_sha256": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78",
+        "available": true,
+        "latest_sha256": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jetid.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetid.json.gz",
+        "snapshot_sha256": "9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27",
+        "available": true,
+        "latest_sha256": "9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jetvetomaps.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetvetomaps.json.gz",
+        "snapshot_sha256": "61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2",
+        "available": true,
+        "latest_sha256": "61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_B.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_B.json.gz",
+        "snapshot_sha256": "6f38535fcffa2f4d44321a0aa88540d294fd908e6f93cc53c01a4a937707d8c1",
+        "available": true,
+        "latest_sha256": "6f38535fcffa2f4d44321a0aa88540d294fd908e6f93cc53c01a4a937707d8c1",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_BCDEFGHI.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_BCDEFGHI.json.gz",
+        "snapshot_sha256": "34c490d96a377622425b62828c4fe6eefe8703a4476186537857fe4dae2adb57",
+        "available": true,
+        "latest_sha256": "34c490d96a377622425b62828c4fe6eefe8703a4476186537857fe4dae2adb57",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_C.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_C.json.gz",
+        "snapshot_sha256": "2a0f36cf034811cce48a6ec30fd5d124e71fd65b26853e6b88a9a9f800bd9134",
+        "available": true,
+        "latest_sha256": "2a0f36cf034811cce48a6ec30fd5d124e71fd65b26853e6b88a9a9f800bd9134",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_CDEFGHI.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz",
+        "snapshot_sha256": "998c2abe13614c2afb9e83f2ed348b705a0f2b4716ada119a467700bfe3b91de",
+        "available": true,
+        "latest_sha256": "998c2abe13614c2afb9e83f2ed348b705a0f2b4716ada119a467700bfe3b91de",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_D.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_D.json.gz",
+        "snapshot_sha256": "0593a4d1d88d2b5976e7178d9906ff257e9653bc53fcc23539ad14c50de7c8e3",
+        "available": true,
+        "latest_sha256": "0593a4d1d88d2b5976e7178d9906ff257e9653bc53fcc23539ad14c50de7c8e3",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_E.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_E.json.gz",
+        "snapshot_sha256": "07117d98c8121bef264f112721a81e0d199eb782a3fdb3968e3008806354e36d",
+        "available": true,
+        "latest_sha256": "07117d98c8121bef264f112721a81e0d199eb782a3fdb3968e3008806354e36d",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_F.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_F.json.gz",
+        "snapshot_sha256": "72f88dc58af2d3301e99dffb2c18a114e5cccc2cabaf7ecfac0b429dda1903d2",
+        "available": true,
+        "latest_sha256": "72f88dc58af2d3301e99dffb2c18a114e5cccc2cabaf7ecfac0b429dda1903d2",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_G.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_G.json.gz",
+        "snapshot_sha256": "e90a35700c2c16b8c175cb718ff1fe589caf43a22224f3258ba416e627008e95",
+        "available": true,
+        "latest_sha256": "e90a35700c2c16b8c175cb718ff1fe589caf43a22224f3258ba416e627008e95",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_H.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_H.json.gz",
+        "snapshot_sha256": "02a9d7567da6a1d626c62ec65e03e7b50cc97c9f0f59a84a3f3cb9a741e18fba",
+        "available": true,
+        "latest_sha256": "02a9d7567da6a1d626c62ec65e03e7b50cc97c9f0f59a84a3f3cb9a741e18fba",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_I.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_I.json.gz",
+        "snapshot_sha256": "b19ab3d2fd5f3f04abfc17b6c80840e3c2548f7bc03d8f99936d9ff13f159ff2",
+        "available": true,
+        "latest_sha256": "b19ab3d2fd5f3f04abfc17b6c80840e3c2548f7bc03d8f99936d9ff13f159ff2",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_HighPt.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_HighPt.json.gz",
+        "snapshot_sha256": "e8eaa8bf0a9f5d807f59eda9ca8c743d070e6fdf9f0335c7dcc907062e56427d",
+        "available": true,
+        "latest_sha256": "e8eaa8bf0a9f5d807f59eda9ca8c743d070e6fdf9f0335c7dcc907062e56427d",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_JPsi.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_JPsi.json.gz",
+        "snapshot_sha256": "f5a06a32462cf21adf69fc950605b3ee5f7db8e570421d66bfbbedd7e64d7fc3",
+        "available": true,
+        "latest_sha256": "f5a06a32462cf21adf69fc950605b3ee5f7db8e570421d66bfbbedd7e64d7fc3",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_Z.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_Z.json.gz",
+        "snapshot_sha256": "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47",
+        "available": true,
+        "latest_sha256": "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_scalesmearing.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_scalesmearing.json.gz",
+        "snapshot_sha256": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+        "available": true,
+        "latest_sha256": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+        "identical": true
+      },
+      {
+        "snapshot_path": "/isilon/export/home/jhuan166/cat-snapshot/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-06-18/muon_scalesmearing_VXBS.json.gz",
+        "latest_path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_scalesmearing_VXBS.json.gz",
+        "snapshot_sha256": "fbe42b15e7f11f53701fd60fb1527ee5f4a128f18f2a0ec7f71527bfd32f5ac9",
+        "available": true,
+        "latest_sha256": "fbe42b15e7f11f53701fd60fb1527ee5f4a128f18f2a0ec7f71527bfd32f5ac9",
+        "identical": true
+      }
+    ],
+    "document_manifest": {
+      "lumi_guidance_pdf": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/da14dc9c-6865-46a8-b359-245635000e10/CMS_LumiRecommendationsRun3.pdf",
+        "sha256_bytes": "4770c1bc5a3fc76e1def1d668d6cbfceb98e5a91c5b0ef9dda4e57721f9e6742"
+      },
+      "muon_momentum_guidance_pdf": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/60aed387-817d-491a-9706-d09a9579a130/muon-momentum-scale-and-reso-corrections.pdf",
+        "sha256_bytes": "83f594705c0ccd602f763afe6a9881ad829dbc6df9c49115f91ff2ae3c4950c1"
+      },
+      "cat_provenance": {
+        "path": "/isilon/export/home/jhuan166/cat-snapshot/PROVENANCE.md",
+        "sha256_bytes": "ebf1508d352db1edff80529272aba90664d7d7773d280ed67521a93528e68acb"
+      },
+      "local_jerc_capture": {
+        "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/JERC.md",
+        "sha256_bytes": "df52ba5b370c3269b88553a36bbf8a1ca6d16bee49a1397f6c04194192b9335e"
+      },
+      "vcb_analysis_note": {
+        "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf",
+        "sha256_bytes": "4e6575a46b4d9589881cb6bb5f937ab4d0b8da50afd4418c44ef9b53baee1c31"
+      },
+      "single_top_analysis_note": {
+        "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-050.pdf",
+        "sha256_bytes": "62c9b9d5245c34bb394b2440a57b14aeb47b8427a21b2f41e6646eca9513d0f7"
+      },
+      "muo_readme": {
+        "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/README.md",
+        "sha256_bytes": "468eb7e201f5502eb474c43716b98a58194b825009404f5ff1b515b242a71563"
+      },
+      "egm_readme": {
+        "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/README.md",
+        "sha256_bytes": "ff6b3bdd8aab682e1ef9467c542669e4620bdafd2aa9750e4c64e866a639243b"
+      },
+      "jme_readme": {
+        "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/README.md",
+        "sha256_bytes": "d480994dd4af5e61d397e105885094d1ea1a0d0142247d1c027feafbbb572c5e"
+      },
+      "normtags_readme": {
+        "path": "/cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/README.md",
+        "sha256_bytes": "0844285861e02a25b240d5b905c49a79d42577df1c8c53b665f4795344464254"
+      }
+    },
+    "resolved_guidance": {
+      "luminosity": {
+        "source": "User-supplied LumiRecommendationsRun3 PDF, revision r39, 2026-06-11; PDF pages 3-4",
+        "normtag": "/cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json",
+        "uncertainty_percent": 1.6,
+        "golden_json_combination_example_fb_inverse": 110.11,
+        "exact_analysis_C_to_I_value": "Not calculated; requires the intended data selection."
+      },
+      "muon_momentum": {
+        "source": "User-supplied momentum PDF, pages 1-2",
+        "selection": "Tight identified and isolated muons",
+        "pt_validity_GeV": [
+          26,
+          200
+        ],
+        "scale_options": [
+          "Correct both data and MC to generator reference",
+          "Correct MC to unchanged data using the supplied combined formula"
+        ],
+        "uncertainty": "Scale includes data and MC parameter uncertainties; resolution is separately uncorrelated with scale."
+      },
+      "pileup_cross_section": {
+        "source": "User-supplied luminosity PDF, page 5",
+        "recommended_reweighting_cross_section_mb": 69.2,
+        "public_plot_cross_section_mb": 80,
+        "cap_prescription_found": false
+      },
+      "top_pt_provenance": {
+        "references": [
+          {
+            "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-050.pdf",
+            "section": "4.7",
+            "pdf_page": 29
+          },
+          {
+            "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf",
+            "section": "2.2.1",
+            "pdf_page": 9
+          }
+        ],
+        "extrapolation_constant": 0.991,
+        "extrapolation_pt_coefficient_per_GeV": 7.5e-05,
+        "vcb_note_applies_to": "All ttbar, including signal",
+        "processor_nominal_applies_top_pt_weight": false,
+        "classification": "Verified analysis prescription; not asserted to be a universal TOP requirement."
+      },
+      "MET_filters": {
+        "source": "AN-25-214 section 3.5.1, PDF pages 20-21",
+        "matches_processor_eight_filter_list": true,
+        "classification": "Analysis-level corroboration; current POG and ecalBadCalib recomputation guidance still pending."
+      }
+    },
+    "provenance_cautions": [
+      "Home snapshot prose includes superseded jet-veto open items and provisional BTV statements; the payload contents and later JERC capture take precedence for their respective checks.",
+      "AN-25-214 uses JEC V2 and a Summer23BPix JER tag in its table, predating current V5/JRV2 releases. It is not a current payload-version authority.",
+      "The available jsonpog MET-phi example concerns Run 2 UL and does not establish a 2024 PUPPI MET XY requirement."
+    ],
+    "highest_priority_remaining_pages": [
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/"
+    ],
+    "changes_made": "Audit report and metrics only; processor code, payloads and production outputs unchanged.",
+    "remaining_pages_updated_by": "jerc_type1_followup"
+  },
+  "supplied_guidance_followup": {
+    "date": "2026-09-11",
+    "documents": {
+      "egm_recommendations": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/3c9a6841-eca9-4a35-8cca-93ee9459f8b6/CMS_EgammSFandSSRun3.pdf",
+        "pages": 24,
+        "revision": "r57, 2025-11-05",
+        "sha256_bytes": "85dd40ca116a7167386d72bdc97a99830015e6b60526594c7146975da34152cc"
+      },
+      "muon_efficiency_recommendations": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/3c9a6841-eca9-4a35-8cca-93ee9459f8b6/corrections.md",
+        "sha256_bytes": "f8c8875cb21fceb21f7738229d01581366e64f0354903306b0fc42fa28c052ac"
+      },
+      "jme_met_overview": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/e35590af-1659-46ae-be38-ff97d7bd11ef/Overview - CMS JME JMAR.pdf",
+        "pages": 6,
+        "source_url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/#related-documentation",
+        "sha256_bytes": "858d05e684dfe6a2de4f0ed8019f47e492d14124f348a476969939908a0bef39"
+      }
+    },
+    "muon_guidance_probe": {
+      "entries": 208780,
+      "selected": 59575,
+      "muon_channel": 34651,
+      "electron_channel": 24924,
+      "muons_above_200_GeV": 330,
+      "muons_above_500_GeV": 3,
+      "baseline_muon_channel_before_extra_ip": 34674,
+      "muon_channel_events_lost_to_extra_ip": 23,
+      "all_channel_events_lost_to_extra_ip": 22,
+      "lost_events_with_prompt_or_tau_baseline_muon": 12,
+      "muon_pt_max_GeV": 656.2606201171875,
+      "selected_electron_raw_pt_min_GeV": 30.607900619506836,
+      "pileup_bins": [
+        {
+          "low": 0,
+          "high": 20,
+          "baseline_muon_events": 211,
+          "lost_muon_events": 0
+        },
+        {
+          "low": 20,
+          "high": 40,
+          "baseline_muon_events": 9648,
+          "lost_muon_events": 8
+        },
+        {
+          "low": 40,
+          "high": 60,
+          "baseline_muon_events": 24149,
+          "lost_muon_events": 14
+        },
+        {
+          "low": 60,
+          "high": 80,
+          "baseline_muon_events": 666,
+          "lost_muon_events": 1
+        },
+        {
+          "low": 80,
+          "high": 100,
+          "baseline_muon_events": 0,
+          "lost_muon_events": 0
+        },
+        {
+          "low": 100,
+          "high": null,
+          "baseline_muon_events": 0,
+          "lost_muon_events": 0
+        }
+      ],
+      "method_note": "Unweighted full-fixture diagnostic. Remove only the additional abs(dxy)<0.045 and abs(dz)<0.2 requirements, retaining input TightID, PF isolation, trigger matching and nominal event quality/jet veto. This does not recover the impact-parameter inefficiency already embedded in TightID. Counts are not a complete MUO-recommended signal-loss measurement or an assigned uncertainty."
+    },
+    "muon_efficiency_regime": {
+      "source_lines": [
+        3,
+        5,
+        94,
+        96
+      ],
+      "guidance": "Choose the correction regime covering the bulk of the analysis muons; the boundaries do not prescribe per-event switching of SF sets.",
+      "assessment": "Use of muon_Z is consistent with this predominantly medium-pT selection. The earlier concern based solely on the 330-muon tail is resolved."
+    },
+    "muon_reco_and_prefiring": {
+      "medium_pt_reco_source_line": 117,
+      "run3_prefiring_source_lines": [
+        34,
+        36
+      ],
+      "assessment": "No extra medium-pT reco or Run-3 L1-prefiring weight is recommended in the supplied guide."
+    },
+    "muon_momentum": {
+      "source_lines": [
+        326,
+        333,
+        345,
+        386,
+        422,
+        581,
+        585
+      ],
+      "below_200": "Apply the medium-pT scale/smearing prescription within its stated validity.",
+      "above_200": "Explicit Run-3 guidance calls for GE bias correction. The supplied March 2026 presentation establishes TuneP throughout and demonstrates stage-1 bias removal from data; it does not establish adding that nominal data-bias map to ordinary MC Muon_pt. The 2024 maps are now read and transcribed.",
+      "above_500": "Perform an additional scale-bias sanity check.",
+      "high_pt_resolution_2024": "General guidance remains preliminary and calls for analysis-phase-space closure. The supplied presentation reports a 15% extra MC smearing strategy in EXO-25-021, described as MUO-blessed for 2024, but gives no complete resolution function or validation for this processor. The 10% uncertainty proxy and 15% smearing precedent concern resolution, not a 10%/15% pt shift.",
+      "assessment": "Medium-pT implementation plan established; high-pT table access and demonstrated data/TuneP convention resolved. Momentum corrections/variations remain absent from processor; final high-pT stage/covariance choices and closure remain open.",
+      "interpretation_corrected_on": "2026-09-12",
+      "previous_interpretation_superseded": "The earlier audit followed the generic mixed-spectrum paragraph and recommended leaving high-pT nominal momenta uncorrected. Explicit Run-3 guidance at lines 345 and 386 recommends applying the GE bias correction."
+    },
+    "additional_muon_efficiency_studies": {
+      "impact_parameter_source_lines": [
+        124,
+        128
+      ],
+      "isolation_environment_source_lines": [
+        152,
+        154
+      ],
+      "assessment": "Central ID/ISO payload uncertainties do not establish coverage of the required PV/impact-parameter and isolation-topology studies. The conditional event-loss probe is not a complete systematic estimate."
+    },
+    "muon_sf_correlations": {
+      "source_lines": [
+        7,
+        14
+      ],
+      "guidance": "Keep statistical and systematic components separable to express the recommended period/year correlations.",
+      "implementation": "Current systup/systdown values include both components in quadrature; only their combined variations are saved.",
+      "scope": "The downstream fit and any combination of years have not been audited."
+    },
+    "electron_scale_smearing": {
+      "source_pdf_pages": [
+        23,
+        24
+      ],
+      "confirmed": [
+        "2024 Et-dependent correction",
+        "Supercluster eta",
+        "Smearing of MC",
+        "Uncertainty variations on smeared nominal MC"
+      ],
+      "validity": "Do not use below about 15 GeV; caution at 15-20 GeV and very high pT.",
+      "current_documentation_url": "https://egammapog.docs.cern.ch/Run3/SaS/",
+      "assessment": "Core prescription agrees; current detailed page is login-blocked and entering-event migrations remain missing from the skim."
+    },
+    "electron_efficiency": {
+      "source_pdf_pages": [
+        2,
+        3
+      ],
+      "confirmed": [
+        "wp90iso availability",
+        "Reco20to75 and RecoAbove75 split",
+        "CAT as recommended payload source"
+      ],
+      "caution": "Supplied PDF describes older split v1 files and year=2024; current CAT payload uses the merged file and year=2024Prompt. It contains no 2024 HLT-SF table.",
+      "open_question": "HLT-SF eta coordinate is not resolved by the scale/smearing supercluster-eta statement."
+    },
+    "MET": {
+      "source_pdf_pages": [
+        1,
+        5,
+        6
+      ],
+      "estimator_choice": "Confirmed: Type-1 corrected PUPPI MET for Run 3.",
+      "detail_status": "Overview links separate noise-filter and correction pages; it does not contain their full prescriptions."
+    },
+    "direct_web_access_checks": [
+      {
+        "url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/",
+        "status": 401,
+        "final_url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/"
+      },
+      {
+        "url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+        "status": 401,
+        "final_url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/"
+      },
+      {
+        "url": "https://egammapog.docs.cern.ch/Run3/SaS/",
+        "status": 401,
+        "final_url": "https://egammapog.docs.cern.ch/Run3/SaS/"
+      }
+    ],
+    "highest_priority_remaining_pages": [
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/"
+    ],
+    "additional_documentation_refresh": "https://egammapog.docs.cern.ch/Run3/SaS/",
+    "source_changes": "Report and metrics only. No processor, correction payload, production output or regression baseline changes.",
+    "remaining_pages_updated_by": "jerc_type1_followup",
+    "historical_status_note": "Preserved evidence from the preceding upload; MET, EGM S&S validity/prescription and remaining-page status are superseded by met_egm_guidance_followup."
+  },
+  "met_egm_guidance_followup": {
+    "date": "2026-09-11",
+    "date_basis": "America/New_York; PDFs printed on September 11, with UTC PDF creation timestamps on September 12.",
+    "documents": {
+      "met_corrections": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/e50840f5-9698-459d-ac2c-eca516d8eeb0/Corrections - CMS JME JMAR.pdf",
+        "sha256_bytes": "15ac09d922a1d8973b9f0badb003c2ed70a6ba4508f2a65f72934619c03475d7",
+        "pages": 9,
+        "source_url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/",
+        "pdf_metadata": {
+          "/Title": "Corrections - CMS JME JMAR",
+          "/Producer": "macOS Version 15.7.9 (Build 24G830) Quartz PDFContext",
+          "/Creator": "Safari",
+          "/CreationDate": "D:20260912011949Z00'00'",
+          "/ModDate": "D:20260912011949Z00'00'"
+        }
+      },
+      "egm_scales_smearings": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/80798c85-a162-45a4-93bc-0c9aa4fe6186/Scales and Smearings - CMS EGamma POG.pdf",
+        "sha256_bytes": "c015c6ca9253e6403ad4840bc7ab955070b754321eaabaf3c5835662943f50f3",
+        "pages": 7,
+        "source_url": "https://egammapog.docs.cern.ch/Run3/SaS/",
+        "page_revision_date": "2026-06-08",
+        "pdf_metadata": {
+          "/Title": "Scales and Smearings - CMS EGamma POG",
+          "/Producer": "macOS Version 15.7.9 (Build 24G830) Quartz PDFContext",
+          "/Creator": "Safari",
+          "/CreationDate": "D:20260912012024Z00'00'",
+          "/ModDate": "D:20260912012024Z00'00'"
+        }
+      },
+      "met_noise_filter_screenshots": {
+        "source_url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+        "files": [
+          {
+            "path": "/isilon/export/home/jhuan166/.codex/attachments/c38244d6-005a-4f64-ae48-30067cfd8b9f/Screenshot 2026-09-11 at 9.19.05 PM.png",
+            "sha256_bytes": "692b87305061f10580e58166190c5354a4443b4a876e5828798cc5a0bf2db1b5"
+          },
+          {
+            "path": "/isilon/export/home/jhuan166/.codex/attachments/176c8f8f-86cd-407a-b953-1e32e99431d8/Screenshot 2026-09-11 at 9.19.12 PM.png",
+            "sha256_bytes": "7c1f00c25227a578cbf7fe6e09194adfe131ccd8092b138200099d7aab1e79a7"
+          },
+          {
+            "path": "/isilon/export/home/jhuan166/.codex/attachments/3bc221fe-0f80-41ee-962d-14a4a392cd83/Screenshot 2026-09-11 at 9.19.17 PM.png",
+            "sha256_bytes": "29d8f9b026e8c9d416322e91f70c97702fcd45fde10e4223d3398018020d9095"
+          },
+          {
+            "path": "/isilon/export/home/jhuan166/.codex/attachments/5868a404-c38a-40b0-8c56-952456a1b138/Screenshot 2026-09-11 at 9.19.22 PM.png",
+            "sha256_bytes": "0b89ae5c1650248cb043838eda7e20a0e96e01409929d272056fb4d187db3c8f"
+          }
+        ],
+        "reading_method": "Visual review of all four user-supplied screenshots."
+      }
+    },
+    "full_fixture_probe": {
+      "fixture": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root",
+      "entries": 208780,
+      "filters": [
+        "goodVertices",
+        "globalSuperTightHalo2016Filter",
+        "EcalDeadCellTriggerPrimitiveFilter",
+        "BadPFMuonFilter",
+        "BadPFMuonDzFilter",
+        "hfNoisyHitsFilter",
+        "eeBadScFilter",
+        "ecalBadCalibFilter"
+      ],
+      "filter_failure_counts": {
+        "goodVertices": 0,
+        "globalSuperTightHalo2016Filter": 34,
+        "EcalDeadCellTriggerPrimitiveFilter": 13,
+        "BadPFMuonFilter": 21,
+        "BadPFMuonDzFilter": 27,
+        "hfNoisyHitsFilter": 6,
+        "eeBadScFilter": 0,
+        "ecalBadCalibFilter": 23
+      },
+      "events_failing_any_filter": 103,
+      "events_failing_exactly_one_filter": {
+        "goodVertices": 0,
+        "globalSuperTightHalo2016Filter": 34,
+        "EcalDeadCellTriggerPrimitiveFilter": 13,
+        "BadPFMuonFilter": 0,
+        "BadPFMuonDzFilter": 6,
+        "hfNoisyHitsFilter": 6,
+        "eeBadScFilter": 0,
+        "ecalBadCalibFilter": 23
+      },
+      "events_with_trigger_matched_lepton_before_filters": 70824,
+      "events_with_trigger_matched_lepton_failing_filters": 27,
+      "electron_pt_formula_max_abs_difference_GeV": {
+        "pt": 0.0,
+        "pt_scaleUp": 0.0,
+        "pt_scaleDown": 0.0,
+        "pt_smearUp": 0.0,
+        "pt_smearDown": 0.0
+      },
+      "electron_energyErr_unchanged_by_helper": true,
+      "electron_energyErr_saved": false,
+      "input_electrons_below_10_GeV": 82252,
+      "trigger_matched_electrons_below_10_GeV": 0,
+      "electron_energyErr_probe": {
+        "objects": 29697,
+        "quantile_probabilities": [
+          0,
+          0.5,
+          0.95,
+          1
+        ],
+        "recommended_over_uncorrected_quantiles": [
+          0.963957060887753,
+          1.5318250248761174,
+          2.3700978652810623,
+          5.000913566767067
+        ],
+        "scope": "All trigger-matched good electrons before event-quality and jet-veto selection; energyErr is unused and unsaved by this processor."
+      },
+      "filter_acceptance_unweighted": 0.9995066577258358,
+      "filter_acceptance_with_trigger_matched_lepton_unweighted": 0.9996187732971874,
+      "method_note": "Full-fixture unweighted diagnostic. Filter losses are measured before jet veto and other analysis requirements; the lepton subset uses nominal corrected electron pT and the current muon selection. This is one signal-file check, not full-production efficiency validation or an assigned systematic. Electron pT formulas implement the supplied EGM PDF explicitly and reuse the processor Gaussian to test nominal/variation algebra, not its random generator."
+    },
+    "MET_filters": {
+      "status": "Confirmed match to supplied current POG list.",
+      "flags": [
+        "goodVertices",
+        "globalSuperTightHalo2016Filter",
+        "EcalDeadCellTriggerPrimitiveFilter",
+        "BadPFMuonFilter",
+        "BadPFMuonDzFilter",
+        "hfNoisyHitsFilter",
+        "eeBadScFilter",
+        "ecalBadCalibFilter"
+      ],
+      "data_and_MC": true,
+      "ecalBadCalib_2024": "Use the stored flag; the special rerun is for 2022-2023 prompt reconstruction.",
+      "aggregate_METFilters": "Do not use; discontinued in NanoAODv15. Processor uses the individual flags.",
+      "HBHE": "Not required for Run 3 and not imposed by processor.",
+      "validation_limit": "Reported efficiencies are unweighted checks of one signal fixture and do not cover every production or energetic-object category."
+    },
+    "MET_corrections_and_uncertainties": {
+      "source_pages": [
+        2,
+        3,
+        6,
+        7,
+        8,
+        9
+      ],
+      "mandatory_MET": [
+        "Type-1 correction consistent with current AK4 JEC",
+        "Propagation of each JEC uncertainty source to MET with the same jet nuisance parameter"
+      ],
+      "optional_MET": [
+        "Nominal JER propagation and JER variations",
+        "Lepton/photon variation propagation",
+        "Unclustered-energy variations",
+        "XY corrections",
+        "Analysis/process-specific recoil calibration"
+      ],
+      "mandatory_jets_distinction": "JER smearing of simulated jets is mandatory; its propagation to MET is optional.",
+      "present": "Nominal raw-PUPPI Type-1 recomputation using Jet and CorrT1METJet with nominal per-jet JER propagation.",
+      "missing_mandatory": "JEC-to-MET variations are absent; jet JES/JER and complete lepton selection variations are also absent/incomplete.",
+      "legacy_examples": "The fixed object and Run-2 unclustered-energy values in the PDF are not substitutes for current POG/campaign prescriptions.",
+      "XY_2024": "No 2024 entry in the supplied available-corrections table; absence of an XY correction is not established as a general compliance failure.",
+      "recoil": "Optional; validate transfer to ttbar, match input MET and avoid double-counting resolution corrections.",
+      "audit_reclassification": "Missing optional MET terms are analysis decisions to assess, not additional universal CMS violations."
+    },
+    "electron_scale_smearing": {
+      "source_pages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "nominal_and_variation_pt": "Confirmed: signed SC eta, MC smearing, scale variations on smeared nominal pT, smearing variations on original pT with the same Gaussian.",
+      "validity": "Current page cautions against use below about 10 GeV and at very high pT, superseding the older supplied PDF threshold.",
+      "out_of_validity_evaluation": "Helper evaluates all input electrons, including 82252 below 10 GeV in the fixture; none is a trigger-matched good electron.",
+      "energyErr": {
+        "required_formula_MC": "sqrt(energyErr_raw**2 + (pt_raw*cosh(eta)*smear)**2) * (1 + smear*z)",
+        "implementation": "Unchanged; not used in active src/vcb selection and not saved to output.",
+        "assessment": "Correction-completeness limitation if energy errors are used later; no bias in current saved observables established from this omission.",
+        "variation_rule": "Scale the corrected nominal error for scale shifts; rebuild from original energy and error for each smearing width with the same random number."
+      },
+      "correlations": "Scale and smearing are separate sources, each correlated across years. Output labels are separate; downstream correlation model not audited.",
+      "remaining_issue": "Selection migrations remain incomplete. This page does not resolve HLT efficiency-SF eta conventions."
+    },
+    "CMSSW_Type1_source_crosscheck": {
+      "sources": [
+        {
+          "path": "/cvmfs/cms.cern.ch/el9_amd64_gcc12/cms/cmssw-patch/CMSSW_15_1_0_patch4/src/JetMETCorrections/Type1MET/interface/PFJetMETcorrInputProducerT.h",
+          "sha256_bytes": "29de6082dc3ad71a96e5fed259ecae1e1cb689449af63e732d07446fe98890bb"
+        },
+        {
+          "path": "/cvmfs/cms.cern.ch/el9_amd64_gcc12/cms/cmssw-patch/CMSSW_15_1_0_patch4/src/PhysicsTools/PatUtils/python/tools/runMETCorrectionsAndUncertainties.py",
+          "sha256_bytes": "fbfd77ba3754f3b6fd55adef424ce279cb279ccb67120727b4a9b69b919387c6"
+        }
+      ],
+      "checked": [
+        "Muon subtraction before correction",
+        "Corrected-pT >15 GeV threshold and EM-fraction threshold",
+        "Reuse of additional jet scales",
+        "Subtract corrected minus reference transverse momentum from raw MET",
+        "PUPPI L1-offset handling"
+      ],
+      "PUPPI_L1": "CMSSW disables the PUPPI L1 offset. The current Summer24Prompt24_V5_MC_L1FastJet_AK4PFPuppi payload is identically one including flow, so the processor also references raw muon-subtracted pT.",
+      "limit": "Source-level structural crosscheck with CMSSW_15_1_0_patch4; not a MiniAOD round-trip or independent reading of the current JERC webpage."
+    },
+    "direct_web_access_check": {
+      "url": "https://cms-jme-jerc.docs.cern.ch/application/type1_met/",
+      "status": 401
+    },
+    "previously_requested_pages_now_covered": [
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/",
+      "https://egammapog.docs.cern.ch/Run3/SaS/"
+    ],
+    "remaining_specific_questions": [
+      {
+        "url": "https://cms-jme-jerc.docs.cern.ch/application/type1_met/",
+        "question": "Exact current JERC implementation wording; primary implementation mechanics checked locally."
+      },
+      {
+        "url": null,
+        "question": "2024 electron HLT-SF eta coordinate; S&S guidance does not settle it."
+      },
+      {
+        "url": "https://cms-jerc.web.cern.ch/Recommendations/",
+        "question": "Current analysis-jet Tight versus TightLepVeto exception and JERC uncertainty wording."
+      }
+    ],
+    "source_changes": "Audit report and metrics only; no processor code, payload, production-output or regression-baseline changes.",
+    "remaining_pages_updated_by": "jerc_type1_followup",
+    "historical_status_note": "Preserved preceding-upload evidence; JERC Type-1 documentation access and optional unclustered recipe are now resolved by jerc_type1_followup."
+  },
+  "jerc_type1_followup": {
+    "date": "2026-09-11",
+    "date_basis": "America/New_York; website PDF printed September 11, with UTC creation timestamp on September 12.",
+    "documents": {
+      "jerc_website": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/cb9cb167-46e5-43ac-b16c-23cc837cb4bf/Type-1 MET Correction - CMS JME JERC.pdf",
+        "sha256_bytes": "1efa0de7012bb3d762f4ccee9a5b4a4e24dbfac592241c96fa691504854d66bd",
+        "pages": 4,
+        "source_url": "https://cms-jme-jerc.docs.cern.ch/application/type1_met/",
+        "pdf_metadata": {
+          "/Title": "Type-1 MET Correction - CMS JME JERC",
+          "/Producer": "macOS Version 15.7.9 (Build 24G830) Quartz PDFContext",
+          "/Creator": "Safari",
+          "/CreationDate": "D:20260912014245Z00'00'",
+          "/ModDate": "D:20260912014245Z00'00'"
+        }
+      },
+      "type1_worked_example": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/098c30c0-14d6-4268-8f80-e5a62cb58c9c/Type1MET.pdf",
+        "sha256_bytes": "e0a35ffddc104be15ba45666f11c7a34288d93305e3f949a7d97863cf3ca51b5",
+        "pages": 2,
+        "source_url": "https://cms-jme-jerc.docs.cern.ch/tex/Type1MET.pdf",
+        "pdf_metadata": {
+          "/Producer": "pdfTeX-1.40.21",
+          "/Author": "",
+          "/Title": "",
+          "/Subject": "",
+          "/Creator": "LaTeX with hyperref",
+          "/Keywords": "",
+          "/CreationDate": "D:20260417135521+02'00'",
+          "/ModDate": "D:20260417135521+02'00'",
+          "/Trapped": "/False",
+          "/PTEX.Fullbanner": "This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) kpathsea version 6.3.2"
+        }
+      },
+      "unclustered_worked_example": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/098c30c0-14d6-4268-8f80-e5a62cb58c9c/Type1METUnc.pdf",
+        "sha256_bytes": "441b1fa8a72b72c056b24a2714b739df38d46c8a2659f8c0134f6691a2c170d9",
+        "pages": 2,
+        "source_url": "https://cms-jme-jerc.docs.cern.ch/tex/Type1METUnc.pdf",
+        "pdf_metadata": {
+          "/Producer": "pdfTeX-1.40.21",
+          "/Author": "",
+          "/Title": "",
+          "/Subject": "",
+          "/Creator": "LaTeX with hyperref",
+          "/Keywords": "",
+          "/CreationDate": "D:20260417135317+02'00'",
+          "/ModDate": "D:20260417135317+02'00'",
+          "/Trapped": "/False",
+          "/PTEX.Fullbanner": "This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) kpathsea version 6.3.2"
+        }
+      },
+      "cpp_tutorial": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/cb9cb167-46e5-43ac-b16c-23cc837cb4bf/JecApplication.cpp",
+        "sha256_bytes": "ab7dc4399831cdd09ed14cd442da720e53ead8d9db7f4b07455baac4114880c5",
+        "lines": 324,
+        "source_url": "https://gitlab.cern.ch/cms-analysis/jme/jerc-application-tutorial/-/blob/master/JecApplication.cpp#L207-304",
+        "review_method": "Source read only; the user attachment was not executed or compiled."
+      }
+    },
+    "full_fixture_probe": {
+      "fixture": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root",
+      "entries": 208780,
+      "selected_events": 59575,
+      "collections": {
+        "Jet": {
+          "jets": 1531251,
+          "native_abs_eta_max": 5.1005859375,
+          "muon_subtracted_abs_eta_max": 5.1005859375,
+          "native_abs_eta_ge_5p2": 0,
+          "muon_subtracted_abs_eta_ge_5p2": 0,
+          "current_contributors_native_abs_eta_ge_5p2": 0,
+          "current_contributors_muon_subtracted_abs_eta_ge_5p2": 0
+        },
+        "CorrT1METJet": {
+          "jets": 427432,
+          "native_abs_eta_max": 5.1025390625,
+          "muon_subtracted_abs_eta_max": 5.102539062499367,
+          "native_abs_eta_ge_5p2": 0,
+          "muon_subtracted_abs_eta_ge_5p2": 0,
+          "current_contributors_native_abs_eta_ge_5p2": 0,
+          "current_contributors_muon_subtracted_abs_eta_ge_5p2": 0
+        }
+      },
+      "events_with_native_eta_cut_MET_change": 0,
+      "events_with_muon_subtracted_eta_cut_MET_change": 0,
+      "selected_events_with_native_eta_cut_MET_change": 0,
+      "selected_events_with_muon_subtracted_eta_cut_MET_change": 0,
+      "native_eta_cut_max_vector_change_GeV": 0.0,
+      "muon_subtracted_eta_cut_max_vector_change_GeV": 0.0,
+      "unclustered_inputs_finite": true,
+      "quantile_probabilities": [
+        0,
+        0.5,
+        0.95,
+        1
+      ],
+      "distributions": {
+        "up_vector_GeV": {
+          "count": 208780,
+          "quantiles": [
+            0.00038909912109375,
+            1.5296963453292847,
+            3.5770864844322183,
+            8.976018905639648
+          ]
+        },
+        "down_vector_GeV": {
+          "count": 208780,
+          "quantiles": [
+            0.00038909912109375,
+            1.5300665497779846,
+            3.5765233516693113,
+            8.925734519958496
+          ]
+        },
+        "selected_up_vector_GeV": {
+          "count": 59575,
+          "quantiles": [
+            0.0008392339223064482,
+            1.536008596420288,
+            3.5895348310470565,
+            8.976018905639648
+          ]
+        },
+        "selected_down_vector_GeV": {
+          "count": 59575,
+          "quantiles": [
+            0.0008392339223064482,
+            1.5353429317474365,
+            3.593341898918151,
+            8.925734519958496
+          ]
+        },
+        "selected_up_delta_pt_GeV": {
+          "count": 59575,
+          "quantiles": [
+            -6.343339729926079,
+            0.3258907730962619,
+            2.7038787143537832,
+            8.930049852282508
+          ]
+        },
+        "selected_down_delta_pt_GeV": {
+          "count": 59575,
+          "quantiles": [
+            -8.880043121881727,
+            -0.28188705973088446,
+            1.934958712060398,
+            6.683083461774045
+          ]
+        },
+        "selected_recomputed_vs_stored_nominal_vector_GeV": {
+          "count": 59575,
+          "quantiles": [
+            0.0,
+            8.99984783411239,
+            24.946736717902958,
+            75.9613954508526
+          ]
+        }
+      },
+      "unclustered_required_branches": [
+        "PuppiMET_pt",
+        "PuppiMET_phi",
+        "PuppiMET_ptUnclusteredUp",
+        "PuppiMET_phiUnclusteredUp",
+        "PuppiMET_ptUnclusteredDown",
+        "PuppiMET_phiUnclusteredDown"
+      ],
+      "method_note": "Full-fixture diagnostic with nominal JEC/JER, nominal lepton selection, MET filters and jet veto. Eta-cut effects are isolated from all other changes. Both input and muon-subtracted eta conventions are probed. Unclustered shifts follow the supplied Cartesian difference recipe and are added to rebuilt nominal Type-1 MET. They remain optional under the supplied JMAR applicability table. This does not implement production variations or validate a full nuisance model."
+    },
+    "confirmed_calculation": [
+      "Raw PUPPI baseline with opposite-sign transverse jet correction.",
+      "Both Jet and CorrT1METJet included; summing disjoint collections separately is equivalent to summing their union.",
+      "Muon-subtracted raw pT, corrected-pT >15 GeV and EM fraction <0.9.",
+      "Muon-subtraction angular-offset branches are present in both fixture jet collections and used by processor.",
+      "Current PUPPI L1 and MC residual payloads are identity; the released compound remains appropriate."
+    ],
+    "new_eta_guard_finding": {
+      "priority": "P3",
+      "implementation_line": 545,
+      "source_pdf_section": "Type1MET.pdf section 1.4",
+      "source_cpp_lines": [
+        300,
+        302
+      ],
+      "required_cut": "abs(eta) < 5.2",
+      "implementation": "Explicit eta cut absent; mask imposes only corrected-pT and EM-fraction thresholds.",
+      "assessment": "Completeness guard omission with zero fixture effect; impose the cut or document and validate the upstream acceptance guarantee.",
+      "native_or_muon_subtracted_eta": "Both conventions tested; neither has an out-of-acceptance jet in this fixture."
+    },
+    "unclustered_recipe": {
+      "status": "Specified by supplied JERC worked example; all required fixture branches available and finite.",
+      "formula_vector": "MET_new_var = MET_new_nom + (MET_Nano_var - MET_Nano_nom)",
+      "polar_conversion": "Convert all input pT/phi pairs to x/y first; convert back only after vector addition.",
+      "mandatory_or_optional": "Optional under supplied JMAR applicability table. Worked-example implementation does not change that classification.",
+      "implementation_status": "Not saved by processor; diagnostic only. Missing legacy delta-x/y branches do not prevent reconstruction from the six available pT/phi branches.",
+      "caution": "Do not use stored shifted NanoAOD MET directly as the updated variation."
+    },
+    "source_consistency_notes": [
+      "Type1MET.pdf final compact vector expression has an apparent plus-sign typo; its component updates, the JERC website overview, C++ tutorial and momentum conservation agree on subtraction.",
+      "Worked example explicitly adds muonSubtrDeltaPhi when available. C++ function uses v.phi directly, but the caller/header is not attached, so preadjustment of that input is not established.",
+      "Tutorial recalculates JER using its muon-subtracted jet inputs; processor reuses the already applied nominal factor, consistent with supplied JMAR text and the CMSSW additional-scale path. Standalone tutorial is not a bit-for-bit oracle for this choice.",
+      "Tutorial uses SF*(1+SFUncertainty) and SF*(1-SFUncertainty) when the relative-uncertainty payload is present; production JES/JER variations remain absent.",
+      "Relaxation of the auxiliary EM-fraction cut is allowed only when its branch is unavailable; this fixture has CorrT1METJet_EmEF and retains the cut."
+    ],
+    "documentation_status": "All requested MET documentation supplied and read; no further MET document required for the identified audit checks.",
+    "remaining_MET_implementation_work": [
+      "Mandatory JEC-to-MET variations",
+      "Explicit eta guard or validated input-acceptance guarantee",
+      "Decide and implement optional uncertainty terms for the analysis"
+    ],
+    "source_changes": "Audit report and metrics only; no processor, correction-payload, production-output or regression-baseline changes."
+  },
+  "current_recommendation_review": {
+    "updated_by": "muon_momentum_implementation",
+    "MET_documentation_closed": [
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/",
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/",
+      "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/",
+      "https://cms-jme-jerc.docs.cern.ch/application/type1_met/"
+    ],
+    "EGM_scale_smearing_documentation_closed": "https://egammapog.docs.cern.ch/Run3/SaS/",
+    "remaining_MET_documents": [],
+    "remaining_questions": [
+      {
+        "topic": "Muon high-pT final GE prescription",
+        "question": "Confirm final nominal choice of stage 1 alone or both stages and the complete uncertainty model, including inter-bin/inter-stage covariance. Momentum definition, bias units, displayed bias convention and demonstrated data-side application are now verified.",
+        "possible_supplementary_source": "https://indico.cern.ch/event/1648086/contributions/6926843/attachments/3216713/5734489/muonpogtalk.pdf",
+        "access": "Earlier source remains unread behind CERN SSO; current web reader cannot open it. Its content is not assumed to settle these questions."
+      },
+      {
+        "topic": "Electron trigger SF",
+        "question": "Confirm 2024 HLT-SF eta coordinate; supplied S&S guidance does not settle efficiency-SF convention."
+      },
+      {
+        "topic": "Jet ID/JERC",
+        "question": "Current analysis-jet Tight versus TightLepVeto exception and general JES/JER uncertainty guidance beyond the Type-1 recipe."
+      },
+      {
+        "topic": "TOP modeling",
+        "question": "Current general TOP guidance and the nominal top-pT/calibration-specific convention."
+      },
+      {
+        "topic": "BTV reference tags",
+        "question": "Validity and correlation prescription when reference-tag scale factors are applied downstream."
+      }
+    ],
+    "access_note": "Historical HTTP 401 records are retained as provenance; supplied documents resolve the corresponding MET and EGM S&S content access.",
+    "luminosity_status": "C-I reference resolved and constant corrected to 109820 pb^-1; fresh BRIL calculation timed out; old production outputs retain old normalization.",
+    "analysis_note_modeling_prescription": "AN-25-214 gives concrete top-pT, Hessian/alpha-S, and inclusive variation-normalization choices; implementation and calibration-specific validation remain as described in the report.",
+    "muon_momentum_status": "Implemented for tight PF-isolated 2024 ordinary-momentum muons in 26-200 GeV. High-pT prescription, below-range applicability and data/MC closure remain open.",
+    "GE_table_documentation_closed": {
+      "url": "https://indico.cern.ch/event/1665380/contributions/7001589/attachments/3243397/5786110/highptmuons.pdf",
+      "supplied_path": "/isilon/export/home/jhuan166/.codex/attachments/87295dc4-2e4c-41fb-99e0-81bb14c406a3/highptmuons.pdf",
+      "pdf_pages": [
+        9,
+        10,
+        11,
+        14,
+        16,
+        17
+      ],
+      "note": "PDF page 12 compares medium-pt additive biases; actual GE tables are on pages 11 and 16. No repeat upload needed."
+    }
+  },
+  "luminosity_and_analysis_notes_followup": {
+    "date": "2026-09-11",
+    "luminosity": {
+      "status": "source constant corrected for documented C-I reference; existing production outputs not migrated",
+      "old_pb_inverse": 124000.0,
+      "new_pb_inverse": 109820.0,
+      "relative_uncertainty": 0.016,
+      "old_to_new_weight_multiplier": 0.8856451612903226,
+      "reference_assumption": "C-I Muon/EGamma MINIv6NANOv15 data definition in AN-25-214 section 2.1 and Table 1; matches the processor documented CDEFGHI pileup target.",
+      "analysis_note": {
+        "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf",
+        "pdf_pages": [
+          6,
+          8,
+          61
+        ],
+        "sha256_bytes": "4e6575a46b4d9589881cb6bb5f937ab4d0b8da50afd4418c44ef9b53baee1c31"
+      },
+      "public_crosscheck": {
+        "url": "https://twiki.cern.ch/twiki/bin/view/CMSPublic/DP2026101",
+        "topic_revision": "r5, 2026-07-08",
+        "http_status": 200,
+        "response_sha256": "2248082bb338591bc5e3f38267dd60e09a7ec980bcf0a939531e0dbf3598f095",
+        "finding": "Explicitly lists 109.82 fb^-1 analyzed for 2024 C,D,E,F,G,H,I. This is a zero-bias/multijet study and does not validate the single-lepton trigger coverage."
+      },
+      "per_era_reference": [
+        {
+          "era": "C",
+          "run_min": 379412,
+          "run_max": 380252,
+          "luminosity_fb_inverse_rounded": 7.26
+        },
+        {
+          "era": "D",
+          "run_min": 380253,
+          "run_max": 380947,
+          "luminosity_fb_inverse_rounded": 7.98
+        },
+        {
+          "era": "E",
+          "run_min": 380948,
+          "run_max": 381943,
+          "luminosity_fb_inverse_rounded": 11.42
+        },
+        {
+          "era": "F",
+          "run_min": 381944,
+          "run_max": 383779,
+          "luminosity_fb_inverse_rounded": 28.04
+        },
+        {
+          "era": "G",
+          "run_min": 383780,
+          "run_max": 385813,
+          "luminosity_fb_inverse_rounded": 38.07
+        },
+        {
+          "era": "H",
+          "run_min": 385814,
+          "run_max": 386408,
+          "luminosity_fb_inverse_rounded": 5.49
+        },
+        {
+          "era": "I",
+          "run_min": 386409,
+          "run_max": 387121,
+          "luminosity_fb_inverse_rounded": 11.56
+        }
+      ],
+      "fresh_brilcalc_result": null,
+      "reference_limit": "AN does not pin Golden JSON content or normtag version. 109.82 is a documented reference, not a new calculation for the latest JSON. The difference from the LumiPOG 110.11 fb^-1 combination example is not established.",
+      "migration": "All weights that include sigma*L rescale by 109820/124000. Do not rescale weight_noxsec, all-event normalization denominators, or bare top-pT factors. normalize.py derives sigma*L from stored weights and does not adopt a changed source constant for old outputs."
+    },
+    "brilcalc_attempt": {
+      "version": "3.9.4",
+      "python_runtime": "/cvmfs/cms-bril.cern.ch/brilconda310/bin/python",
+      "runtime_python_version": "3.10.12",
+      "runtime_sqlalchemy_version": "1.3.24",
+      "connection": "web (public Frontier)",
+      "args": [
+        "lumi",
+        "-c",
+        "web",
+        "-i",
+        "C-I subset of the pinned Golden JSON",
+        "--normtag",
+        "/cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json",
+        "-u",
+        "/fb",
+        "--output-style",
+        "csv"
+      ],
+      "query_timeout_seconds": 180,
+      "exit_code": 142,
+      "output_csv_bytes": 0,
+      "outcome": "Timed out without a luminosity result. No login error was returned.",
+      "golden_json": {
+        "path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions24/2026-08-04/Cert_Collisions2024_378981_386951_Golden.json",
+        "sha256_bytes": "32572466413b0b2ee72ebe18b1e556e7e083f550e74e596830be4f10aa25bf9d"
+      },
+      "analysis_mask": {
+        "construction": "Retain runs 379412 through 387121 from the main Golden JSON; unchanged lumisection intervals. Serialize json.dumps(mask, sort_keys=True) plus newline.",
+        "sha256_bytes": "80a53c53ed0e3d216f52ea64565d3cfb450cf135bd3469505c4a3e235eba7e63",
+        "runs": 459,
+        "lumisections": 281662
+      },
+      "normtag": {
+        "path": "/cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json",
+        "sha256_bytes": "693ef4b360a1debb2aa667fa4178c3f4dece9539d9cf3ffee1ea60f157823548"
+      }
+    },
+    "pileup_input_luminosity_crosscheck": {
+      "path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions24/2026-08-04/PileUp/pileup_JSON-2024CDEFGHI_Golden.txt",
+      "sha256_bytes": "62c263395db665356205c8d1a6c9cb3e2aabe2b7b41abd8319b17290692ba3dd",
+      "golden_lumisections_without_pileup_records": 102,
+      "missing_by_era": {
+        "C": 56,
+        "D": 0,
+        "E": 30,
+        "F": 2,
+        "G": 14,
+        "H": 0,
+        "I": 0
+      },
+      "assessment": "Incomplete relative to latest main C-I Golden JSON; not used as an exact certified luminosity calculation."
+    },
+    "other_note": {
+      "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-050.pdf",
+      "sha256_bytes": "62c9b9d5245c34bb394b2440a57b14aeb47b8427a21b2f41e6646eca9513d0f7",
+      "data_years": [
+        2022,
+        2023
+      ],
+      "top_pt_pdf_page": 29,
+      "assessment": "Supports top-pT coefficients/extrapolation but cannot supply 2024 luminosity."
+    },
+    "other_findings": {
+      "top_pt": "AN-25-214 applies NNLO/NLO plus 13.6-TeV extrapolation to all ttbar, including signal. Existing factor is saved; adopting it in nominal weights and its normalization remains an analysis-model decision.",
+      "pdf_alpha_s": "AN-25-214 uses each Hessian eigenvector as a nuisance and alpha-S separately. Retain fixture indices 0,1-100,101-102 with all-event sums and set identity. Replica RMS is for the distinct 4FS set.",
+      "scale_and_ps": "The note preserves inclusive normalization of generator variations while retaining shape/acceptance effects. Selected-event renormalization would remove acceptance variation. No support for signed LHE clipping.",
+      "pileup": "69.2 mb and +/-4.6% in AN-25-214 agree with using released LUM nominal/up/down factors. No support for the weight cap.",
+      "lepton_sf_components": "The note combines reco/ID/iso statistical and systematic terms per flavor after an impact study. Combined SF uncertainties alone are not an additional confirmed 2024-only error; extra IP/PV and isolation studies remain needed.",
+      "jet_variations": "The note explicitly re-analyzes varied events. Its omission of forward JES terms is not transferable automatically: its jets have abs(eta)<2.4, this skim retains abs(eta)<4.7, and Type-1 MET includes forward jets.",
+      "electron_trigger_eta": "Same EGM release and supercluster-eta usage in AN-25-214 supports the current convention, but is not the missing explicit POG HLT coordinate definition.",
+      "Vcb_reference": {
+        "note": 0.0411,
+        "processor": 0.041,
+        "rate_ratio": 1.004883997620464,
+        "action": "Unchanged; declared analysis reference parameter, not a mandatory POG correction."
+      },
+      "not_resolvable_by_lookup": [
+        "This selection impact-parameter/PV loss",
+        "DY-to-ttbar isolation transfer",
+        "Private JetQk source alignment",
+        "Numerical size of selection migrations in the full production"
+      ]
+    },
+    "physics_code_changes": [
+      "src/boostedhh/hh_vars.py: LUMI[2024] 124000 -> 109820"
+    ],
+    "validation": {
+      "input_events": 208780,
+      "selected_events": 59575,
+      "output_columns": 681,
+      "scale_factor": 0.8856451612903226,
+      "sigma_x_lumi": 37870.68358971944,
+      "nonzero_weight_events_checked": 59575,
+      "max_abs_sigma_x_lumi_deviation": 7.275957614183426e-12,
+      "baseline_changed_fields": [
+        "scale_weights0",
+        "scale_weights1",
+        "scale_weights2",
+        "scale_weights3",
+        "scale_weights4",
+        "scale_weights5",
+        "single_weight_FSRPartonShower",
+        "single_weight_ISRPartonShower",
+        "single_weight_electron_id",
+        "single_weight_electron_reco",
+        "single_weight_electron_trigger",
+        "single_weight_genweight",
+        "single_weight_muon_id",
+        "single_weight_muon_iso",
+        "single_weight_muon_trigger",
+        "single_weight_pileup",
+        "weight"
+      ],
+      "other_baseline_lines_unchanged": true,
+      "unchanged_baseline_files": [
+        "tests/outfile/test-output-schema.csv",
+        "tests/outfile/test-jet-tagger-roundtrip.txt"
+      ],
+      "jet_tagger_roundtrip_verdict": "PASS",
+      "jet_tagger_comparisons": 5424309,
+      "jet_tagger_differences": 0,
+      "unit_tests": {
+        "passed": 157,
+        "subtests_passed": 18,
+        "warnings": 3,
+        "environment": "ttbar"
+      },
+      "lint": {
+        "status": "pre-existing failures",
+        "tool": "ruff check src/vcb tests condor",
+        "diagnostics": [
+          {
+            "file": "tests/test_objects.py",
+            "line": 400,
+            "rule": "B905"
+          },
+          {
+            "file": "tests/test_objects.py",
+            "line": 401,
+            "rule": "B905"
+          }
+        ],
+        "note": "The reported file is unchanged from the audited clean HEAD. No luminosity-related lint errors were reported."
+      },
+      "git_diff_check": "passed"
+    }
+  },
+  "muon_momentum_resolution_followup": {
+    "date": "2026-09-12",
+    "implementation_status": "Proposed; no muon processor, payload, production output or baseline changes in this follow-up. Prior luminosity changes preserved.",
+    "plan_document": "docs/muon-momentum-2024-plan.md",
+    "analysis_notes": [
+      {
+        "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf",
+        "pdf_pages": [
+          15,
+          61
+        ],
+        "finding": "Explicit 2024 muon momentum corrections and uncertainty evaluation; October 2025 payload tag predates current bug-fixed release. Prompt-MVA selection is not copied."
+      },
+      {
+        "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-050.pdf",
+        "pdf_pages": [
+          21,
+          43
+        ],
+        "finding": "MuonScaReKIT and dimuon Z-peak closure precedent for 2022-2023; separate scale and resolution uncertainties including stat/syst."
+      }
+    ],
+    "payload": {
+      "campaign": "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "path": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-28/muon_scalesmearing.json.gz",
+      "release_date": "2026-04-28",
+      "latest_content_identical": true,
+      "sha256_decompressed_bytes": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+      "old_2025_10_17_sha256_decompressed_bytes": "a94f6a32cbcdfe42bfb3e914fc434f3f219052feac2e7ef2111ca6ed89db21e4",
+      "momentum_definition": "Ordinary Muon_pt; separate VXBS payload is not appropriate without switching to its corresponding momentum definition.",
+      "release_note": "Reproduced corrections to fix a bug in previous version; separate beam-spot-constrained variant added."
+    },
+    "public_application_toolkit": {
+      "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit",
+      "git_commit": "1c7426b5e1d808110e8f4fbfef27e71071ea3c26",
+      "commit_date": "2026-06-22T12:04:09+00:00",
+      "manifest": [
+        {
+          "path": "scripts/MuonScaRe.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/scripts/MuonScaRe.py",
+          "bytes": 12502,
+          "sha256": "0dda95c5f85b3dd8995ed589a8c75f4c9f9182847404d54236970a713444dbb1"
+        },
+        {
+          "path": "scripts/MuonScaRe.cc",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/scripts/MuonScaRe.cc",
+          "bytes": 5792,
+          "sha256": "b442772cd44cedd08d5e9cfdb3ee98a75c873a6942bf1f557720d129d1d4419e"
+        },
+        {
+          "path": "scripts/apply_corrections_coffea.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/scripts/apply_corrections_coffea.py",
+          "bytes": 2985,
+          "sha256": "308bf0b5eb988718e98710024baeaeb9996817b5666251388f196aba1cbeee92"
+        },
+        {
+          "path": "scripts/apply_corrections_rdf.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/scripts/apply_corrections_rdf.py",
+          "bytes": 2690,
+          "sha256": "5b02a0c160d1e70175edb7e4835528071123a6bbe6d44834557eb18b86b90b18"
+        },
+        {
+          "path": "code/scarekit.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/code/scarekit.py",
+          "bytes": 10057,
+          "sha256": "9e3921b75464b2d1ce7cf68c8a248683af729c6ebd9d8a48ca8a4ee41d0e233c"
+        },
+        {
+          "path": "code/python/corrections/uncertainties.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/code/python/corrections/uncertainties.py",
+          "bytes": 13261,
+          "sha256": "d8cf9881bdbd8f07e5ad355edb1c0f6ddaef9de81f1b68019527293bbabcda97"
+        },
+        {
+          "path": "code/python/tools/convert2json.py",
+          "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/1c7426b5e1d808110e8f4fbfef27e71071ea3c26/code/python/tools/convert2json.py",
+          "bytes": 11876,
+          "sha256": "86853e7153746a476bc6574d3bc587ddaaa83e324b185f79ceef29debe06d666"
+        }
+      ],
+      "nominal_scale": "1 / (M_mc / pt_raw + charge * A_mc)",
+      "nominal_resolution": "pt_scale * (1 + K_residual * sigma(pt_scale, abs(eta), nTrackerLayers) * R_CB)",
+      "K_residual": "sqrt(max(k_data_nom**2 - k_mc_nom**2, 0))",
+      "randomness": "Payload RandomSmearing HashPRNG using event, luminosityBlock and phi; Crystal Ball inverse CDF using cb_params; reuse draw for all variations.",
+      "required_inputs_present_in_fixture": [
+        "Muon_pt",
+        "Muon_eta",
+        "Muon_phi",
+        "Muon_charge",
+        "Muon_nTrackerLayers",
+        "event",
+        "luminosityBlock"
+      ],
+      "validity": "Supplied application guide: tight, isolated muons, 26-200 GeV. Python scale guard uses incoming pt and resolution guard uses scaled pt. A configurable threshold is not evidence for validity outside this interval.",
+      "uncertainty_findings": [
+        "Reviewed Python and C++ examples evaluate only stat; payload also has nonzero syst and rho_syst.",
+        "Scale errors in _mc entries already combine data and MC variations, with M-A covariance; do not add independent data errors on top.",
+        "k_mc stat/syst entries describe uncertainty of combined residual K, as established by derivation and export source.",
+        "Python pt_resol_var uses k_mc nominal instead of residual K; C++ helper and derivation use residual K. Adapt Python before use.",
+        "Keep stat/syst components internally and scale/resolution separate; a two-source model combining independent components in quadrature is a proposed analysis choice."
+      ],
+      "resolution_variation_formula": "pt_scale * (1 + (K_residual +/- deltaK_component) * sigma * same_R_CB)",
+      "scale_component_variance_formula": "pt_nom**4 * (sigmaM_component**2 / pt_nom**2 + sigmaA_component**2 + 2*charge*rho_component*sigmaM_component*sigmaA_component/pt_nom)"
+    },
+    "synthetic_helper_check": {
+      "scope": "Four synthetic in-range muons; this is a helper-consistency check, not a measurement on collision data or signal acceptance.",
+      "pt_raw": [
+        50.0,
+        70.0,
+        120.0,
+        180.0
+      ],
+      "eta": [
+        0.3,
+        1.0,
+        1.5,
+        2.2
+      ],
+      "pt_scale": [
+        49.98238994104007,
+        70.04951257219565,
+        120.1677399005103,
+        181.26282913785553
+      ],
+      "pt_nominal": [
+        49.87233370462797,
+        69.28582465190077,
+        120.9520221056571,
+        177.12587373266544
+      ],
+      "deterministic_repeat_equal": true,
+      "python_resolution_stat_up": [
+        49.86833633927622,
+        69.27925777452327,
+        120.9593753319195,
+        177.1230186328171
+      ],
+      "cpp_formula_resolution_stat_up": [
+        49.858880497106334,
+        69.26741690272611,
+        120.97007696081758,
+        177.11938752518307
+      ],
+      "python_vs_cpp_shift_ratio": [
+        0.2971310258406446,
+        0.3567452660934627,
+        0.40727140689020186,
+        0.4401801601487517
+      ],
+      "k_residual": [
+        0.30084516366396824,
+        0.3612045819199971,
+        0.414907745770069,
+        0.44568241215017657
+      ]
+    },
+    "synthetic_additional_inputs": {
+      "phi": [
+        0.2,
+        -0.6,
+        1.0,
+        -2.0
+      ],
+      "charge": [
+        1,
+        -1,
+        1,
+        -1
+      ],
+      "nTrackerLayers": [
+        12,
+        12,
+        12,
+        12
+      ],
+      "event": 12345,
+      "luminosityBlock": 1
+    },
+    "selected_fixture_scope": {
+      "selected_muons": 34651,
+      "selected_muons_26_to_200_GeV": 34321,
+      "fraction_26_to_200": 0.990476465325676,
+      "selected_muons_above_200_GeV": 330,
+      "selected_muons_above_500_GeV": 3,
+      "maximum_pt_GeV": 656.2606201171875
+    },
+    "high_pt_input_probe": {
+      "selected_high_pt_muons": 330,
+      "matched_to_original_muon": 330,
+      "tunep_relative_pt_equal_one": 303,
+      "tunep_relative_pt_not_one": 27,
+      "tunep_relative_pt_min": 0.9921875,
+      "tunep_relative_pt_max": 1.0,
+      "high_pt_id_counts": {
+        "2": 330
+      },
+      "nTrackerLayers_min": 9,
+      "nTrackerLayers_max": 17,
+      "scope": "Current nominal selected high-pT tail in one signal fixture; matching uses event identity and raw pt/eta/phi. TuneP equality is a stored-branch check, not validation of GE table applicability."
+    },
+    "high_pt_interpretation": {
+      "explicit_Run3_guidance": "Apply GE bias correction; supersedes generic leave-uncorrected paragraph for this 2024 audit.",
+      "2024_table_missing": false,
+      "2024_resolution": "General guidance remains preliminary and calls for analysis-phase-space closure. The supplied presentation reports a 15% extra MC smearing strategy in EXO-25-021, described as MUO-blessed for 2024, but gives no complete resolution function or validation for this processor. The 10% uncertainty proxy and 15% smearing precedent concern resolution, not a 10%/15% pt shift.",
+      "efficiency_regime": "Predominantly medium-pt sample: do not automatically switch efficiency SF sets event by event solely because of the high-pt tail.",
+      "updated_by": "high_pt_muon_presentation_followup",
+      "data_mc_clarification": "Supplied presentation uses TuneP and explicitly validates stage-1 bias correction on data. This is not a nominal correction recipe for ordinary MC Muon_pt."
+    },
+    "source_access": [
+      {
+        "label": "application",
+        "url": "https://muon-wiki.docs.cern.ch/code/ptcorr/",
+        "status": 401,
+        "error": "Unauthorized",
+        "final_host": "muon-wiki.docs.cern.ch"
+      },
+      {
+        "label": "guidelines",
+        "url": "https://muon-wiki.docs.cern.ch/guidelines/corrections/",
+        "status": 401,
+        "error": "Unauthorized",
+        "final_host": "muon-wiki.docs.cern.ch"
+      },
+      {
+        "label": "kit",
+        "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit",
+        "status": 200,
+        "final_host": "gitlab.cern.ch",
+        "content_type": "text/html",
+        "bytes": 48274,
+        "sha256": "e74ef7c8af756ce2e657781af0c256a9a23c290d8c85f181af8a7ba6f2909aca"
+      },
+      {
+        "label": "kit_readme",
+        "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/raw/master/README.md",
+        "status": 200,
+        "final_host": "gitlab.cern.ch",
+        "content_type": "text/plain",
+        "bytes": 3283,
+        "sha256": "e7672f440de01a9a06f901aff487ec418265db53ac8512b216ef78696ab2e82d"
+      },
+      {
+        "label": "highpt_tables",
+        "url": "https://indico.cern.ch/event/1665380/contributions/7001589/attachments/3243397/5786110/highptmuons.pdf",
+        "status": 200,
+        "final_host": "auth.cern.ch",
+        "content_type": "text/html",
+        "bytes": 17096,
+        "sha256": "4ffa39699468afd0ad0c6e4e43b1eefad458c8d4db4bcc25c61dcdff65f36a96"
+      },
+      {
+        "label": "ge_method",
+        "url": "https://indico.cern.ch/event/1648086/contributions/6926843/attachments/3216713/5734489/muonpogtalk.pdf",
+        "status": 200,
+        "final_host": "auth.cern.ch",
+        "content_type": "text/html",
+        "bytes": 17096,
+        "sha256": "27eabb2c0141c3d7fdc2672e95651ebfbbeaf61b49c5f84339d47141c9317b13"
+      }
+    ],
+    "remaining_validation": [
+      "Full corrected and varied processor integration, including entering/leaving events and candidate/flavor migrations",
+      "Numerical checks across validity boundaries, eta/phi bins, charges and tracker layers",
+      "Reproducibility across chunk sizes and event ordering",
+      "Data versus DY Z-peak mean/width closure and applicable high-pt studies",
+      "Consistent high-pt TuneP/data convention, final stage-1 or two-stage choice, and nuisance covariance model"
+    ],
+    "validation_limit": "Only targeted helper and input-branch diagnostics were performed this turn. No claim of full muon acceptance validation or data/MC closure.",
+    "met_note": "Lepton propagation to MET is optional in supplied JMAR guidance; if adopted, use the same nuisance and avoid duplicate Type-1 muon subtraction.",
+    "superseded_by": "muon_momentum_implementation; this earlier proposed-plan entry is retained as historical research."
+  },
+  "high_pt_muon_presentation_followup": {
+    "date": "2026-09-12",
+    "scope": "Read supplied source, inspect rendered equations and tables, record documentary transcription and update audit/plan. No processor, correctionlib payload or production-output changes.",
+    "source": {
+      "path": "/isilon/export/home/jhuan166/.codex/attachments/87295dc4-2e4c-41fb-99e0-81bb14c406a3/highptmuons.pdf",
+      "url": "https://indico.cern.ch/event/1665380/contributions/7001589/attachments/3243397/5786110/highptmuons.pdf",
+      "sha256_bytes": "0759b8bcb61beb215635e9f70fc014273cdb90d2f3bdfedb3e20b0d53cc161e3",
+      "title": "High pT muons",
+      "speaker": "L. Thomas, on behalf of EXO-25-021",
+      "date": "2026-03-22",
+      "pdf_pages": 24,
+      "review_date": "2026-09-12",
+      "table_pages": [
+        11,
+        16
+      ],
+      "method": "Text extracted from each 2024 panel, checked cell by cell against PDF coordinates and visually against rendered tables. Step-2 repetition across phi verified exactly."
+    },
+    "source_access_status": "User-supplied PDF closes the earlier SSO-blocked request for this deck. All 24 pages read; key formula/table pages inspected visually.",
+    "resolved_facts": {
+      "momentum_definition": {
+        "value": "TuneP pt throughout the GE study",
+        "pdf_page": 9
+      },
+      "demonstrated_nominal_application": {
+        "value": "Stage-1 phi-modulation correction applied to data, compared against uncorrected TuneP",
+        "pdf_page": 17
+      },
+      "units": {
+        "value": "TeV^-1 for additive curvature bias",
+        "pdf_page": 10
+      },
+      "bias_definition": {
+        "value": "q/pt -> q/pt + kappa_b (injected bias)",
+        "pdf_page": 9,
+        "note": "Formula is in an embedded image and was read from the rendered slide."
+      },
+      "stage1": {
+        "pdf_page": 11,
+        "parameters": 60,
+        "shape": [
+          6,
+          10
+        ],
+        "array_order": "Increasing phi rows, increasing signed-eta columns",
+        "derivation": "Single-muon data versus data template averaged over phi and mirrored eta"
+      },
+      "stage2": {
+        "pdf_page": 16,
+        "parameters": 10,
+        "printed_cells": 60,
+        "phi_repetition_verified": true,
+        "derivation": "Eta residual from dimuon data versus MC after stage 1"
+      },
+      "page12": {
+        "value": "Medium-pt comparison maps, not the high-pt GE table",
+        "pdf_page": 12
+      }
+    },
+    "table_transcription": {
+      "path": "docs/muon-ge-2024-tables.json",
+      "sha256_bytes": "2f93a4be62c7d74c4e95148865ddb5e99781f896123147c611c6b30dd5f18f33",
+      "source_cells_verified": 120,
+      "unique_parameters": 70,
+      "eta_edges": [
+        -2.4,
+        -2.1,
+        -1.6,
+        -1.2,
+        -0.8,
+        0.0,
+        0.8,
+        1.2,
+        1.6,
+        2.1,
+        2.4
+      ],
+      "phi_edges_symbolic": [
+        "-pi",
+        "-2*pi/3",
+        "-pi/3",
+        "0",
+        "pi/3",
+        "2*pi/3",
+        "pi"
+      ],
+      "step1_range_TeV_inverse": [
+        -0.173,
+        0.153
+      ],
+      "step2_range_TeV_inverse": [
+        -0.051,
+        0.037
+      ],
+      "precision_limit": "Values and errors retain the three decimal places printed in the slides. This is not a recovery of the full-precision fit output.",
+      "status": "Documentary transcription for review; not a production correctionlib payload or a complete nuisance prescription."
+    },
+    "derived_data_removal_formula": {
+      "definition": "The illustration on page 9 defines injected bias by (q/pt)_biased = (q/pt)_reference + kappa_b.",
+      "data_removal_formula_GeV": "pt_corrected = pt_TuneP / (1 - charge * pt_TuneP * kappa_b_TeV_inverse / 1000)",
+      "formula_status": "Algebraic inverse of the stated bias definition, not a supplied implementation. Match the sign convention of any eventual machine-readable map or helper.",
+      "two_stage_algebra": "If both maps are adopted as biases to remove, sequential curvature subtractions use kappa_b = kappa_phi + kappa_eta. This identity does not determine their covariance or establish the final recommended nominal combination."
+    },
+    "arithmetic_checks": {
+      "examples": [
+        {
+          "pt_GeV": 500.0,
+          "charge": -1,
+          "bias_TeV_inverse": 0.1,
+          "corrected_pt_GeV": 476.19047619047615,
+          "recovered_pt_GeV": 499.9999999999999
+        },
+        {
+          "pt_GeV": 500.0,
+          "charge": 1,
+          "bias_TeV_inverse": 0.1,
+          "corrected_pt_GeV": 526.3157894736843,
+          "recovered_pt_GeV": 500.0000000000001
+        }
+      ],
+      "zero_bias_identity": true,
+      "bias_removal_and_reinjection_roundtrip": true,
+      "two_stage_sequential_equals_summed_bias": true,
+      "two_stage_check_count": 120,
+      "scope": "Both charges and all 60 first-stage bins at 500 GeV; algebraic/unit-conversion check only, not corrected processor integration or closure."
+    },
+    "MC_consequence": "The stated data-corrected convention does not call for adding the data bias to ordinary MC Muon_pt. A consistent TuneP choice, MC resolution/uncertainty treatment and data-side correction need implementation and validation.",
+    "input_compatibility": "Existing fixture probe found all 330 selected high-pt muons have highPtId==2; 27 have tunepRelPt!=1. TuneP pt can be formed from raw Muon_pt times Muon_tunepRelPt, but adopting it requires validation of the changed momentum definition and PF quantities.",
+    "resolution_precedent": {
+      "pdf_page": 7,
+      "statement": "EXO-25-021 reports extra 15% MC smearing based on boosted-Z width comparisons, described as a strategy blessed by MUO POG for 2024.",
+      "scope_limit": "This is evidence for the analysis-specific strategy. The deck does not provide a standalone 2024 sigma(pt,eta) function or a complete prescription for the current PF-isolated ordinary-momentum selection.",
+      "interpretation": "It is not a 15% shift of every muon pt. If a 15% increase of resolution width is implemented through independent Gaussian smearing, sigma_extra=sqrt(1.15**2-1)*sigma_MC=0.56789083458*sigma_MC.",
+      "GE_interplay": "Page 19 shows that bias removal narrows the high-eta Z peak. Assess the residual MC smearing after the adopted data-side GE treatment; the earlier 15% benchmark is not automatically unchanged."
+    },
+    "remaining_questions": [
+      "Final use of stage 1 alone or both stages; the displayed validation uses only stage 1",
+      "Complete statistical/systematic and inter-bin/inter-stage covariance prescription",
+      "Analysis-specific high-pt resolution closure and parameterization for the adopted momentum and selection"
+    ],
+    "selection_caution": "Page 14 prints tracker isolation >= 0.1*pt, inconsistent with the preceding isolation discussion. This derivation slide is not copied into processor selection.",
+    "previous_missing_table_request_closed": true,
+    "implementation_status": "Open; only source review and documentation completed.",
+    "implementation_update": "Ordinary 26-200 GeV implementation completed in muon_momentum_implementation. High-pT table transcription remains documentary; final prescription and closure are open."
+  },
+  "muon_momentum_implementation": {
+    "date": "2026-09-12",
+    "status": "Implemented for tight PF-isolated 2024 ordinary-momentum muons in 26-200 GeV. High-pT prescription, below-range applicability and data/MC closure remain open.",
+    "base_commit": "d212f09313e4418bd8b14d96bfa61356b3ee9c9d",
+    "prior_luminosity_fix_preserved": true,
+    "existing_production_outputs_rewritten": false,
+    "payload": {
+      "bundled_path": "src/vcb/corrections/2024_muon_scalesmearing.json.gz",
+      "pinned_source": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-28/muon_scalesmearing.json.gz",
+      "release": "2026-04-28",
+      "byte_identical_to_pinned_cvmfs": true,
+      "size_bytes": 28510,
+      "sha256_decompressed_bytes": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+      "runtime_integrity_check": true,
+      "fallback": "Only the same dated CVMFS file; missing or checksum mismatch raises."
+    },
+    "application_source": {
+      "repository": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit",
+      "revision": "1c7426b5e1d808110e8f4fbfef27e71071ea3c26",
+      "revision_date": "2026-06-22",
+      "nominal_reference": "scripts/MuonScaRe.py (nested Coffea API)",
+      "resolution_variation_reference": "scripts/MuonScaRe.cc and code/python/corrections/uncertainties.py; vary residual K, not nominal k_mc."
+    },
+    "prescription": {
+      "eligibility": "tightId and pfRelIso04_all < 0.15 and abs(eta) < 2.4; finite pT/phi and charge +/-1; scale input pT in [26,200] GeV.",
+      "nominal_data": "1/(m_data/pT_raw + charge*a_data); no resolution smearing.",
+      "nominal_mc": "Scale with m_mc/a_mc, then pT_scale*(1+K*sigma*CBdraw), with K=sqrt(max(0,k_data^2-k_mc^2)).",
+      "resolution_domain": "Scaled MC pT in [26,200] GeV. Scale-only if this guard is not satisfied.",
+      "randomness": "Payload RandomSmearing(event, luminosityBlock, phi), then symmetric double-sided Crystal Ball inverse CDF. Same draw for nominal and every variation.",
+      "scale_uncertainty": "m_mc/a_mc stat and syst with matching rho_stat/rho_syst. These errors already include data and MC.",
+      "resolution_uncertainty": "k_mc stat and syst are errors on residual K; use max(0,K +/- deltaK), with no division by K. Floor inactive for released 2024 nominal bins.",
+      "total_nuisance_model": "Two independent scale and resolution sources; stat and syst combined in quadrature within each. Component pTs also saved. Do not count totals and components as independent in the same fit.",
+      "out_of_domain": "Input pT preserved with explicit coverage status; no extrapolation or high-pT GE bias applied to ordinary MC.",
+      "met_propagation": "Not applied; optional in supplied JMAR prescription.",
+      "charge_and_relative_pf_isolation": "Retain NanoAOD definitions.",
+      "insertion": "Before good_muons; active pT feeds selection, trigger choice, jet cleaning, generator matching and lepton SFs."
+    },
+    "coverage_codes": {
+      "0": "ineligible",
+      "1": "calibrated",
+      "2": "below range",
+      "3": "above range",
+      "4": "numerical or parameter fallback",
+      "5": "MC scale only, scaled pT outside resolution domain",
+      "6": "unsupported year"
+    },
+    "variation_ids": {
+      "nominal": 0,
+      "scaleUp": 1,
+      "scaleDown": 2,
+      "resolutionUp": 3,
+      "resolutionDown": 4,
+      "scaleStatUp": 5,
+      "scaleStatDown": 6,
+      "scaleSystUp": 7,
+      "scaleSystDown": 8,
+      "resolutionStatUp": 9,
+      "resolutionStatDown": 10,
+      "resolutionSystUp": 11,
+      "resolutionSystDown": 12
+    },
+    "output": {
+      "per_muon": "PtRaw, PtNominal, PtScale, NanoIdx, MomentumStatus, four total and eight component shifted pTs; Pt is the active pass.",
+      "per_event": [
+        "TriggerMuonMomentumStatus",
+        "MuonMomentumVariation"
+      ],
+      "passes": "--muon-pt-variation all writes nominal plus four complete total-shift passes in separate directories, from the same input NanoAOD.",
+      "normalization": "Normalize each copy using the same all-input denominator; never sum repeated totals across momentum passes.",
+      "weight_systematics_flag": "Independent of --muon-pt-variation; nominal muon correction is enabled by default.",
+      "condor": "Existing templates still submit nominal; no batch production was submitted."
+    },
+    "commands": {
+      "units": "micromamba run -n ttbar python -m pytest tests/ -q",
+      "lint": "micromamba run -n ttbar ruff check src/vcb tests condor",
+      "baseline": "micromamba run -n ttbar python tests/test_run.py",
+      "five_pass_integration": "micromamba run -n ttbar python -m vcb.run --processor skimmer --skimmer vcbSkimmer --year 2024 --files tests/data/test-input.root --files-name TTtoLNuCB --root-only --save-systematics --chunksize 100000 --maxchunks 0 --naming-tag muon-integration --outdir /tmp/vcb-muon-implementation --muon-pt-variation all"
+    },
+    "unit_tests": {
+      "passed": 191,
+      "subtests_passed": 18,
+      "new_muon_tests": 34,
+      "dependency_deprecation_warnings": 3
+    },
+    "lint": {
+      "changed_implementation_and_test_files": "pass",
+      "repository_wide": "Two pre-existing B905 errors at tests/test_objects.py:400 and :401; file unchanged."
+    },
+    "whitespace_check": "git -c core.whitespace=cr-at-eol diff --check passes; the tracked CSV baseline retains its existing CRLF convention.",
+    "full_fixture_validation": {
+      "input_events": 208780,
+      "save_systematics": true,
+      "chunksize_requested": 100000,
+      "passes": {
+        "nominal": {
+          "selected_events": 59537,
+          "output_columns": 752,
+          "trigger_flavor_counts": {
+            "11": 24925,
+            "13": 34612
+          },
+          "trigger_muon_momentum_status_counts": {
+            "1": 34282,
+            "3": 330
+          },
+          "all_saved_muon_momentum_status_counts": {
+            "1": 34423,
+            "2": 83,
+            "3": 330
+          },
+          "versus_before_correction": {
+            "selected_events_before": 59575,
+            "entering_events": 0,
+            "leaving_events": 38,
+            "flavor_changes_on_common_events": 1,
+            "changed_trigger_muon_pt": 34282,
+            "absolute_trigger_muon_pt_shift_GeV_percentiles_50_95_100": [
+              0.175245706375442,
+              1.1304823633730066,
+              14.60374128042281
+            ],
+            "weights_changed_on_common_events": 571
+          }
+        },
+        "scaleUp": {
+          "selected_events": 59538,
+          "output_columns": 752,
+          "trigger_flavor_counts": {
+            "11": 24925,
+            "13": 34613
+          },
+          "trigger_muon_momentum_status_counts": {
+            "1": 34283,
+            "3": 330
+          },
+          "all_saved_muon_momentum_status_counts": {
+            "1": 34424,
+            "2": 83,
+            "3": 330
+          },
+          "versus_nominal": {
+            "entering_events": 1,
+            "leaving_events": 0,
+            "common_events": 59537,
+            "changed_fields_in_common_events": {
+              "TriggerLeptonFlav": 0,
+              "TriggerLeptonPt": 34282,
+              "TriggerLeptonEta": 0,
+              "TriggerLeptonPhi": 0,
+              "TriggerLeptonCharge": 0,
+              "nJets": 0,
+              "ht": 0,
+              "METPt": 0,
+              "METPhi": 0,
+              "weight": 18,
+              "single_weight_muon_id": 17,
+              "single_weight_muon_iso": 17,
+              "single_weight_muon_trigger": 18
+            },
+            "entering_event_examples": [
+              [
+                1,
+                1436,
+                1047806
+              ]
+            ]
+          }
+        },
+        "scaleDown": {
+          "selected_events": 59537,
+          "output_columns": 752,
+          "trigger_flavor_counts": {
+            "11": 24925,
+            "13": 34612
+          },
+          "trigger_muon_momentum_status_counts": {
+            "1": 34282,
+            "3": 330
+          },
+          "all_saved_muon_momentum_status_counts": {
+            "1": 34423,
+            "2": 83,
+            "3": 330
+          },
+          "versus_nominal": {
+            "entering_events": 0,
+            "leaving_events": 0,
+            "common_events": 59537,
+            "changed_fields_in_common_events": {
+              "TriggerLeptonFlav": 0,
+              "TriggerLeptonPt": 34282,
+              "TriggerLeptonEta": 0,
+              "TriggerLeptonPhi": 0,
+              "TriggerLeptonCharge": 0,
+              "nJets": 0,
+              "ht": 0,
+              "METPt": 0,
+              "METPhi": 0,
+              "weight": 11,
+              "single_weight_muon_id": 11,
+              "single_weight_muon_iso": 11,
+              "single_weight_muon_trigger": 11
+            },
+            "entering_event_examples": []
+          }
+        },
+        "resolutionUp": {
+          "selected_events": 59533,
+          "output_columns": 752,
+          "trigger_flavor_counts": {
+            "11": 24925,
+            "13": 34608
+          },
+          "trigger_muon_momentum_status_counts": {
+            "1": 34278,
+            "3": 330
+          },
+          "all_saved_muon_momentum_status_counts": {
+            "1": 34419,
+            "2": 83,
+            "3": 330
+          },
+          "versus_nominal": {
+            "entering_events": 0,
+            "leaving_events": 4,
+            "common_events": 59533,
+            "changed_fields_in_common_events": {
+              "TriggerLeptonFlav": 0,
+              "TriggerLeptonPt": 34278,
+              "TriggerLeptonEta": 0,
+              "TriggerLeptonPhi": 0,
+              "TriggerLeptonCharge": 0,
+              "nJets": 0,
+              "ht": 0,
+              "METPt": 0,
+              "METPhi": 0,
+              "weight": 40,
+              "single_weight_muon_id": 39,
+              "single_weight_muon_iso": 39,
+              "single_weight_muon_trigger": 40
+            },
+            "entering_event_examples": []
+          }
+        },
+        "resolutionDown": {
+          "selected_events": 59541,
+          "output_columns": 752,
+          "trigger_flavor_counts": {
+            "11": 24925,
+            "13": 34616
+          },
+          "trigger_muon_momentum_status_counts": {
+            "1": 34286,
+            "3": 330
+          },
+          "all_saved_muon_momentum_status_counts": {
+            "1": 34427,
+            "2": 83,
+            "3": 330
+          },
+          "versus_nominal": {
+            "entering_events": 4,
+            "leaving_events": 0,
+            "common_events": 59537,
+            "changed_fields_in_common_events": {
+              "TriggerLeptonFlav": 0,
+              "TriggerLeptonPt": 34282,
+              "TriggerLeptonEta": 0,
+              "TriggerLeptonPhi": 0,
+              "TriggerLeptonCharge": 0,
+              "nJets": 0,
+              "ht": 0,
+              "METPt": 0,
+              "METPhi": 0,
+              "weight": 52,
+              "single_weight_muon_id": 51,
+              "single_weight_muon_iso": 51,
+              "single_weight_muon_trigger": 52
+            },
+            "entering_event_examples": [
+              [
+                1,
+                18007,
+                13144529
+              ],
+              [
+                1,
+                21944,
+                16018680
+              ],
+              [
+                1,
+                24860,
+                18147557
+              ],
+              [
+                1,
+                27180,
+                19841388
+              ]
+            ]
+          }
+        }
+      },
+      "all_input_normalization_totals_identical": true,
+      "np_nominal": 69805971.43478915,
+      "sum_genweight": 69792312.0,
+      "raw_momentum_and_charge_input_identity_comparisons": 34836,
+      "same_muon_nominal_and_shift_fields_identical_across_passes": true,
+      "active_momentum_matches_selected_variation": true,
+      "high_pt_momenta_preserved_in_all_passes": true,
+      "met_identical_for_common_events": true,
+      "luminosity_normalization_preserved": true
+    },
+    "independent_reference_and_sf_validation": {
+      "nominal_baseline_columns": 734,
+      "nominal_baseline_matches_systematics_enabled_nominal_on_every_common_column": true,
+      "muon_sf_evaluations_checked_against_payload_at_active_momentum": 519183,
+      "calibrated_saved_muons_compared_with_independent_pinned_nominal_helper": 34423,
+      "max_absolute_nominal_reference_difference_GeV": 1.3805845355818747e-11
+    },
+    "nominal_jet_tagger_roundtrip": {
+      "input_events": 208780,
+      "output_events": 59537,
+      "matched_jets": 318871,
+      "comparisons": 5420807,
+      "differing_comparisons": 0,
+      "unexplained_dropped_jets": 0,
+      "verdict": "PASS"
+    },
+    "implementation_file_sha256": {
+      "src/vcb/processors/muon_ss.py": "c91369678456b7df5d723eb0c6dbd0fc0a4d7a509c8bad6a9c0cc41829c6361c",
+      "src/vcb/processors/vcbSkimmer.py": "690c922d959c6825e183589ea2e381b562d2ea5533291faafb87f5379f3606f5",
+      "src/vcb/run.py": "f95d125a3a9c053b95dc9cb83d7f65c62685c37aeccaf1c194576ee9cd4927e2",
+      "tests/test_muon_ss.py": "529ceffc4f2257bb2f9b0e8bfcb6b6309cc45ea86ecdfb844dd083d93337723c",
+      "pyproject.toml": "7a7a9b9c49d40ed9778930ee4786c7501068555d446c0c6b83c35bad0351f767"
+    },
+    "regenerated_baseline_sha256": {
+      "tests/outfile/test-output-schema.csv": "7047295b301eff4fe4253c2bb6bbb9897dd31675e437d499e9d2403f165eae87",
+      "tests/outfile/test-output-0th-event.txt": "eb35824f15dba403c5f46384c4d368aed89c733bdfb62c524d605dc118e88886",
+      "tests/outfile/test-jet-tagger-roundtrip.txt": "dbc97736ba7ed6e2129058ee81b6d05fa457412d5729be6b6fc90d77604453ab"
+    },
+    "remaining_analysis_work": [
+      "Dimuon Z-peak mean/width closure in data versus corrected DY MC by charge, eta, phi and pT; not supplied by a signal fixture.",
+      "Validated boundary treatment if migration from below 26 GeV is needed; no silent extrapolation.",
+      "High-pT TuneP/data correction convention, final GE stages and nuisance/covariance prescription.",
+      "Residual high-pT data/MC resolution and scale-bias validation, including the >500 GeV tail. Neither blanket 10/15 percent pT shifts nor 2022/2023 polynomial coefficients are adopted."
+    ]
+  }
+}

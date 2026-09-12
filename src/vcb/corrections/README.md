@@ -7,11 +7,12 @@ mounted. Same policy as
 which covers the jet and pile-up payloads; these live under `src/vcb/` instead
 because the code that reads them
 ([`../processors/lepton_sf.py`](../processors/lepton_sf.py),
-[`../processors/electron_ss.py`](../processors/electron_ss.py)) is
+[`../processors/electron_ss.py`](../processors/electron_ss.py),
+[`../processors/muon_ss.py`](../processors/muon_ss.py)) is
 analysis-local — its working points track the Vcb object selection, so it does
 not belong in the vendored `boostedhh` tree.
 
-All four files are **byte-identical copies** of their cvmfs source (md5 below).
+All five files are **byte-identical copies** of their cvmfs source (checksums below).
 
 | File | Content date | Retrieved | Used by |
 |---|---|---|---|
@@ -19,11 +20,11 @@ All four files are **byte-identical copies** of their cvmfs source (md5 below).
 | `2024_electronHlt.json.gz` | 2025-12-15 snapshot | 2026-08-04 | 2024 electron trigger (Ele30) SFs |
 | `2024_electronSS_EtDependent.json.gz` | 2025-12-15 snapshot | 2026-08-07 | 2024 electron energy scale (data) + smearing (MC) |
 | `2024_muon_Z.json.gz` | 2026-06-18 snapshot | 2026-08-04 | 2024 muon ID + PF-isolation + trigger (IsoMu24) SFs |
+| `2024_muon_scalesmearing.json.gz` | 2026-04-28 snapshot | 2026-09-12 | 2024 ordinary-momentum muon scale (data and MC) + residual resolution smearing (MC), 26–200 GeV |
 
-Three of the four are *scale factors* — event weights, applied in
-`lepton_sf.py`. `electronSS_EtDependent` is not: it rewrites the electron's pT
-and so moves the acceptance, which is why it lives in its own module and runs
-before the object selection rather than in `add_weights`.
+Three files supply efficiency *scale factors*, applied as event weights in
+`lepton_sf.py`. The electron and muon momentum payloads change pT and acceptance;
+their helpers run before object selection.
 
 ---
 
@@ -224,9 +225,44 @@ No muon **reco** SF is applied — this campaign publishes none (`muon_Z` has no
 
 ---
 
+## `2024_muon_scalesmearing.json.gz`
+
+The ordinary-momentum MuonScaReKIT payload for tight, isolated 2024 muons in
+26–200 GeV. This is distinct from `muon_Z` efficiency SFs and the VXBS momentum
+variant. The processor uses ordinary NanoAOD `Muon_pt`.
+
+**Origin.**
+`/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-28/muon_scalesmearing.json.gz`.
+The dated release fixes the previous momentum payload; its decompressed content
+matches the accessible `latest` release as checked on 12 September 2026.
+
+- retrieved: **2026-09-12**
+- size: **28510 bytes**
+- SHA-256 (decompressed): `4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f`
+- application source: [MuonScaReKIT revision 1c7426b5](https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/tree/1c7426b5e1d808110e8f4fbfef27e71071ea3c26), 22 June 2026.
+
+`muon_ss.py` checks the decompressed hash before loading, using the bundled file
+first and this exact dated CVMFS path as fallback. Missing or different content
+raises. No infinity-edge shim is needed for this payload on correctionlib 2.5.0.
+
+Data and MC receive their respective `m_*`/`a_*` scale correction to the generator
+reference. MC additionally uses `cb_params`, `poly_params`, `k_data`, `k_mc` and
+`RandomSmearing`. Statistical and systematic errors are retained separately and
+combined in quadrature for the default two-source scale/resolution variations.
+Resolution shifts vary residual K, following the derivation and C++ helper; the
+public Python example's different coefficient is not used. The `_mc` uncertainty
+entries already include both data and MC contributions.
+
+The helper records domain and fallback status. It does not extrapolate below
+26 or above 200 GeV, switch to TuneP, or apply the data GE bias to MC. Formulas,
+validation, nuisance choices and the remaining high-pT prescription are in
+[the muon implementation record](../../../docs/muon-momentum-2024-plan.md).
+
+---
+
 ## A packaging note: `"inf"` vs `Infinity`
 
-These payloads spell an infinite binning edge as the JSON **string** `"inf"`.
+The efficiency payloads spell an infinite binning edge as the JSON **string** `"inf"`.
 `correctionlib` is pinned to **2.5.0** (`pyproject.toml`), which only accepts
 the bare `Infinity` literal and rejects the string form outright
 (`RuntimeError: Invalid edges array type` for MUO,

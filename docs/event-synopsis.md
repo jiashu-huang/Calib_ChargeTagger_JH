@@ -59,6 +59,14 @@ entries, including `all`, are cumulative **sums of input `genWeight`**, not
 raw event counts or fully corrected yields. For MC, the metadata names
 `nevents` and `total_nevents` also mean sums of generator weights.
 
+For muon momentum uncertainties, [`--muon-pt-variation all`](cli.md#muon-momentum-passes)
+repeats this sequence from the input NanoAOD for nominal and each of four total
+scale/resolution shifts. Each pass uses its own active corrected muon pT,
+selection and weights, so entering events are retained. The all-input
+normalization denominator is unchanged across these copies of the sample;
+never sum the five copies together. This option is separate from weight
+systematics and covers the validated 26–200 GeV muon treatment.
+
 ## Nominal weight in the first pass
 
 Define `C = cross section × luminosity`, `g = input genWeight`, and `PU` as
@@ -121,7 +129,7 @@ weights clipped to [0, 10]. Output `nTrueInt` retains the input value. Output
 neither is the PU-weight input. `Rho` is used for jet corrections, not PU weights.
 
 Lepton SFs apply only to the event's chosen `TriggerLepton*`, not to every saved
-lepton. Electron SFs use corrected pT and supercluster eta; muon SFs use pT and
+lepton. Electron SFs use corrected pT and supercluster eta; muon SFs use active corrected pT and
 signed eta. The bundled payloads are `2024_electron.json.gz`,
 `2024_electronHlt.json.gz`, and `2024_muon_Z.json.gz`. If a lepton payload is
 unavailable both locally and at its fallback path, the code logs a warning and
@@ -239,7 +247,7 @@ for that choice. The associated saved top momenta are `GenTopPt0` and `GenTopPt1
 
 There are no b-tag/c-tag/charge-tag SFs, pileup-jet-ID SFs, separate muon
 reconstruction SFs, prefiring weights, or luminosity uncertainty branches in
-this ttbar path. Electron energy corrections, nominal jet JEC/JER, MET
+this ttbar path. Electron and muon momentum corrections, nominal jet JEC/JER, MET
 rebuilding, jet-veto maps, trigger requirements, and object cuts can change
 acceptance or the kinematics used to evaluate SFs; they add no independent
 multiplicative event factor. Electron pT alternatives are listed in

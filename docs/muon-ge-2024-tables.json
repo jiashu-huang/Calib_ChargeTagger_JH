@@ -1,0 +1,255 @@
+{
+  "status": "Documentary transcription for review; not a production correctionlib payload or a complete nuisance prescription.",
+  "source": {
+    "path": "/isilon/export/home/jhuan166/.codex/attachments/87295dc4-2e4c-41fb-99e0-81bb14c406a3/highptmuons.pdf",
+    "url": "https://indico.cern.ch/event/1665380/contributions/7001589/attachments/3243397/5786110/highptmuons.pdf",
+    "sha256_bytes": "0759b8bcb61beb215635e9f70fc014273cdb90d2f3bdfedb3e20b0d53cc161e3",
+    "title": "High pT muons",
+    "speaker": "L. Thomas, on behalf of EXO-25-021",
+    "date": "2026-03-22",
+    "pdf_pages": 24,
+    "review_date": "2026-09-12",
+    "table_pages": [
+      11,
+      16
+    ],
+    "method": "Text extracted from each 2024 panel, checked cell by cell against PDF coordinates and visually against rendered tables. Step-2 repetition across phi verified exactly."
+  },
+  "momentum": "TuneP pt, explicitly stated on PDF page 9.",
+  "units": "TeV^-1 for additive curvature bias; shown on fit axes on page 10. Multiply by 0.001 for GeV^-1.",
+  "eta_edges": [
+    -2.4,
+    -2.1,
+    -1.6,
+    -1.2,
+    -0.8,
+    0.0,
+    0.8,
+    1.2,
+    1.6,
+    2.1,
+    2.4
+  ],
+  "phi_edges_radians": [
+    -3.141592653589793,
+    -2.0943951023931953,
+    -1.0471975511965976,
+    0.0,
+    1.0471975511965976,
+    2.0943951023931953,
+    3.141592653589793
+  ],
+  "phi_edges_symbolic": [
+    "-pi",
+    "-2*pi/3",
+    "-pi/3",
+    "0",
+    "pi/3",
+    "2*pi/3",
+    "pi"
+  ],
+  "bin_edge_provenance": "Read from the plotted histogram geometry and axes; the page-10 examples explicitly identify 0.8<eta<1.2, 2.1<eta<2.4, and pi/3 phi bins. The deck does not define numerical edge-inclusion conventions.",
+  "precision": "Values and errors retain the three decimal places printed in the slides. This is not a recovery of the full-precision fit output.",
+  "step1_phi_modulation": {
+    "pdf_page": 11,
+    "array_order": "Rows are increasing phi from -pi to pi (bottom to top in the plot); columns are increasing signed eta.",
+    "derivation": "Single-muon data versus a data template averaged over phi and mirrored eta; HLT_Mu50, exactly one highPtId muon, pfIsoId>=5, TuneP pt>200 GeV.",
+    "bias_values": [
+      [
+        -0.016,
+        -0.0,
+        0.016,
+        0.021,
+        -0.016,
+        -0.018,
+        -0.023,
+        -0.02,
+        -0.016,
+        0.042
+      ],
+      [
+        -0.047,
+        0.007,
+        0.03,
+        0.002,
+        -0.008,
+        -0.01,
+        -0.006,
+        -0.019,
+        -0.043,
+        -0.023
+      ],
+      [
+        0.039,
+        0.071,
+        0.009,
+        0.009,
+        0.007,
+        -0.003,
+        -0.04,
+        -0.038,
+        -0.097,
+        -0.173
+      ],
+      [
+        -0.033,
+        0.016,
+        0.006,
+        -0.024,
+        0.015,
+        0.009,
+        -0.034,
+        -0.094,
+        -0.125,
+        -0.127
+      ],
+      [
+        0.133,
+        0.051,
+        0.019,
+        0.026,
+        0.009,
+        -0.004,
+        -0.009,
+        -0.023,
+        -0.065,
+        -0.061
+      ],
+      [
+        0.153,
+        0.109,
+        0.045,
+        0.018,
+        -0.015,
+        -0.022,
+        0.002,
+        0.017,
+        0.035,
+        0.065
+      ]
+    ],
+    "quoted_errors": [
+      [
+        0.016,
+        0.011,
+        0.011,
+        0.011,
+        0.007,
+        0.007,
+        0.01,
+        0.01,
+        0.011,
+        0.016
+      ],
+      [
+        0.015,
+        0.011,
+        0.011,
+        0.01,
+        0.007,
+        0.007,
+        0.01,
+        0.011,
+        0.01,
+        0.015
+      ],
+      [
+        0.016,
+        0.011,
+        0.01,
+        0.01,
+        0.007,
+        0.007,
+        0.01,
+        0.011,
+        0.01,
+        0.016
+      ],
+      [
+        0.015,
+        0.011,
+        0.011,
+        0.01,
+        0.007,
+        0.007,
+        0.01,
+        0.01,
+        0.011,
+        0.015
+      ],
+      [
+        0.016,
+        0.011,
+        0.01,
+        0.01,
+        0.007,
+        0.007,
+        0.01,
+        0.01,
+        0.011,
+        0.015
+      ],
+      [
+        0.016,
+        0.01,
+        0.01,
+        0.01,
+        0.007,
+        0.007,
+        0.01,
+        0.01,
+        0.01,
+        0.016
+      ]
+    ],
+    "value_min": -0.173,
+    "value_max": 0.153,
+    "nominal_application_evidence": "Page 17 explicitly applies this step to data TuneP and compares with nominal TuneP; pages 18-20 show validation."
+  },
+  "step2_eta_residual": {
+    "pdf_page": 16,
+    "array_order": "Increasing signed eta; ten unique parameters, repeated over all six phi rows in the source figure.",
+    "derivation": "Dimuon data versus MC after step 1. MC template includes DY, diboson and ttbar. Page 14 prints a tracker-isolation inequality inconsistent with the preceding isolation description; do not copy it as a selection prescription.",
+    "bias_values": [
+      -0.016,
+      0.002,
+      0.037,
+      -0.011,
+      0.013,
+      -0.003,
+      0.032,
+      -0.022,
+      -0.02,
+      -0.051
+    ],
+    "quoted_errors": [
+      0.02,
+      0.013,
+      0.015,
+      0.014,
+      0.01,
+      0.01,
+      0.014,
+      0.015,
+      0.013,
+      0.02
+    ],
+    "value_min": -0.051,
+    "value_max": 0.037,
+    "nominal_application_limit": "Described as a further correction on page 9, but the displayed validation on page 17 explicitly uses step 1 only. Confirm the adopted two-step prescription before production."
+  },
+  "bias_convention": {
+    "definition": "The illustration on page 9 defines injected bias by (q/pt)_biased = (q/pt)_reference + kappa_b.",
+    "data_removal_formula_GeV": "pt_corrected = pt_TuneP / (1 - charge * pt_TuneP * kappa_b_TeV_inverse / 1000)",
+    "formula_status": "Algebraic inverse of the stated bias definition, not a supplied implementation. Match the sign convention of any eventual machine-readable map or helper.",
+    "two_stage_algebra": "If both maps are adopted as biases to remove, sequential curvature subtractions use kappa_b = kappa_phi + kappa_eta. This identity does not determine their covariance or establish the final recommended nominal combination."
+  },
+  "uncertainty_limit": "The deck prints uncertainties but supplies no complete stat/syst breakdown, inter-bin or inter-stage covariance, or final nuisance implementation. Do not assume all cells and both steps are independent.",
+  "2024_resolution": {
+    "pdf_page": 7,
+    "statement": "EXO-25-021 reports extra 15% MC smearing based on boosted-Z width comparisons, described as a strategy blessed by MUO POG for 2024.",
+    "scope_limit": "This is evidence for the analysis-specific strategy. The deck does not provide a standalone 2024 sigma(pt,eta) function or a complete prescription for the current PF-isolated ordinary-momentum selection.",
+    "interpretation": "It is not a 15% shift of every muon pt. If a 15% increase of resolution width is implemented through independent Gaussian smearing, sigma_extra=sqrt(1.15**2-1)*sigma_MC=0.56789083458*sigma_MC.",
+    "GE_interplay": "Page 19 shows that bias removal narrows the high-eta Z peak. Assess the residual MC smearing after the adopted data-side GE treatment; the earlier 15% benchmark is not automatically unchanged."
+  }
+}

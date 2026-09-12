@@ -11,7 +11,7 @@ Flags come from four places, in this order:
 | [`run_utils.parse_common_run_args`](../src/boostedhh/run_utils.py#L78) | `--starti --endi --executor --files --files-name --batch-size --yaml --file-tag` |
 | [`run_utils.parse_common_hh_args`](../src/boostedhh/run_utils.py#L107) | `--year --samples --subsamples --maxchunks --chunksize --save-systematics --save-root` |
 | [`vcb_utils.parse_common_run_args`](../src/vcb/vcb_utils.py#L47) | `--processor --region --nano-version --prescale-factor` |
-| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --naming-tag --outdir --root-only --output-root-location` |
+| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --muon-pt-variation --naming-tag --outdir --root-only --output-root-location` |
 
 Boolean flags are mutually exclusive pairs: `add_bool_arg` generates a `--no-<name>`
 alongside each of `--save-root` and `--save-systematics`. `--root-only` is a plain
@@ -61,11 +61,53 @@ grouped on the way out.
 | Flag | Default | Effect |
 |---|---|---|
 | `--skimmer` | `vcbSkimmer` | Module under `src/vcb/processors/` to run. Accepts `vcbSkimmer`, `vcbSkimmer.py`, or a path. |
+| `--muon-pt-variation` | `nominal` | Active 2024 MC momentum pass. `all` runs nominal plus four total scale/resolution shifts from the original NanoAOD, each in its own subdirectory; see below. |
 | `--processor` | `skimmer` | Only choice is `skimmer`. |
 | `--executor` | `iterative` | Only `dask` vs. not-`dask` is honoured — see *Inert*. |
 | `--region` | `signal` | Only choice is `signal`; indexes a one-entry HLT dict. |
 | `--nano-version` | `v12_private` | Only choice. Reaches `get_jec_jets`, where the gate is `"v12" not in nano_version` — always false, so a no-op. |
 | `--prescale-factor` | `None` | Keep only events with `event % N == 0` ([vcbSkimmer.py:600](../src/vcb/processors/vcbSkimmer.py#L600)). Adds a `prescale` row to the cutflow. Useful for a fast, statistically valid pass over 1/N of a sample. **Note:** `np_nominal` still counts every event read, so a prescaled run's `finalWeight` over-predicts yields by roughly N — prescale for timing and shape checks, not for yields. |
+
+## Muon momentum passes
+
+Nominal 2024 scale and resolution corrections run automatically. To produce
+the nominal skim and all four total shifts with complete event reselection:
+
+```bash
+micromamba run -n ttbar python -m vcb.run \
+  --processor skimmer --year 2024 \
+  --files tests/data/test-input.root --files-name TTtoLNuCB \
+  --root-only --outdir outputs/muon_variations --muon-pt-variation all
+```
+
+This writes subdirectories `nominal`, `scaleUp`, `scaleDown`, `resolutionUp`
+and `resolutionDown`. An explicit `--output-root-location` gets the same
+subdirectories. Non-nominal filenames include `__muon_<variation>` so separate
+single-pass jobs can also share an output directory safely. `outputs/latest`
+points to the last completed pass.
+
+Each pass starts from the input events, replaces the active muon pT before
+selection, and recalculates trigger-lepton choice, jet cleaning, generator
+matching and efficiency weights. Thus it retains events entering under a shift.
+Normalize each pass as a separate copy of the same sample using its all-input
+denominator; never sum denominators across the five copies or normalize to
+each pass's selected yield. Existing Condor submission templates run nominal;
+they do not automatically submit these additional passes.
+
+Individual choices are `nominal`, `scaleUp`, `scaleDown`, `resolutionUp`,
+`resolutionDown`, or the eight component choices
+`{scale,resolution}{Stat,Syst}{Up,Down}`. Total shifts combine statistical and
+systematic errors in quadrature within each of the two sources. Use either
+the total-source model or an explicitly defined component model in a fit;
+do not count both as independent uncertainties. `MuonMomentumVariation` stores
+the pass ID listed in [the implementation record](muon-momentum-2024-plan.md).
+
+`--save-systematics` controls weight variations independently; combine it with
+this option if those branches are needed. Stored varied muon-pT columns on a
+nominal skim alone cannot recover events that failed its selection. Only
+2024 MC supports shifted passes, using the local runner. Outside the validated
+26–200 GeV range momenta stay unchanged and carry a coverage flag; these passes
+do not supply the unresolved high-pT uncertainty treatment.
 
 ## Overlaps
 

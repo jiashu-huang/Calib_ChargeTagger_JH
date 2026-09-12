@@ -12,6 +12,7 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 | File | What it does |
 |---|---|
+| [tests/test_muon_ss.py](../tests/test_muon_ss.py) | Pinned MUO nominal and C++ resolution reference values; Crystal Ball core/tails and tracker-layer edges; statistical/systematic errors; data/MC and domain handling; empty/missing inputs and payload integrity; chunk/order reproducibility; an entering event through the real trigger selection; separate CLI passes. |
 | [tests/test_validate_processed.py](../tests/test_validate_processed.py) | Uses small ROOT files to check nominal/systematic schema detection before and after normalization, batch and merged targets, explicit modes, mixed campaigns, missing or unexpected columns, and exact custom schemas. Missing or invalid schema files must fail. |
 | [tests/test_type1_met.py](../tests/test_type1_met.py) | Checks MET against explicit jet-minus-muon vectors, including phi wrapping. Covers auxiliary `CorrT1METJet` threshold crossings after JEC/JER, the EM-fraction cut, empty collections, hybrid gen matching, and smearing reproducibility across chunk sizes. |
 | [tests/test_package.py](../tests/test_package.py) | One smoke test: the installed distribution's version matches `vcb.__version__`. Fails if `vcb` isn't importable or the editable install is stale/missing — i.e. it catches a broken **Setup** before anything else does. |

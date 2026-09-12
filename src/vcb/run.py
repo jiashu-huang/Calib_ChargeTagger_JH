@@ -22,6 +22,7 @@ skimmer reads the cross section off it. There is deliberately no default -- see
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib
 import inspect
 import warnings
@@ -35,6 +36,7 @@ from boostedhh.hh_vars import DATA_SAMPLES
 from boostedhh.processors import SkimmerABC
 from boostedhh.xsecs import xsecs
 from vcb import vcb_utils
+from vcb.processors.muon_ss import TOTAL_VARIATIONS, VARIATION_IDS, validate_variation
 
 
 def _require_files_name(args) -> None:
@@ -144,6 +146,7 @@ def get_processor(
     nano_version: str | None = None,
     prescale_factor: int | None = None,
     skimmer: str | None = None,
+    muon_pt_variation: str = "nominal",
 ):
     # Factory for processor instances. Currently only "skimmer" is supported.
     if processor == "skimmer":
@@ -152,13 +155,20 @@ def get_processor(
         skimmer_module = importlib.import_module(f"vcb.processors.{skimmer_name}")
         skimmer_cls = _select_skimmer_class(skimmer_module, skimmer_name, class_name)
 
-        # Instantiate the skimmer and pass runtime configuration.
+        # Preserve compatibility with alternate skimmers for nominal runs.
+        muon_options = {}
+        if muon_pt_variation != "nominal":
+            validate_variation(muon_pt_variation)
+            if "muon_pt_variation" not in inspect.signature(skimmer_cls).parameters:
+                raise ValueError(f"{skimmer_cls.__name__} does not support muon pT variations")
+            muon_options["muon_pt_variation"] = muon_pt_variation
         return skimmer_cls(
             xsecs=xsecs,
             save_systematics=save_systematics,
             region=region,
             nano_version=nano_version,
             prescale_factor=prescale_factor,
+            **muon_options,
         )
 
 
@@ -181,7 +191,7 @@ def _default_naming_tag(args, fileset: dict) -> str:
     return f"{args.starti}-{args.endi}"
 
 
-def main(args):
+def _run_single(args):
     # Build the processor with all CLI-configured options.
     p = get_processor(
         args.processor,
@@ -190,6 +200,7 @@ def main(args):
         args.nano_version,
         args.prescale_factor,
         args.skimmer,
+        muon_pt_variation=getattr(args, "muon_pt_variation", "nominal"),
     )
 
     # Select output formats by processor type (skimmer always saves both).
@@ -257,6 +268,9 @@ def main(args):
             filetag = args.file_tag
         else:
             filetag = _default_naming_tag(args, fileset)
+        variation = getattr(args, "muon_pt_variation", "nominal")
+        if variation != "nominal":
+            filetag = f"{filetag}__muon_{variation}"
 
         # Resolve output directory: use explicit --outdir or auto-generate a timestamped one.
         outputs_root = Path("outputs")
@@ -292,9 +306,32 @@ def main(args):
         latest_link = outputs_root / "latest"
         if latest_link.is_symlink():
             latest_link.unlink()
-        symlink_target = run_outdir if run_outdir.is_absolute() else run_outdir.name
+        symlink_target = run_outdir.resolve()
         latest_link.symlink_to(symlink_target)
         print(f"Updated outputs/latest -> {symlink_target}")
+
+
+def main(args):
+    """Each muon variation starts from NanoAOD and gets its own complete skim."""
+    variation = getattr(args, "muon_pt_variation", "nominal")
+    if variation != "nominal":
+        if args.year != "2024":
+            raise ValueError("Muon pT variations require 2024 MC")
+        if args.executor == "dask":
+            raise ValueError("Muon pT variations require the local runner")
+    if variation != "all":
+        validate_variation(variation)
+        return _run_single(args)
+
+    # Fix one parent directory before the passes, even across a minute boundary.
+    parent = Path(args.outdir) if args.outdir else Path("outputs") / datetime.now().strftime("%Y%m%d_%H%M")
+    for shift in ("nominal", *TOTAL_VARIATIONS):
+        run_args = copy.copy(args)
+        run_args.muon_pt_variation = shift
+        run_args.outdir = str(parent / shift)
+        if args.output_root_location:
+            run_args.output_root_location = str(Path(args.output_root_location) / shift)
+        _run_single(run_args)
 
 
 if __name__ == "__main__":
@@ -315,6 +352,16 @@ if __name__ == "__main__":
         help=(
             "Skimmer module name in src/processors, optionally with class name "
             "(e.g., vcbSkimmer, vcbSkimmer.py, ttSkimmer)."
+        ),
+    )
+    parser.add_argument(
+        "--muon-pt-variation",
+        choices=(*VARIATION_IDS, "all"),
+        default="nominal",
+        help=(
+            "Muon momentum pass (2024 MC shifts). 'all' writes nominal plus four total "
+            "scale/resolution passes in separate subdirectories. Each pass reselects events "
+            "from NanoAOD and recalculates lepton choice, jet cleaning and weights."
         ),
     )
     parser.add_argument(

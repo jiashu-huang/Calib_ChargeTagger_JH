@@ -29,6 +29,7 @@ dependencies = [
   "awkward==1.10.4",
   "correctionlib==2.5.0",
   "numpy==1.23.5",
+  "scipy==1.15.3",
   "pandas==2.0.3",
   "pyarrow==12.0.1",
   "uproot==4.3.7",

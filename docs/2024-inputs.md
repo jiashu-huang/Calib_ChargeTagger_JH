@@ -1,13 +1,15 @@
 # 2024 calibration inputs — provenance
 
-Last update: **2026-09-11**
+Last update: **2026-09-12**
 
 This repo is copied from Calib_ChargeTagger, which could only process files up
 to 2023. This document records, for each 2024 calibration input, what was
 needed, what is in place, and **exactly where it lives** — plus a note on
 input-file health (item 7). **All are filled in** with real 2024 values. The
 pipeline worked on placeholders throughout — these only ever affected
-calibration-grade correctness.
+calibration-grade correctness. This is an inventory of implemented inputs;
+outstanding recommendation checks and missing uncertainty propagation are
+recorded in [the 2024 MC audit](audit-2024-mc-2026-09-11.md).
 
 Items 1–4 were the original set; item 5 (lepton scale factors) was added on
 2026-08-04, item 6 (AK4 jet ID) on 2026-08-05, and item 8 (top-pT reweighting)
@@ -159,8 +161,11 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   asserted against the payload in both directions by
   [tests/test_objects.py](../tests/test_objects.py). Cost: 575 / 62,158 fixture
   events (0.93%), all electron-channel; the muon channel is untouched.
-- **Remaining gap, upstream:** no muon reco SF exists for this campaign
-  (tracking efficiency ~1 above 10 GeV).
+- **Muon reco SF:** the supplied MUO Run-3 medium-pT guidance recommends no
+  additional general-track-to-tracker-muon reconstruction SF for this regime.
+  Its absence is not an outstanding correction requirement. Muon momentum
+  calibration is handled separately in item 5c; the high-pT prescription and
+  analysis-dependent efficiency studies remain open.
 - **Impact:** a real yield shift — mean SF 0.916 (electron channel) / 0.959
   (muon channel) on the test fixture, on top of the 0.93% acceptance loss from
   the crack veto. The SFs are *not* norm-preserving, by design: they correct
@@ -224,6 +229,42 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   propagate into the Type-1 PUPPI MET (§ "MET"), which the semileptonic leg
   uses for the ν p_z solution. It is not, matching common practice at this
   size of shift — but it is a deliberate omission, not an oversight.
+
+## 5c. 2024 muon momentum scale and resolution (26–200 GeV implemented)
+
+- **Implemented (2026-09-12):**
+  [`muon_ss.py`](../src/vcb/processors/muon_ss.py) corrects tight, PF-isolated
+  muons before selection. Both data and MC receive their scale correction to
+  the generator reference; MC then receives residual resolution smearing.
+  The active pT feeds the trigger choice, jet cleaning, matching and SFs.
+- **Source:** ordinary `muon_scalesmearing.json.gz` from the MUO CAT campaign
+  `Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15`, dated **2026-04-28**,
+  bundled as `src/vcb/corrections/2024_muon_scalesmearing.json.gz`. The loader
+  verifies SHA-256 of decompressed bytes
+  `4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f`.
+  This is the bug-fixed ordinary-momentum payload, not the VXBS variant or
+  the older tag cited in AN-25-214.
+- **Uncertainties:** scale and residual resolution are separate sources;
+  both include the payload's statistical and systematic components. The
+  residual-K formula follows the derivation and C++ helper, correcting the
+  public Python example's coefficient discrepancy. The MC uncertainty entries
+  already include data and MC contributions. Raw/nominal/scaled pT, all four
+  total shifts and eight components are saved.
+- **Acceptance:** [`--muon-pt-variation all`](cli.md#muon-momentum-passes)
+  reprocesses the NanoAOD into nominal and four complete shifted skims,
+  each with its own selected events and recalculated weights. Weight-only
+  `--save-systematics` does not enable these passes. Reuse the same all-input
+  normalization convention; do not add the five copies' denominators.
+- **Coverage:** no extrapolation outside 26–200 GeV; explicit per-muon status
+  distinguishes unvalidated inputs, scale-only boundary cases and numerical
+  fallbacks. The data/TuneP GE tables are not applied to ordinary MC pT.
+  High-pT momentum convention, GE-stage/nuisance prescription and data/MC
+  resolution closure remain unresolved. Lepton-to-MET propagation is left
+  unapplied, as an optional choice under the supplied JMAR guidance.
+- **Validation and provenance:** see [the implementation record](muon-momentum-2024-plan.md)
+  and [audit metrics](audit-2024-mc-2026-09-11-metrics.json). Existing skims
+  require reprocessing to obtain corrected acceptance; an overall weight
+  rescaling cannot supply it.
 
 ## 6. AK4 jet ID  (done)
 

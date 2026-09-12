@@ -25,6 +25,11 @@ Event acceptance in this processor:
   correction is what decides which electrons clear the pT thresholds
   (`electron_ss.py`). The uncorrected pT is kept as `ElectronPtRaw`, and MC
   additionally carries the four scale/smearing shifted pTs.
+- Correct tight, PF-isolated 2024 muons in the validated 26--200 GeV range
+  with MuonScaReKIT before selection (`muon_ss.py`). Data receives scale;
+  MC receives scale and residual resolution smearing. A selected momentum
+  variation reruns the complete selection and weights. Raw/nominal/varied
+  pT, NanoAOD identity and coverage status are saved for each good muon.
 
 Jet handling in this processor:
 - Build AK4 jets from NanoAOD `events.Jet` and apply year-dependent JECs.
@@ -130,6 +135,9 @@ from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 from . import GenSelection, objects  # Local gen selection and object definitions.
 from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
 from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
+from .muon_ss import PT_VARIATIONS as MUON_PT_VARIATIONS
+from .muon_ss import VARIATION_IDS as MUON_VARIATION_IDS
+from .muon_ss import apply_muon_scale_smearing, validate_variation
 from .top_pt import top_pt_weights  # ttbar top-pT reweighting SFs (standalone columns).
 
 # -----------------------------------------------------------------------------
@@ -342,6 +350,17 @@ class vcbSkimmer(SkimmerABC):
         "MuonDebug": {
             "pfRelIso04_all": "PfRelIso04All",
         },
+        "MuonMomentum": {
+            "pt_raw": "PtRaw",
+            "pt_nominal": "PtNominal",
+            "pt_scale": "PtScale",
+            "momentumStatus": "MomentumStatus",
+            "nanoIdx": "NanoIdx",
+        },
+        "MuonMomentumMC": {
+            field: f"Pt{name[0].upper()}{name[1:]}"
+            for name, field in MUON_PT_VARIATIONS.items()
+        },
         "Event": {
             "run": "run",
             "event": "event",
@@ -372,6 +391,7 @@ class vcbSkimmer(SkimmerABC):
         region: str = "signal",
         nano_version: str = "v12_private",
         prescale_factor: int = None,
+        muon_pt_variation: str = "nominal",
     ):
         # Initialize the base Processor/Skimmer state first.
         super().__init__()
@@ -391,10 +411,13 @@ class vcbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
         # Optional prescale: keep only events with event % N == 0.
         self._prescale_factor = prescale_factor
+        validate_variation(muon_pt_variation)
+        self._muon_pt_variation = muon_pt_variation
 
         # Log the configuration for user visibility.
         logger.info(
             f"Running skimmer with:\nsystematics {self._systematics}\nregion {self._region}"
+            f"\nmuon pT variation {self._muon_pt_variation}"
         )
 
     @property  # a decorator that turns a method into a read-only attribute
@@ -459,18 +482,17 @@ class vcbSkimmer(SkimmerABC):
         # Leptons (electrons and muons)
         num_leptons = 3  # We will save up to 3 leptons
 
-        # EGM electron energy scale (data) / resolution smearing (MC), applied
-        # to the full collection BEFORE good_electrons. Ordering is not
-        # cosmetic: the correction moves electrons across the pT > 20 cut in
-        # good_electrons and the 32 GeV trigger-matching threshold in
-        # trig_match_sel, and applying it afterwards would erase exactly the
-        # migration it describes. Everything downstream -- selection, jet
-        # cleaning, the trigger-lepton choice, the lepton SFs, GenSelection --
-        # therefore sees the corrected pT.
+        # Apply EGM and MUO momentum corrections to the full collections before
+        # selection. A muon variation replaces active pT here, so it can change
+        # acceptance, trigger-lepton choice, jet cleaning, SFs and GenSelection.
+        # Separate runner passes restart from NanoAOD to retain entering events.
         corrected_electrons = apply_electron_scale_smearing(events, events.Electron, year, isData)
+        corrected_muons = apply_muon_scale_smearing(
+            events, events.Muon, year, isData, self._muon_pt_variation
+        )
 
         electrons, etrigvars = objects.good_electrons(events, corrected_electrons, year)
-        muons, mtrigvars = objects.good_muons(events, events.Muon, year)
+        muons, mtrigvars = objects.good_muons(events, corrected_muons, year)
 
         # These are bools saying if the lepton is matched to a trigger object or not
         trigMatchVars = {**etrigvars, **mtrigvars}
@@ -722,16 +744,17 @@ class vcbSkimmer(SkimmerABC):
             f"Electron{key}": pad_val(electrons[var], num_leptons, axis=1)
             for (var, key) in electron_skimvars.items()
         }
+        muon_skimvars = {
+            **self.skim_vars["Lepton"],
+            **self.skim_vars["MuonDebug"],
+            **self.skim_vars["MuonMomentum"],
+        }
+        if not isData:
+            muon_skimvars.update(self.skim_vars["MuonMomentumMC"])
         muonVars = {
             f"Muon{key}": pad_val(muons[var], num_leptons, axis=1)
-            for (var, key) in self.skim_vars["Lepton"].items()
+            for (var, key) in muon_skimvars.items()
         }
-        muonVars.update(
-            {
-                f"Muon{key}": pad_val(muons[var], num_leptons, axis=1)
-                for (var, key) in self.skim_vars["MuonDebug"].items()
-            }
-        )
         leptonVars = {**electronVars, **muonVars}
 
         # Trigger lepton variables use the same per-event trigger-lepton choice
@@ -743,6 +766,9 @@ class vcbSkimmer(SkimmerABC):
             return ak.fill_none(leptons[field], PAD_VAL).to_numpy()
 
         triggerLeptonVars = {
+            "TriggerMuonMomentumStatus": np.where(
+                use_trigger_muon, leading_or_pad(trigger_muon, "momentumStatus"), PAD_VAL
+            ),
             "TriggerLeptonFlav": np.where(
                 use_trigger_electron,
                 11,
@@ -867,6 +893,9 @@ class vcbSkimmer(SkimmerABC):
         eventVars["ht"] = ht.to_numpy()
         eventVars["nElectrons"] = ak.num(electrons).to_numpy()
         eventVars["nMuons"] = ak.num(muons).to_numpy()
+        eventVars["MuonMomentumVariation"] = np.full(
+            len(events), MUON_VARIATION_IDS[self._muon_pt_variation], dtype=np.int32
+        )
         eventVars["nJets"] = ak.num(jets).to_numpy()
         if not isData:
             # Gen jets *in the event*, which is not the same as gen jets in the
