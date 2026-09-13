@@ -397,8 +397,9 @@ class TestAttachJetCharge(unittest.TestCase):
         qk10 = qk10 if qk10 is not None else qk05
         return ak.Array(
             [
-                {"JetQk": [{"QkCharge05": a, "QkCharge10": b} for a, b in zip(e5, e10)]}
-                for e5, e10 in zip(qk05, qk10)
+                {"JetQk": [{"QkCharge05": a, "QkCharge10": b}
+                           for a, b in zip(e5, e10, strict=True)]}
+                for e5, e10 in zip(qk05, qk10, strict=True)
             ]
         )
 

@@ -257,6 +257,7 @@ def recompute_corrected_pt(
     offsets: np.ndarray,
     file_event_starts: list[int],
     chunk_size: int = DEFAULT_CHUNK_SIZE,
+    kinematic_variation: str = "nominal",
 ) -> np.ndarray:
     """
     Re-apply the skimmer's JEC/JER to every input jet and return the corrected
@@ -270,17 +271,20 @@ def recompute_corrected_pt(
 
     from boostedhh.processors import utils
     from boostedhh.processors.corrections import JECs
+    from vcb.processors.kinematic_variations import Variation
 
     NanoAODSchema.warn_missing_crossrefs = False
 
     corrected = np.empty(offsets[-1], dtype=np.float64)
-    jec_loader = JECs(year)
+    variation = Variation(kinematic_variation)
+    jec_loader = JECs(year, **variation.jet_options)
 
     for file_index, input_file in enumerate(input_files):
         base = file_event_starts[file_index]
         n_file_events = file_event_starts[file_index + 1] - base
         with uproot.open(input_file) as root_file:
             is_data = "genWeight" not in root_file[tree_name].keys()
+        variation.validate_sample(year, is_data)
 
         for local_start in range(0, n_file_events, chunk_size):
             local_stop = min(local_start + chunk_size, n_file_events)
@@ -373,6 +377,8 @@ def check_jet_tagger_roundtrip(
                 f"{', '.join(sorted(set(index_branches) - set(present_index)))}"
             )
         has_index = bool(present_index)
+        if "KinematicVariation" in out_branches:
+            event_branches.append("KinematicVariation")
         out = out_tree.arrays(
             event_branches + slot_branches + (index_branches if has_index else []), library="np"
         )
@@ -380,6 +386,15 @@ def check_jet_tagger_roundtrip(
 
     if n_out_events <= 0:
         raise ValueError(f"{output_file} has no events.")
+
+    kinematic_variation = "nominal"
+    if "KinematicVariation" in out:
+        from vcb.processors.kinematic_variations import variation_from_id
+
+        identifiers = np.unique(out["KinematicVariation"])
+        if len(identifiers) != 1:
+            raise ValueError("A round-trip check requires one kinematic pass per file")
+        kinematic_variation = variation_from_id(int(identifiers[0])).name
 
     input_jet_branches = (
         ["Jet_pt", "Jet_eta", "Jet_phi"]
@@ -440,7 +455,10 @@ def check_jet_tagger_roundtrip(
     del jets
 
     corrected_pt = (
-        recompute_corrected_pt(input_files, tree_name, year, offsets, file_event_starts)
+        recompute_corrected_pt(
+            input_files, tree_name, year, offsets, file_event_starts,
+            kinematic_variation=kinematic_variation,
+        )
         if verify_jec
         else None
     )

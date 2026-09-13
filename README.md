@@ -44,9 +44,14 @@ conventions are in the [object synopsis](docs/object-synopsis.md).
   [CLI instructions](docs/cli.md#muon-momentum-passes). Existing skims need
   reprocessing to include muon momentum corrections and selection migration.
 - `--save-systematics` writes PU, shower, and lepton-SF weight alternatives.
-  JES/JER variations and ttbar PDF-weight output are not implemented. The six
+  ttbar PDF-weight output is not implemented. The six
   renormalization/factorization-scale alternatives are saved independently of
   this flag when available in the input.
+- `--kinematic-variation jets` writes nominal plus all 27 JES up/down pairs
+  and global JER up/down, with correlated Type-1 MET and full reselection.
+  `all` adds electron and muon scale/resolution passes (65 total). See the
+  [CLI instructions](docs/cli.md#kinematic-variation-passes). Each pass is
+  normalized separately using the same all-input denominator.
 - Four top-pT factors are saved separately. They are not applied to `weight`
   or `finalWeight`; the
   [event synopsis](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives)
@@ -125,8 +130,8 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir /path/to/processed-nano/production_tag
 ```
 
-The validator automatically recognizes nominal output (681 branches) or output
-with all 18 supported weight variations (699 branches), and allows `finalWeight`
+The validator automatically recognizes nominal output (741 branches) or output
+with all 18 supported weight variations (759 branches), and allows `finalWeight`
 after normalization. Every file must match the mode detected from the first
 file; missing branches, unknown extras, and incomplete variation sets fail.
 Use `--schema-mode systematics` or `--schema-mode nominal` to require a specific
@@ -182,6 +187,7 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
 | [2024 inputs](docs/2024-inputs.md) | Calibration and cross-section sources |
 | [2024 muon momentum](docs/muon-momentum-2024-plan.md) | Implemented correction, uncertainty model, coverage and high-pT limits |
+| [2024 jet/MET/electron variations](docs/jet-met-electron-variations-2024-plan.md) | Implemented full passes, [27-source JES mapping](docs/jes-2024-full-source-manifest.json), source references and validation |
 | [Tests](docs/tests.md) | Unit tests, integration fixture, and baselines |
 | [Processor walkthrough](docs/processor.md) | Longer implementation notes; use the synopses for the current processing sequence |
 | [Normalization design](docs/normalization.md) | Design history of the second pass |

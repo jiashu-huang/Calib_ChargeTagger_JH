@@ -243,6 +243,7 @@ JEC_2024_MC_COMPOUND = "Summer24Prompt24_V5_MC_L1L2L3Res_AK4PFPuppi"
 JEC_2024_MC_L1 = "Summer24Prompt24_V5_MC_L1FastJet_AK4PFPuppi"
 JER_2024_MC_RESO = "Summer24Prompt24_JRV2_MC_PtResolution_AK4PFPuppi"
 JER_2024_MC_SF = "Summer24Prompt24_JRV2_MC_ScaleFactor_AK4PFPuppi"
+JER_2024_MC_SF_UNCERTAINTY = "Summer24Prompt24_JRV2_MC_SFUncertainty_AK4PFPuppi"
 JER_2024_SMEAR = "JERSmear"
 
 # Standard CMS Type-1 MET jet acceptance (JetMETCorrections/Type1MET): only
@@ -250,6 +251,7 @@ JER_2024_SMEAR = "JERSmear"
 # cut avoids double-counting jets that are really electrons/photons.
 TYPE1_MET_MIN_PT = 15.0
 TYPE1_MET_MAX_EMEF = 0.9
+TYPE1_MET_MAX_ABS_ETA = 5.2
 
 # Bundled-first, cvmfs-fallback sources for the 2024 jet corrections.
 JEC_JER_2024_BUNDLED = package_path + "/corrections/2024_jet_jerc.json.gz"
@@ -265,17 +267,30 @@ JERSMEAR_2024_CVMFS = f"{_CAT_JME}/JER-Smearing/latest/jer_smear.json.gz"
 def _load_correctionset_bundled_first(bundled: str, cvmfs: str, what: str):
     """Load a correctionlib CorrectionSet, preferring the bundled repo copy and
     falling back to the cvmfs (CAT) path. Returns None (with a warning) if
-    neither exists, so JEC/JER degrade gracefully rather than crashing."""
+    neither exists. The 2024 caller rejects missing mandatory payloads."""
     for path, tag in ((bundled, "bundled"), (cvmfs, "cvmfs")):
         if pathlib.Path(path).is_file():
             print(f"{what}: using {tag} {path}")
             return correctionlib.CorrectionSet.from_file(path)
-    print(f"WARNING: {what} not found (bundled or cvmfs); 2024 JER disabled.")
+    print(f"WARNING: {what} not found (bundled or cvmfs).")
     return None
 
 
 class JECs:
-    def __init__(self, year):
+    jes_source = None
+    jes_direction = 0
+    jer_direction = 0
+
+    def __init__(self, year, *, jes_source=None, jes_direction=0, jer_direction=0):
+        if jes_direction not in (-1, 0, 1) or jer_direction not in (-1, 0, 1):
+            raise ValueError("Jet uncertainty directions must be -1, 0 or 1")
+        if bool(jes_source) != bool(jes_direction) or (jes_direction and jer_direction):
+            raise ValueError("Choose one JES source/direction or one JER direction")
+        if (jes_direction or jer_direction) and year != "2024":
+            raise ValueError("Jet variation passes require 2024 MC")
+        self.jes_source = jes_source
+        self.jes_direction = jes_direction
+        self.jer_direction = jer_direction
         self.year = year
         if year in ["2022", "2022EE", "2023", "2023BPix"]:
             if sys.version_info[1] < 11:  # noqa: YTT203
@@ -304,9 +319,25 @@ class JECs:
             self.jersmear_cset = _load_correctionset_bundled_first(
                 JERSMEAR_2024_BUNDLED, JERSMEAR_2024_CVMFS, "JERSmear 2024"
             )
+            if self.correctionlib_cset is None or self.jersmear_cset is None:
+                raise FileNotFoundError("2024 JEC and JER payloads are required")
+            required = [JEC_2024_MC_L1, JER_2024_MC_RESO, JER_2024_MC_SF]
+            if jer_direction:
+                required.append(JER_2024_MC_SF_UNCERTAINTY)
+            if jes_source:
+                required.append(self.jes_correction_key)
+            available = set(self.correctionlib_cset)
+            for key in required:
+                if key not in available:
+                    raise KeyError(f"Required 2024 jet correction is missing: {key}")
+            if JEC_2024_MC_COMPOUND not in self.correctionlib_cset.compound:
+                raise KeyError(f"Required compound is missing: {JEC_2024_MC_COMPOUND}")
+            if JER_2024_SMEAR not in set(self.jersmear_cset):
+                raise KeyError(f"Required smearing correction is missing: {JER_2024_SMEAR}")
             print(
                 f"JECs 2024: compound {JEC_2024_MC_COMPOUND}; "
-                f"JER {JER_2024_MC_RESO} (nominal smearing)"
+                f"JER {JER_2024_MC_RESO}; JES {jes_source} ({jes_direction:+d}); "
+                f"JER direction {jer_direction:+d}"
             )
 
         print(jec_compiled)
@@ -318,6 +349,10 @@ class JECs:
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
 
+    @property
+    def jes_correction_key(self):
+        return f"Summer24Prompt24_V5_MC_{self.jes_source}_AK4PFPuppi"
+
     def _apply_correctionlib_jec_2024(
         self, jets: JetArray, isData: bool, fatjets: bool, event: ak.Array | None = None,
         gen_jets: ak.Array | None = None,
@@ -325,9 +360,12 @@ class JECs:
         """
         Apply the Summer24 compound JEC (V5 L1L2L3Res) on raw jet pT/mass via
         correctionlib, then nominal JRV2 JER smearing on the corrected pT.
-        MC + AK4 only. No JES/JER variations (jec_shifted_vars is not consumed
-        by the Vcb skimmer).
+        MC + AK4 only. The active variation is applied before any jet selection.
+        JES varies nominally smeared jets; JER varies the unsmeared JEC jet with
+        the same accepted gen match and deterministic draw as nominal.
         """
+        if (self.jes_direction or self.jer_direction) and (isData or fatjets):
+            raise ValueError("Jet variation passes require 2024 MC AK4 jets")
         if isData:
             print("WARNING: 2024 data JECs not implemented; keeping NanoAOD jet energies.")
             return jets, None
@@ -353,17 +391,41 @@ class JECs:
 
         # JER smearing (nominal) on the JEC-corrected pT; fold into `factor` so
         # rawFactor stays consistent with the final energies.
-        smear = self._jer_smear_2024(jets, event, gen_jets=gen_jets)
-        if smear is not None:
-            jets["pt"] = jets.pt * smear
-            jets["mass"] = jets.mass * smear
-            factor = factor * smear
-        else:
-            smear = ak.ones_like(jets.pt)
+        nominal_smear = self._jer_smear_2024(jets, event, gen_jets=gen_jets)
+        if nominal_smear is None:
+            raise RuntimeError("2024 MC requires nominal JER smearing inputs")
+        jets["pt_nominal"] = jets.pt * nominal_smear
+        jets["mass_nominal"] = jets.mass * nominal_smear
+        smear = (
+            self._jer_smear_2024(jets, event, gen_jets=gen_jets, direction=self.jer_direction)
+            if self.jer_direction else nominal_smear
+        )
+        jets["pt"] = jets.pt * smear
+        jets["mass"] = jets.mass * smear
+        factor = factor * smear
         # Kept on the jet so `type1_met_2024` can reuse the same per-jet smear
-        # when propagating to MET, rather than re-drawing the stochastic term
-        # (the JERSmear hashprng would give a different number on a second call).
+        # when propagating to MET. Re-evaluating on a different momentum would
+        # change the hash input and hence the stochastic term.
         jets["jer_smear"] = ak.values_astype(smear, np.float32)
+
+        # A signed source can lower one jet and raise another in the same pass.
+        # Never re-run JER on JES-shifted pT: pT is an entropy input to hashPRNG.
+        jes_shift = ak.ones_like(jets.pt)
+        if self.jes_direction:
+            nominal = ak.flatten(jets)
+            delta = self.correctionlib_cset[self.jes_correction_key].evaluate(
+                np.array(nominal.eta, dtype=np.float64),
+                np.array(nominal.pt_nominal, dtype=np.float64),
+            )
+            shifted = 1.0 + self.jes_direction * delta
+            if not np.all(np.isfinite(shifted)) or np.any(shifted < 0):
+                raise ValueError(f"Invalid JES multiplier from {self.jes_correction_key}")
+            jes_shift = ak.unflatten(ak.values_astype(shifted, np.float32), nj)
+            jets["pt"] = jets.pt * jes_shift
+            jets["mass"] = jets.mass * jes_shift
+            factor = factor * jes_shift
+        # Reuse this exact per-jet factor in the muon-subtracted Type-1 sum.
+        jets["jes_shift"] = jes_shift
 
         # rawFactor must be consistent with the recorrected energies. Guard the
         # division: a jet whose (rare) stochastic JER smear clamps to 0 has
@@ -375,10 +437,11 @@ class JECs:
         return jets, None
 
     def _jer_smear_2024(
-        self, jets: JetArray, event: ak.Array | None, gen_jets: ak.Array | None = None
+        self, jets: JetArray, event: ak.Array | None, gen_jets: ak.Array | None = None,
+        direction: int = 0,
     ):
         """
-        Nominal Summer24 JRV2 JER smear factor per jet (jagged float32), applied
+        Summer24 JRV2 JER smear factor per jet (jagged float32), applied
         on the JEC-corrected pT, or None if inputs are unavailable (smearing
         skipped). Hybrid method: the JERSmear correction branches on GenPt
         (>= 0 -> scaling, -1 -> stochastic with a deterministic hashprng seed);
@@ -397,6 +460,9 @@ class JECs:
 
         reso = self.correctionlib_cset[JER_2024_MC_RESO].evaluate(eta, pt, rho)
         sf = self.correctionlib_cset[JER_2024_MC_SF].evaluate(eta, pt)
+        if direction:
+            uncertainty = self.correctionlib_cset[JER_2024_MC_SF_UNCERTAINTY].evaluate(eta, pt)
+            sf = sf * (1.0 + direction * uncertainty)
 
         reso_j = ak.unflatten(reso, nj)
         if gen_jets is None:
@@ -439,6 +505,8 @@ class JECs:
             pt, eta, genpt_in, rho, evid, reso, sf
         )
         smear = np.maximum(smear, 0.0)
+        if not np.all(np.isfinite(smear)):
+            raise ValueError("Nonfinite 2024 JER smearing factor")
         return ak.unflatten(ak.values_astype(smear, np.float32), nj)
 
     def type1_met_2024(self, raw_met: ak.Array, jets: JetArray, events: NanoEventsArray):
@@ -473,16 +541,14 @@ class JECs:
         NanoAOD's Jet table. Recalibrate and smear them before applying the
         Type-1 threshold. They contribute only to MET, not the analysis jets.
 
-        Returns an ``ak.Array`` with ``pt``/``phi`` fields, or None if the 2024
-        correctionlib payload is unavailable (caller keeps the input MET).
+        Returns an ``ak.Array`` with ``pt``/``phi`` fields. Missing mandatory
+        inputs raise. The active JES/JER factor and Type-1 membership are
+        recalculated for each pass; the L1 reference stays unchanged.
         """
         if self.correctionlib_cset is None:
-            return None
+            raise RuntimeError("2024 Type-1 MET requires its JEC payload")
         if "jer_smear" not in ak.fields(jets) and ak.any(ak.num(jets)):
-            # get_jec_jets bailed out (e.g. a nano_version that disables JECs), so
-            # the jets are untouched NanoAOD and their MET is already consistent.
-            print("WARNING: jets carry no 2024 JEC; leaving MET as-is.")
-            return None
+            raise RuntimeError("2024 Type-1 MET requires the complete corrected jet collection")
 
         if "CorrT1METJet" not in events.fields:
             raise KeyError("CorrT1METJet is required to rebuild 2024 Type-1 MET completely.")
@@ -540,9 +606,14 @@ class JECs:
             * full_corr.evaluate(area, eta, pt_raw_ms, rho, phi)
             * np.array(j.jer_smear, dtype=np.float64)
         )
+        if "jes_shift" in ak.fields(j):
+            pt_full = pt_full * np.array(j.jes_shift, dtype=np.float64)
 
         emef = np.array(ak.flatten(em_fraction), dtype=np.float64)
-        contributes = (pt_full > TYPE1_MET_MIN_PT) & (emef < TYPE1_MET_MAX_EMEF)
+        contributes = (
+            (pt_full > TYPE1_MET_MIN_PT) & (emef < TYPE1_MET_MAX_EMEF)
+            & (np.abs(eta) < TYPE1_MET_MAX_ABS_ETA)
+        )
         dpt = np.where(contributes, pt_full - pt_l1, 0.0)
 
         dx = ak.sum(ak.unflatten(dpt * np.cos(phi), nj), axis=1)
@@ -552,7 +623,8 @@ class JECs:
 
     def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
         """add variables needed for JECs"""
-        jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+        # Start a new record; repeated passes must not modify the input NanoAOD.
+        jets = ak.with_field(jets, (1 - jets.rawFactor) * jets.pt, "pt_raw")
         jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
         jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
         if not isData:
@@ -590,6 +662,13 @@ class JECs:
             else events.fixedGridRhoFastjetAll
         )
         jets = self._add_jec_variables(jets, rho, isData)
+
+        if self.year == "2024" and not isData and not fatjets:
+            if "v12" not in nano_version:
+                raise ValueError("2024 MC requires the supported NanoAOD JEC path")
+            # Also handle typed empty collections; auxiliary jets may contribute
+            # to Type-1 MET even when every regular Jet collection is empty.
+            return self._apply_correctionlib_jec_2024(jets, isData, fatjets, event=events.event)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
         if "v12" not in nano_version:

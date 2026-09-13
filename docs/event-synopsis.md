@@ -59,13 +59,13 @@ entries, including `all`, are cumulative **sums of input `genWeight`**, not
 raw event counts or fully corrected yields. For MC, the metadata names
 `nevents` and `total_nevents` also mean sums of generator weights.
 
-For muon momentum uncertainties, [`--muon-pt-variation all`](cli.md#muon-momentum-passes)
-repeats this sequence from the input NanoAOD for nominal and each of four total
-scale/resolution shifts. Each pass uses its own active corrected muon pT,
-selection and weights, so entering events are retained. The all-input
-normalization denominator is unchanged across these copies of the sample;
-never sum the five copies together. This option is separate from weight
-systematics and covers the validated 26–200 GeV muon treatment.
+For kinematic uncertainties, [`--kinematic-variation all`](cli.md#kinematic-variation-passes)
+repeats this sequence from NanoAOD for nominal, 27 JES pairs, global JER
+up/down, four electron shifts and four muon shifts. Jet passes rebuild MET
+with correlated per-jet factors; lepton passes select using active pT and
+recalculate the chosen lepton's SFs. Each pass retains its entering events.
+The all-input normalization denominator is unchanged: normalize and merge
+each pass separately. The legacy `--muon-pt-variation all` remains available.
 
 ## Nominal weight in the first pass
 

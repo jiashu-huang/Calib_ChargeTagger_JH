@@ -8,12 +8,18 @@ ElectronMass2,Double_t
 ElectronMvaIsoWP900,Long64_t
 ElectronMvaIsoWP901,Long64_t
 ElectronMvaIsoWP902,Long64_t
+ElectronNanoIdx0,Long64_t
+ElectronNanoIdx1,Long64_t
+ElectronNanoIdx2,Long64_t
 ElectronPhi0,Double_t
 ElectronPhi1,Double_t
 ElectronPhi2,Double_t
 ElectronPt0,Double_t
 ElectronPt1,Double_t
 ElectronPt2,Double_t
+ElectronPtNominal0,Double_t
+ElectronPtNominal1,Double_t
+ElectronPtNominal2,Double_t
 ElectronPtRaw0,Double_t
 ElectronPtRaw1,Double_t
 ElectronPtRaw2,Double_t
@@ -310,6 +316,7 @@ HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ,Long64_t
 HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8,Long64_t
 HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,Long64_t
 HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ,Long64_t
+KinematicVariation,Int_t
 METPhi,Double_t
 METPt,Double_t
 MuonEta0,Double_t

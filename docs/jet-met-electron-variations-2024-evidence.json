@@ -1,0 +1,1251 @@
+{
+  "checked_on": "2026-09-13",
+  "processor_commit": "8cc5a818ce2fe28f0c34ca4c3370746422c1d20e",
+  "status": "research_and_read_only_diagnostics; full_27_source_jes_manifest_resolved; production variations not implemented",
+  "reference_revision": "32e8eb7af6a06466b811656f7f99e20170b6a0e1",
+  "reference_repository": "https://gitlab.cern.ch/cms-analysis/general/CMSJMECalculators",
+  "source_file_sha256": {
+    "JetVariationsCalculator.cc": "cf70227eec4e22659a20de35a67f2723ddd082bf408385ffe282a4655160360e",
+    "JetMETVariationsCalculatorBase.cc": "51bca73d77c01568003fec6b1906b2da30e37d69aab754cc36ce705620a4c667",
+    "Type1METVariationsCalculator.cc": "7a98c525ac48f94cbda076a5a32bf50b599e735c86b9eaf9a40886add4b68ab9",
+    "JetMETVariationsCalculatorBase.h": "105cc4d2a89fb9537636e89d72c64b3996efc5d3a21070373885b1f5e04ad2c1",
+    "EGammaVariationsCalculator.cc": "b2b9f074c91cf879d89b4a0900d968c4aa1f73eb6872cc256a5de495b067a067",
+    "config.py": "50d31536cca8178132c8920cb42fefb39d6b19d2cac655f685bcdbf2579f2e9d",
+    "test_jmesystcalc.py": "2076741d6dacf13b314b4bbf52315a5670c0dc941305e8e5f7baf002d5b4ddf5",
+    "provided_JecApplication.cpp": "ab7dc4399831cdd09ed14cd442da720e53ead8d9db7f4b07455baac4114880c5"
+  },
+  "payload_sha256": {
+    "2024_jet_jerc.json.gz": {
+      "compressed": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540",
+      "decompressed": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78"
+    },
+    "jer_smear.json.gz": {
+      "compressed": "a6a625b958704991147f2e90aa53631df100db9390b0981b9553298cb70cda05",
+      "decompressed": "cb9411ec7a2a0371bf935d9e74496a80417fdf4bf94e468d6f5a75e015d0a8a9"
+    }
+  },
+  "access": {
+    "jme_calculators_tree": {
+      "url": "https://gitlab.cern.ch/api/v4/projects/cms-analysis%2Fgeneral%2FCMSJMECalculators/repository/tree?per_page=100",
+      "status": 200,
+      "type": "application/json",
+      "redirect": null
+    },
+    "jme_calculators_readme": {
+      "url": "https://gitlab.cern.ch/cms-analysis/general/CMSJMECalculators/-/raw/master/README.md",
+      "status": 404,
+      "type": "text/html; charset=utf-8",
+      "redirect": null
+    },
+    "jerc_tutorial_tree": {
+      "url": "https://gitlab.cern.ch/api/v4/projects/cms-analysis%2Fjme%2Fjerc-application-tutorial/repository/tree?per_page=100",
+      "status": 404,
+      "type": "application/json",
+      "redirect": null
+    },
+    "jerc_jes": {
+      "url": "https://cms-jme-jerc.docs.cern.ch/recommendations/jes/",
+      "status": 401,
+      "type": "text/html; charset=iso-8859-1",
+      "redirect": null,
+      "followup_status": "Covered by user-supplied PDF on 2026-09-13; HTTP 401 retained as historical access result."
+    },
+    "jerc_jer": {
+      "url": "https://cms-jme-jerc.docs.cern.ch/recommendations/jer/",
+      "status": 401,
+      "type": "text/html; charset=iso-8859-1",
+      "redirect": null,
+      "followup_status": "Covered by user-supplied PDF on 2026-09-13; HTTP 401 retained as historical access result."
+    },
+    "jmar_met": {
+      "url": "https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/",
+      "status": 401,
+      "type": "text/html; charset=iso-8859-1",
+      "redirect": null
+    },
+    "jerc_source_project": {
+      "url": "https://gitlab.cern.ch/cms-jetmet/docs/jerc",
+      "status": 302,
+      "type": "text/html; charset=utf-8",
+      "redirect": "https://gitlab.cern.ch/users/sign_in",
+      "followup_status": "Private source access is unnecessary for the relevant text recovered from the supplied search index."
+    },
+    "jerc_search_index": {
+      "url": "https://cms-jme-jerc.docs.cern.ch/search/search_index.json",
+      "status": 401,
+      "type": "text/html; charset=iso-8859-1",
+      "redirect": null,
+      "followup_status": "Relevant text covered by user-supplied download on 2026-09-13; historical unauthenticated response retained."
+    }
+  },
+  "fixture_diagnostic": {
+    "fixture": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root",
+    "entries": 208780,
+    "current_nominal_selected": 59537,
+    "regular_jets": 1531251,
+    "forward_jets_pt15_eta2p4_to4p7": 254816,
+    "jes_sources": [
+      "Absolute",
+      "Absolute_2024",
+      "BBEC1",
+      "BBEC1_2024",
+      "EC2",
+      "EC2_2024",
+      "FlavorQCD",
+      "HF",
+      "HF_2024",
+      "RelativeBal",
+      "RelativeSample_2024"
+    ],
+    "jes_all_finite": true,
+    "jes_nonzero_jets": {
+      "Absolute": 1351222,
+      "Absolute_2024": 1351222,
+      "BBEC1": 1088663,
+      "BBEC1_2024": 566146,
+      "EC2": 159516,
+      "EC2_2024": 159516,
+      "FlavorQCD": 1351222,
+      "HF": 103043,
+      "HF_2024": 103043,
+      "RelativeBal": 1351199,
+      "RelativeSample_2024": 1351222
+    },
+    "forward_jes_nonzero_jets": {
+      "Absolute": 254816,
+      "Absolute_2024": 254816,
+      "BBEC1": 0,
+      "BBEC1_2024": 159516,
+      "EC2": 159516,
+      "EC2_2024": 159516,
+      "FlavorQCD": 254816,
+      "HF": 95300,
+      "HF_2024": 95300,
+      "RelativeBal": 254816,
+      "RelativeSample_2024": 254816
+    },
+    "jer_all_finite": true,
+    "jer_variations_nontrivial_jets": 1531251,
+    "jer_random_max_difference": 4.7906123512575505e-14,
+    "jer_matched_formula_max_error": 0.0,
+    "electron_migrations": {
+      "pt_scaleUp": {
+        "entering": 21,
+        "leaving": 0
+      },
+      "pt_scaleDown": {
+        "entering": 0,
+        "leaving": 15
+      },
+      "pt_smearUp": {
+        "entering": 18,
+        "leaving": 25
+      },
+      "pt_smearDown": {
+        "entering": 22,
+        "leaving": 15
+      }
+    },
+    "scope": "Read-only full-fixture payload and selection diagnostic; current nominal muon corrections included. Forward counts are regular jets with stated pT/eta cuts, before jet ID, lepton cleaning or event selection. No production JES/JER/electron passes or shifted MET outputs are implemented by this probe."
+  },
+  "diagnostic_script_sha256": "9d6da17650c07a918bfe70c3a65340d7fd82ddc17f9ecd89f4dc3a9cc9a330ba",
+  "validation_limits": [
+    "No production JES/JER/electron varied skims created.",
+    "No new full integration or unit suite run for this documentation-only follow-up.",
+    "External CMSJMECalculators source inspected but not compiled or executed.",
+    "No MiniAOD round-trip or collision-data closure test.",
+    "Eleven regrouped JES sources and six regional JER sources remain proposed analysis choices. The supplied current JES/JER recommendations confirm tags and ordering but contain no grouping/correlation prescription."
+  ],
+  "recommendation_pdf_followup": {
+    "checked_on": "2026-09-13",
+    "documents": {
+      "jes": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/679bfed6-892d-4188-b26a-dc3c6fe6c02b/Jet Energy Scale - CMS JME JERC.pdf",
+        "sha256": "dddbb06819fe389e0fc62baa577100618f89a81c107f94f1a84688c5cb44d8f4",
+        "pages_read": 12,
+        "rendered_pages_inspected": [
+          1,
+          4
+        ],
+        "original_url": "https://cms-jme-jerc.docs.cern.ch/recommendations/jes/",
+        "document_request_status": "closed_by_supplied_pdf"
+      },
+      "jer": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/679bfed6-892d-4188-b26a-dc3c6fe6c02b/Jet Energy Resolution - CMS JME JERC.pdf",
+        "sha256": "87fa9b9f1825731646d05dd742ada6743538fabf83232ba42cfb9c9e9fc75e9d",
+        "pages_read": 7,
+        "rendered_pages_inspected": [
+          1,
+          3
+        ],
+        "original_url": "https://cms-jme-jerc.docs.cern.ch/recommendations/jer/",
+        "document_request_status": "closed_by_supplied_pdf"
+      }
+    },
+    "confirmed_jec_tag": "Summer24Prompt24_V5_MC",
+    "confirmed_jer_tag": "Summer24Prompt24_JRV2_MC",
+    "general_order": "Apply nominal JEC, then nominal or varied JER, only on MC.",
+    "grouping_status": "The supplied recommendation PDFs do not specify the eleven regrouped JES or six regional JER nuisance/correlation model. These remain proposed choices from payload and AN/framework precedents.",
+    "regional_exception": "Turning off unmatched-jet stochastic JER in 2.5 < abs(eta) < 3.0 requires explicit JME/JERC scientific approval; it is not adopted in this plan.",
+    "input_jes_anomaly_check": {
+      "input": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root",
+      "entries": 208780,
+      "jets": 1531251,
+      "input_rawFactor_gt_0p9_jets": 0,
+      "events_with_input_rawFactor_gt_0p9": 0,
+      "input_pt_gt_10TeV_jets": 0,
+      "max_input_rawFactor": 0.75,
+      "max_input_pt_GeV": 1889.0,
+      "scope": "Input NanoAOD Jet fields only, before the processor replaces rawFactor; one fixture, not the complete production or a new corrected-jet scan."
+    },
+    "remaining_link_access": {
+      "jer_application": {
+        "url": "https://cms-jme-jerc.docs.cern.ch/application/jer/",
+        "status": 401,
+        "type": "text/html; charset=iso-8859-1",
+        "redirect": null
+      },
+      "jec_anomaly_issue": {
+        "url": "https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/153",
+        "status": 302,
+        "type": "text/html; charset=utf-8",
+        "redirect": "https://gitlab.cern.ch/users/sign_in"
+      },
+      "jes_uncertainty_sources": {
+        "url": "https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources",
+        "status": 401,
+        "type": "text/html; charset=iso-8859-1",
+        "redirect": null
+      }
+    },
+    "later_followup": "See search_index_followup for subsequently recovered webpage text, updated source requests and qualified JES/JER nuisance choices. Earlier access limits describe the earlier attachment only."
+  },
+  "application_screenshot_followup": {
+    "checked_on": "2026-09-13",
+    "screenshots": {
+      "jer_application": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/5c180d11-8c3a-4c5a-b153-3bdfecc4b51c/Screenshot 2026-09-13 at 12.39.57 PM.png",
+        "sha256": "db8e96ffab051a42339274ead97ade7c4ebb1c4e5cec9cfc64d259908f5ad322"
+      },
+      "jerc_home": {
+        "path": "/isilon/export/home/jhuan166/.codex/attachments/4c28eaa0-73e1-4e4d-bc79-c2a675d9cdb9/Screenshot 2026-09-13 at 12.43.17 PM.png",
+        "sha256": "95e21b60ba840e14754c62394946b47a7a250fc03cd1fc52dfcea401764e770b"
+      }
+    },
+    "confirmed": [
+      "Hybrid matched scaling and unmatched stochastic smearing.",
+      "Smearing factor multiplies the full nominally JEC-corrected jet four-momentum.",
+      "Negative JER factors are truncated to zero before rescaling in both branches.",
+      "Current site navigation includes Application Methods / Uncertainty Sources and a JERC source link."
+    ],
+    "limits": [
+      "Screenshot stops at the start of generator-level matching; lower matching, stochastic and implementation sections were not supplied.",
+      "Exact URL behind Uncertainty Sources and JERC source buttons is not established by the screenshots."
+    ],
+    "preferred_documentation_request": "Documentation source repository URL/archive, or full current Application Methods / Uncertainty Sources page; do not keep requesting the legacy Twiki.",
+    "migration_notice_provenance": "User reports that the old uncertainty Twiki directs readers to the current JERC website.",
+    "later_followup": "See search_index_followup for subsequently recovered webpage text, updated source requests and qualified JES/JER nuisance choices. Earlier access limits describe the earlier attachment only."
+  },
+  "search_index_followup": {
+    "checked_on": "2026-09-13",
+    "source": {
+      "path": "/isilon/export/home/jhuan166/.codex/attachments/0a1e63d8-78f3-42cf-9719-d5850b40dbd9/search_index.json",
+      "sha256": "c8e323da7f90eea9dcb941d7224f0f1dfdd71e164340795db59f39cd66dc259d",
+      "bytes": 95188,
+      "indexed_entries": 94,
+      "unique_page_paths": 15,
+      "provenance": "User-supplied authenticated-website download; not an authenticated live read by the assistant or a Git source checkout."
+    },
+    "reviewed_scopes": [
+      "Application / Uncertainty Sources: overview, source categories, correlations, application.",
+      "Application / JER: all indexed sections, including formulas, matching and stochastic inputs.",
+      "Recommendations / Uncertainties: all indexed sections, including full/reduced/single JES and Run-2 JER scope.",
+      "FAQ: getting started, jet energy corrections, jet energy resolution, jet veto maps, uncertainties/correlations, special cases, validation/troubleshooting.",
+      "Recommendations / JES and JER: general guidance, known issues and 2024 Run-3 entries.",
+      "Recommendations / jet veto maps: general guidance, Run-3 application and recommended maps.",
+      "Application / JES and Type-1 MET; JEC correction-level guidance; jet-veto application; tutorial correction sequence and using the code in an analysis."
+    ],
+    "recovered_urls": {
+      "uncertainty_application": "https://cms-jme-jerc.docs.cern.ch/application/jec_uncertainty_sources/",
+      "uncertainty_policy": "https://cms-jme-jerc.docs.cern.ch/recommendations/uncertainties/",
+      "jer_application": "https://cms-jme-jerc.docs.cern.ch/application/jer/",
+      "jer_faq": "https://cms-jme-jerc.docs.cern.ch/faq/#jet-energy-resolution",
+      "uncertainty_faq": "https://cms-jme-jerc.docs.cern.ch/faq/#uncertainties-and-correlations",
+      "veto_run3": "https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/#application",
+      "jec_faq": "https://cms-jme-jerc.docs.cern.ch/faq/#jet-energy-corrections"
+    },
+    "confirmed": {
+      "jes_full_set": "27 sources for precision measurements and analyses sensitive enough to constrain JES nuisance parameters; full source names/correlation table is externally linked and absent from the index.",
+      "jes_reduced_set": "11 sources is the default for mildly JES-sensitive analyses, contingent on demonstrating no over-constraint in the fit.",
+      "jes_total": "Single Total nuisance requires scientific approval by JME. This does not restrict ordinary development of full/reduced variation support.",
+      "jes_source_signs": "A source may change sign across phase space. Preserve the signed evaluation; one source is correlated across its affected jets and events, different sources are independent.",
+      "jes_vs_jer": "Treat JES and standalone JER independently. Include RelativeJER JES components as well as standalone JER.",
+      "jes_selection": "Construct varied four-momenta first, then repeat pT-dependent selection, overlap removal and derived observables. Standard JES variations act on simulation, not simultaneously on data.",
+      "jer_matching": "For AK4 require deltaR < 0.2 and abs(pt_JEC - genPt) < 3 * resolution * pt_JEC; otherwise use stochastic smearing.",
+      "jer_variation_formula": "SF_up/down = SF * (1 +/- SFUncertainty), explicitly stated for split-format 2024 payloads.",
+      "jer_reproducibility": "Use identical (nominal JEC pt, eta, rho, EventID) hash inputs for nominal/up/down, changing the SF. Truncate negative smearing factors to zero.",
+      "jer_split_scope": "The six-region split is explicitly a preliminary full-Run-2 recipe for sensitive analyses, not an explicit 2024 prescription. The last eta interval is 3 < abs(eta) < 5.",
+      "jer_default": "One global nuisance is acceptable if the fit does not constrain it beyond the assigned uncertainty.",
+      "cross_year_scope": "The 6 global + 5 per-period JES example covers four Run-2 UL periods. Run-2/Run-3 JES correlations are delegated to provisional slides; do not infer a final 2024 combination model.",
+      "met": "JES must propagate with equal-and-opposite jet vector changes and consistent Type-1 selection. JERC FAQ also directs nominal/varied JER propagation; the existing JMAR table calls JER propagation optional in general. Proposed implementation includes it.",
+      "veto": "Run-3 event rejection is mandatory using corrected AK4 pt > 15 GeV, TightLepVeto and charged+neutral EM fraction < 0.9, identically in data and matching MC, independently of tighter analysis selections; 2024 V1 map confirmed.",
+      "jec_compound": "Use full L1L2L3Res compound for MC as well as data; nonapplicable PUPPI levels are identity. JEC does not rescale stored constituent energy fractions."
+    },
+    "revised_plan": {
+      "jes": "Prefer the full 27-source manifest now resolved by the Case I workbook for this Vcb precision-measurement workflow; reduced 11-source model remains conditional on fit validation.",
+      "jer": "Use global JER pair for initial validation; six-region alternative needs 2024 applicability/fit validation, including treatment of 5 <= abs(eta) < 5.2 Type-1 jets.",
+      "pass_counts_including_nominal_and_4_electron_4_muon_shifts": {
+        "full27_global1": 65,
+        "full27_split6": 75,
+        "reduced11_global1": 33,
+        "reduced11_split6": 43
+      },
+      "status": "Proposed configuration and documentation only; production variation passes remain absent."
+    },
+    "index_limits": {
+      "href_attributes": 0,
+      "image_elements": 0,
+      "missing": "External full JES source table, grouping table, provisional correlation slides and embedded worked-example files are not included. Some inline tables are flattened to text."
+    },
+    "closed_requests": [
+      "JER application-page text and formulas",
+      "Uncertainty Sources page text and URL",
+      "Uncertainties and Correlations page text and URL",
+      "Current Run-3 jet-veto wording"
+    ],
+    "remaining_source_request": {
+      "page": "https://cms-jme-jerc.docs.cern.ch/recommendations/uncertainties/#treatment-alternatives",
+      "link_label": "full JES uncertainty source table",
+      "section": "Case I: Full source set",
+      "needed": "Table contents including Correlations(Ideal), or a page export preserving the actual table hyperlink. No table URL is inferred from the index.",
+      "status": "Closed by user-supplied Case I workbook; 27 source keys verified."
+    },
+    "remaining_validation": [
+      "Resolved by Case I workbook: exact 27-source manifest checked without aggregate or alternative entries.",
+      "Validate final fit sensitivity and nuisance constraints.",
+      "Confirm a regional JER recipe for 2024 if choosing that alternative.",
+      "Implement and validate complete varied production and coherent MET handling.",
+      "Jet-veto occupancy/impact checks and analysis-jet Tight-ID exception remain separate."
+    ],
+    "payload_inventory_grid": {
+      "payload": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/boostedhh/corrections/2024_jet_jerc.json.gz",
+      "payload_sha256": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540",
+      "eta_values": [
+        -5.1,
+        -4.8,
+        -4.5,
+        -3.2,
+        -2.9,
+        -2.6,
+        -2.3,
+        -1.5,
+        -0.4,
+        0.0,
+        0.4,
+        1.5,
+        2.3,
+        2.6,
+        2.9,
+        3.2,
+        4.5,
+        4.8,
+        5.1
+      ],
+      "pt_values_GeV": [
+        15.1,
+        25.0,
+        49.0,
+        51.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0
+      ],
+      "evaluations_per_entry": 152,
+      "entries": [
+        {
+          "name": "AbsoluteFlavMap",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.0,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "AbsoluteMPFBias",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0027999999999999987,
+          "maximum": 0.002800000000000001,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "AbsoluteSample",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.0,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "AbsoluteScale",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0009999999999999996,
+          "maximum": 0.0010000000000000009,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "AbsoluteStat",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0024,
+          "maximum": 0.0031933333333333327,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "CorrelationGroupFlavor",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.00029438202247191033,
+          "maximum": 0.016000000000000014,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "CorrelationGroupIntercalibration",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0002000000000000001,
+          "maximum": 0.019499999999999993,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "CorrelationGroupMPFInSitu",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0027999999999999987,
+          "maximum": 0.002800000000000001,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "CorrelationGroupUncorrelated",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.003661111111111111,
+          "maximum": 0.08848666666666669,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "CorrelationGroupbJES",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.00029438202247191033,
+          "maximum": 0.016000000000000014,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "FlavorPhotonJet",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.015094382022471918,
+          "maximum": 0.017599999999999998,
+          "negative_grid_points": 30
+        },
+        {
+          "name": "FlavorPureBottom",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0201943820224719,
+          "maximum": 0.0082,
+          "negative_grid_points": 112
+        },
+        {
+          "name": "FlavorPureCharm",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.01729438202247191,
+          "maximum": 0.0082,
+          "negative_grid_points": 90
+        },
+        {
+          "name": "FlavorPureGluon",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.005482022471910115,
+          "maximum": 0.029200000000000004,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "FlavorPureQuark",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.01769438202247191,
+          "maximum": 0.0082,
+          "negative_grid_points": 95
+        },
+        {
+          "name": "FlavorQCD",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.00029438202247191033,
+          "maximum": 0.016000000000000014,
+          "negative_grid_points": 19
+        },
+        {
+          "name": "FlavorZJet",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.006294382022471909,
+          "maximum": 0.020700000000000017,
+          "negative_grid_points": 6
+        },
+        {
+          "name": "Fragmentation",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0007235955056179773,
+          "maximum": 0.0029,
+          "negative_grid_points": 38
+        },
+        {
+          "name": "PileUpDataMC",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0001652173913043478,
+          "maximum": 0.05315333333333333,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "PileUpEnvelope",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0019615384615384603,
+          "maximum": 0.1322933333333333,
+          "negative_grid_points": 9
+        },
+        {
+          "name": "PileUpMuZero",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.04654831460674157,
+          "maximum": 0.12270666666666664,
+          "negative_grid_points": 28
+        },
+        {
+          "name": "PileUpPtBB",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.001499999999999999,
+          "maximum": 0.010820000000000003,
+          "negative_grid_points": 13
+        },
+        {
+          "name": "PileUpPtEC1",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0023304347826086954,
+          "maximum": 0.021900000000000003,
+          "negative_grid_points": 10
+        },
+        {
+          "name": "PileUpPtEC2",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0017833333333333325,
+          "maximum": 0.03512666666666663,
+          "negative_grid_points": 16
+        },
+        {
+          "name": "PileUpPtHF",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.02101428571428571,
+          "maximum": 0.052360000000000004,
+          "negative_grid_points": 28
+        },
+        {
+          "name": "PileUpPtRef",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0016652173913043482,
+          "maximum": 0.01536666666666666,
+          "negative_grid_points": 57
+        },
+        {
+          "name": "Regrouped_Absolute_2024",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.002883333333333333,
+          "maximum": 0.048666666666666664,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_Absolute",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.003200000000000001,
+          "maximum": 0.05598,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_BBEC1_2024",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.011700000000000012,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_BBEC1",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.021900000000000003,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_EC2_2024",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.026700000000000012,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_EC2",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0017833333333333325,
+          "maximum": 0.03512666666666663,
+          "negative_grid_points": 16
+        },
+        {
+          "name": "Regrouped_FlavorQCD",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.00029438202247191033,
+          "maximum": 0.016000000000000014,
+          "negative_grid_points": 19
+        },
+        {
+          "name": "Regrouped_HF_2024",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.005600000000000002,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_HF",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.05271333333333336,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Regrouped_RelativeBal",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.03550000000000001,
+          "maximum": 0.0105,
+          "negative_grid_points": 115
+        },
+        {
+          "name": "Regrouped_RelativeSample_2024",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.06002666666666666,
+          "maximum": 0.008319999999999998,
+          "negative_grid_points": 139
+        },
+        {
+          "name": "Regrouped_Total",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.004961111111111114,
+          "maximum": 0.09003999999999995,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativeBal",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.03550000000000001,
+          "maximum": 0.0105,
+          "negative_grid_points": 115
+        },
+        {
+          "name": "RelativeFSR",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.019000000000000003,
+          "maximum": 0.019499999999999993,
+          "negative_grid_points": 63
+        },
+        {
+          "name": "RelativeJEREC1",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.007400000000000002,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativeJEREC2",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.02640000000000001,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativeJERHF",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.00880000000000001,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativePtBB",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0003000000000000002,
+          "maximum": 0.0002999999999999998,
+          "negative_grid_points": 14
+        },
+        {
+          "name": "RelativePtEC1",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0024000000000000015,
+          "maximum": 0.0014000000000000004,
+          "negative_grid_points": 16
+        },
+        {
+          "name": "RelativePtEC2",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.010600000000000009,
+          "maximum": 0.0047,
+          "negative_grid_points": 12
+        },
+        {
+          "name": "RelativePtHF",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.0024000000000000015,
+          "maximum": 0.0009000000000000006,
+          "negative_grid_points": 34
+        },
+        {
+          "name": "RelativeSample",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.06002666666666666,
+          "maximum": 0.008319999999999998,
+          "negative_grid_points": 139
+        },
+        {
+          "name": "RelativeStatEC",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.011700000000000012,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativeStatFSR",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.00019999999999999996,
+          "maximum": 0.003100000000000003,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "RelativeStatHF",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0,
+          "maximum": 0.005600000000000002,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SinglePionECAL",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.005720000000000002,
+          "maximum": 0.0008,
+          "negative_grid_points": 114
+        },
+        {
+          "name": "SinglePionHCAL",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.003139999999999999,
+          "maximum": 0.001323595505617978,
+          "negative_grid_points": 114
+        },
+        {
+          "name": "SubTotalAbsolute",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0039,
+          "maximum": 0.008373333333333332,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SubTotalMC",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.004961111111111114,
+          "maximum": 0.08718666666666662,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SubTotalPileUp",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0006055555555555558,
+          "maximum": 0.07309333333333332,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SubTotalPt",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 6.956521739130412e-05,
+          "maximum": 0.007173333333333341,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SubTotalRelative",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0011777777777777776,
+          "maximum": 0.0665,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "SubTotalScale",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0038999999999999977,
+          "maximum": 0.004393333333333334,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "TimePtEta",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": -0.009006666666666663,
+          "maximum": 0.048566666666666675,
+          "negative_grid_points": 125
+        },
+        {
+          "name": "TotalNoFlavorNoTime",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.004438888888888888,
+          "maximum": 0.08858666666666667,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "TotalNoFlavor",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0047,
+          "maximum": 0.08858666666666667,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "TotalNoTime",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.0047611111111111135,
+          "maximum": 0.08999333333333331,
+          "negative_grid_points": 0
+        },
+        {
+          "name": "Total",
+          "inputs": [
+            "JetEta",
+            "JetPt"
+          ],
+          "finite": true,
+          "minimum": 0.004961111111111114,
+          "maximum": 0.09003999999999995,
+          "negative_grid_points": 0
+        }
+      ],
+      "scope": "Payload inventory and 152-point grid evaluation only. Entries include individual sources, regrouped sources, sums, flavor alternatives, and diagnostic groups; this is not an independent nuisance manifest or a fit validation."
+    },
+    "later_followup": "The subsequently supplied Case I workbook closes the full-source table and mapping request; see case_i_workbook_followup and jes-2024-full-source-manifest.json. Earlier limits describe the search index by itself."
+  },
+  "case_i_workbook_followup": {
+    "checked_on": "2026-09-13",
+    "workbook_path": "/isilon/export/home/jhuan166/.codex/attachments/581cac15-d3f4-47ed-b165-30c4f7e3e784/JEC Uncertainty Correlation 2017 and 2016.xlsx",
+    "source_provenance": "User supplied the workbook as the Case I full JES source table linked by the current JERC page. Source names and 2024 payload compatibility verified locally; historical 2016-2017 correlation values are not promoted to a Run-3 prescription.",
+    "read_method": "Read both OOXML worksheets, shared strings, workbook visibility, styles and drawing parts. The visible Simple sheet supplies the final transcription; the hidden first sheet was compared separately.",
+    "workbook_check": {
+      "workbook_sha256": "134128275f430602f702f6c3e9021f4a0b7c043731da5b96fa5589f44318bbc6",
+      "source_count": 27,
+      "matching_payload_keys": 27,
+      "all_input_signatures_match": true,
+      "correlation_ideal_counts": {
+        "100% correlated": 6,
+        "no correlation": 10,
+        "50% correlated": 11
+      },
+      "correlation_simple_counts": {
+        "100% correlated": 17,
+        "no correlation": 10
+      },
+      "hidden_sheet_correlation_differences": [
+        {
+          "source": "RelativeJEREC1",
+          "hidden_sheet_recommendation": "50% correlated",
+          "visible_sheet_ideal": "no correlation"
+        },
+        {
+          "source": "RelativeJEREC2",
+          "hidden_sheet_recommendation": "50% correlated",
+          "visible_sheet_ideal": "no correlation"
+        },
+        {
+          "source": "RelativePtEC1",
+          "hidden_sheet_recommendation": "50% correlated",
+          "visible_sheet_ideal": "no correlation"
+        },
+        {
+          "source": "RelativePtEC2",
+          "hidden_sheet_recommendation": "50% correlated",
+          "visible_sheet_ideal": "no correlation"
+        },
+        {
+          "source": "RelativeSample",
+          "hidden_sheet_recommendation": "50% correlated",
+          "visible_sheet_ideal": "no correlation"
+        }
+      ],
+      "source_names": [
+        "AbsoluteMPFBias",
+        "AbsoluteScale",
+        "AbsoluteStat",
+        "FlavorQCD",
+        "Fragmentation",
+        "PileUpDataMC",
+        "PileUpPtBB",
+        "PileUpPtEC1",
+        "PileUpPtEC2",
+        "PileUpPtHF",
+        "PileUpPtRef",
+        "RelativeFSR",
+        "RelativeJEREC1",
+        "RelativeJEREC2",
+        "RelativeJERHF",
+        "RelativePtBB",
+        "RelativePtEC1",
+        "RelativePtEC2",
+        "RelativePtHF",
+        "RelativeBal",
+        "RelativeSample",
+        "RelativeStatEC",
+        "RelativeStatFSR",
+        "RelativeStatHF",
+        "SinglePionECAL",
+        "SinglePionHCAL",
+        "TimePtEta"
+      ],
+      "manifest_path": "docs/jes-2024-full-source-manifest.json",
+      "manifest_sha256": "56adc4533bd45cc9015323e41647703033bcf597dc435d5c6294e828dae7d023",
+      "workbook_structure": {
+        "visible_sheet": "Simple",
+        "hidden_sheet": "Sheet1",
+        "source_names_identical_between_sheets": true,
+        "drawings": "Both drawing parts empty; no diagram content missing.",
+        "formula_cells": 0,
+        "source_rows_hidden": false,
+        "source_fonts_struck_through": false
+      }
+    },
+    "payload_check": {
+      "manifest_sha256": "56adc4533bd45cc9015323e41647703033bcf597dc435d5c6294e828dae7d023",
+      "payload_sha256": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540",
+      "sources": 27,
+      "grid_points": 152,
+      "all_source_evaluations_finite": true,
+      "all_total_evaluations_finite": true,
+      "sources_with_negative_grid_values": [
+        "FlavorQCD",
+        "Fragmentation",
+        "PileUpPtBB",
+        "PileUpPtEC1",
+        "PileUpPtEC2",
+        "PileUpPtHF",
+        "PileUpPtRef",
+        "RelativeFSR",
+        "RelativePtBB",
+        "RelativePtEC1",
+        "RelativePtEC2",
+        "RelativePtHF",
+        "RelativeBal",
+        "RelativeSample",
+        "SinglePionECAL",
+        "SinglePionHCAL",
+        "TimePtEta"
+      ],
+      "max_abs_quadrature_minus_total": 0.001530457960220187,
+      "max_relative_quadrature_minus_total": 0.025963435199392444,
+      "worst_absolute_difference_point": {
+        "eta": -2.9,
+        "pt_GeV": 15.1,
+        "source_quadrature": 0.057416208706446495,
+        "payload_total": 0.05894666666666668
+      },
+      "scope": "Diagnostic comparison of the 27 named source evaluations in quadrature with the separately tabulated Total on the earlier 152-point eta/pT grid. No equality is assumed; signed sources are retained for variations. Not event processing or fit validation.",
+      "native_knot_check": {
+        "points": 2000,
+        "eta_bin_midpoints": 40,
+        "max_abs_quadrature_minus_total": 0.00011034614584647107,
+        "max_relative_quadrature_minus_total": 0.01784472263778867,
+        "scope": "Comparison at tabulated pT knots for every Total eta bin; not a physical-event phase-space scan."
+      },
+      "worst_point_interpolation_check": {
+        "eta": -2.9,
+        "pt_GeV": 15.1,
+        "bracketing_pt_knots_GeV": [
+          13.5,
+          16.5
+        ],
+        "source_linear_interpolation_max_abs_error": 1.3877787807814457e-17,
+        "total_linear_interpolation_abs_error": 2.0816681711721685e-17,
+        "quadrature_of_interpolated_sources_minus_interpolated_endpoint_quadratures": -0.0014774188041197511,
+        "interpolated_endpoint_quadratures_minus_interpolated_total": -5.3039156100435914e-05,
+        "interpretation": "The observed midpoint difference decomposes into noncommutation of linear interpolation with quadrature, plus the smaller endpoint discrepancy. Do not renormalize independent sources to force agreement with separately tabulated Total."
+      }
+    },
+    "source_manifest": {
+      "path": "docs/jes-2024-full-source-manifest.json",
+      "sha256": "56adc4533bd45cc9015323e41647703033bcf597dc435d5c6294e828dae7d023",
+      "status": "Research source mapping; not connected to processor code."
+    },
+    "correlation_interpretation": {
+      "historical_columns": "Correlations between 2016 and 2017. Six Ideal rows are fully correlated, eleven half correlated, ten uncorrelated.",
+      "single_year_2024": "27 independent source nuisance parameters, each shared across its affected jets and events and corresponding MET response. Preserve signed amplitudes; historical percentages neither scale them nor decorrelate individual jets.",
+      "multi_year": "A combination needs the current source-by-source Run-3 or Run-2/Run-3 guidance; the workbook alone does not establish it.",
+      "hidden_sheet": "Same 27 names, but five correlation recommendations differ from the visible Simple sheet. They are recorded as comparison evidence, not used to replace the visible table."
+    },
+    "implementation_readiness": {
+      "source_list_gap": "Resolved: all 27 named entries have exact keys and expected JetEta,JetPt inputs in the 2024 V5 payload.",
+      "baseline": "Full 27-source JES with a global JER pair for initial validation, alongside full electron and existing muon shifts: 65 passes including nominal.",
+      "additional_source_upload_needed_for_baseline": false,
+      "remaining_work": [
+        "Implement complete jet/electron variation passes and shared-source MET propagation.",
+        "Run focused and full event-output validation, including selection migrations and deterministic draws.",
+        "Validate nuisance constraints in the final fit.",
+        "Confirm 2024 applicability and acceptance details only if adopting a regional JER alternative."
+      ],
+      "production_status": "No production variation code changed or run during this workbook follow-up."
+    },
+    "closed_requests": [
+      "Case I full JES source table, including the Ideal correlation column.",
+      "Exact 27-source mapping to available 2024 V5 AK4PFPuppi correction keys."
+    ],
+    "validation_limits": [
+      "The quadrature of independently interpolated source values does not exactly equal the separately tabulated Total. The numerical differences and interpolation decomposition are recorded; no source rescaling or extra Total nuisance is introduced.",
+      "Payload grid checks are not a full varied skim, fit-impact study, or calibration closure test.",
+      "The workbook does not establish a Run-3 cross-year correlation matrix or a 2024 six-region JER prescription."
+    ]
+  }
+}

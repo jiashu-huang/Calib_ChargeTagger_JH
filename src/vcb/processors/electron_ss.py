@@ -189,7 +189,9 @@ def gaussian_from_event(
 # -----------------------------------------------------------------------------
 
 
-def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
+def apply_electron_scale_smearing(
+    events, electrons, year: str, isData: bool, variation: str = "nominal"
+):
     """
     Return `electrons` with EGM-corrected ``pt``.
 
@@ -197,15 +199,24 @@ def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
     correction is what decides which electrons pass the pT cuts downstream.
     The original value is preserved as ``pt_raw`` so the output stays auditable
     and the correction stays reversible; on MC the four ``PT_VARIATIONS``
-    fields are attached as well.
+    fields are attached as well. ``variation`` selects the active pT while
+    ``pt_nominal`` and ``nanoIdx`` preserve the nominal energy and input index.
 
     On a missing payload, or a year with no corrections wired up, the
     collection is returned untouched (with ``pt_raw`` still set, so downstream
     field access does not depend on whether the correction ran) and a warning
-    is logged -- the same failure mode as the lepton SFs: lose the correction,
-    not the job.
+    is logged. An explicitly requested variation instead raises if its
+    payload is missing or the sample is outside 2024 MC.
     """
+    if variation != "nominal" and f"pt_{variation}" not in PT_VARIATIONS:
+        raise ValueError(f"Unknown electron pT variation {variation!r}")
+    if variation != "nominal" and (year != "2024" or isData):
+        raise ValueError("Electron pT variations require 2024 MC")
     electrons = ak.with_field(electrons, electrons.pt, "pt_raw")
+    electrons = ak.with_field(electrons, electrons.pt, "pt_nominal")
+    electrons = ak.with_field(
+        electrons, ak.values_astype(ak.local_index(electrons, axis=1), np.int32), "nanoIdx"
+    )
 
     if year not in ELECTRON_SS_SOURCES:
         if year not in _unsupported_year_warned:
@@ -219,10 +230,15 @@ def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
 
     cset = get_electron_ss_correctionset(year)
     if cset is None:
+        if variation != "nominal":
+            raise FileNotFoundError("Electron pT variations require the 2024 EGM payload")
         return electrons
 
     counts = ak.num(electrons)
     if ak.sum(counts) == 0:
+        if not isData:
+            for field in PT_VARIATIONS:
+                electrons = ak.with_field(electrons, electrons.pt, field)
         return electrons
 
     flat = ak.flatten(electrons)
@@ -236,7 +252,8 @@ def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
         run = np.asarray(ak.flatten(ak.broadcast_arrays(events.run, electrons.pt)[0]), np.float64)
         gain = np.asarray(flat.seedGain, dtype=np.float64)
         scale = cset.compound[SCALE_COMPOUND].evaluate("scale", run, sceta, r9, pt, gain)
-        return ak.with_field(electrons, ak.unflatten(pt * scale, counts), "pt")
+        electrons = ak.with_field(electrons, ak.unflatten(pt * scale, counts), "pt")
+        return ak.with_field(electrons, electrons.pt, "pt_nominal")
 
     # MC: smear only. One Gaussian draw per electron, reused across the
     # variations so they differ by the correction and not by the dice.
@@ -255,6 +272,7 @@ def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
     rho = corr.evaluate("smear", pt, r9, sceta)
     pt_nominal = pt * (1.0 + gauss * rho)
     electrons = ak.with_field(electrons, ak.unflatten(pt_nominal, counts), "pt")
+    electrons = ak.with_field(electrons, electrons.pt, "pt_nominal")
 
     for field, syst in PT_VARIATIONS.items():
         value = corr.evaluate(syst, pt, r9, sceta)
@@ -265,4 +283,6 @@ def apply_electron_scale_smearing(events, electrons, year: str, isData: bool):
         shifted = pt * (1.0 + gauss * value) if syst.startswith("smear") else pt_nominal * value
         electrons = ak.with_field(electrons, ak.unflatten(shifted, counts), field)
 
+    if variation != "nominal":
+        electrons = ak.with_field(electrons, electrons[f"pt_{variation}"], "pt")
     return electrons

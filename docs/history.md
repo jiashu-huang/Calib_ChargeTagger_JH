@@ -315,7 +315,10 @@ which takes the same pair. It did **not** work for JER as a whole, because
 reconstructible from the skim at any price. One float fixes that. The boundaries
 of the offline route — exact per-jet above the threshold, approximate for
 `nJets`, `ht`, Type-1 MET and the veto decision — are written up in
-[`docs/processor.md` §3](processor.md#deriving-jesjer-variations-from-the-skim).
+[`docs/processor.md` §3](processor.md#complete-jesjer-variation-passes).
+The September 2026 audit superseded this offline-only approach: complete
+JES/JER and correlated MET variations now run from NanoAOD to retain entering
+events and omitted jet collections. `Rho` remains useful for diagnostics.
 
 **`GenJet*`** — the whole truth-level AK4 collection (`Pt`/`Eta`/`Phi`/`Mass`,
 `HadronFlavour`, `PartonFlavour`, `NBHadrons`, `NCHadrons`), 25 slots, MC only.

@@ -11,7 +11,7 @@ Flags come from four places, in this order:
 | [`run_utils.parse_common_run_args`](../src/boostedhh/run_utils.py#L78) | `--starti --endi --executor --files --files-name --batch-size --yaml --file-tag` |
 | [`run_utils.parse_common_hh_args`](../src/boostedhh/run_utils.py#L107) | `--year --samples --subsamples --maxchunks --chunksize --save-systematics --save-root` |
 | [`vcb_utils.parse_common_run_args`](../src/vcb/vcb_utils.py#L47) | `--processor --region --nano-version --prescale-factor` |
-| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --muon-pt-variation --naming-tag --outdir --root-only --output-root-location` |
+| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --kinematic-variation --muon-pt-variation --naming-tag --outdir --root-only --output-root-location` |
 
 Boolean flags are mutually exclusive pairs: `add_bool_arg` generates a `--no-<name>`
 alongside each of `--save-root` and `--save-systematics`. `--root-only` is a plain
@@ -62,11 +62,68 @@ grouped on the way out.
 |---|---|---|
 | `--skimmer` | `vcbSkimmer` | Module under `src/vcb/processors/` to run. Accepts `vcbSkimmer`, `vcbSkimmer.py`, or a path. |
 | `--muon-pt-variation` | `nominal` | Active 2024 MC momentum pass. `all` runs nominal plus four total scale/resolution shifts from the original NanoAOD, each in its own subdirectory; see below. |
+| `--kinematic-variation` | `nominal` | One 2024 MC object shift or a group (`all`, `jets`, `jes`, `jer`, `electron`, `muon`). Each pass reruns the complete skim; see below. |
 | `--processor` | `skimmer` | Only choice is `skimmer`. |
 | `--executor` | `iterative` | Only `dask` vs. not-`dask` is honoured — see *Inert*. |
 | `--region` | `signal` | Only choice is `signal`; indexes a one-entry HLT dict. |
 | `--nano-version` | `v12_private` | Only choice. Reaches `get_jec_jets`, where the gate is `"v12" not in nano_version` — always false, so a no-op. |
 | `--prescale-factor` | `None` | Keep only events with `event % N == 0` ([vcbSkimmer.py:600](../src/vcb/processors/vcbSkimmer.py#L600)). Adds a `prescale` row to the cutflow. Useful for a fast, statistically valid pass over 1/N of a sample. **Note:** `np_nominal` still counts every event read, so a prescaled run's `finalWeight` over-predicts yields by roughly N — prescale for timing and shape checks, not for yields. |
+
+## Kinematic variation passes
+
+To produce nominal plus the full 27-source JES basis and global JER up/down:
+
+```bash
+micromamba run -n ttbar python -m vcb.run \
+  --skimmer vcbSkimmer --year 2024 \
+  --files tests/data/test-input.root --files-name TTtoLNuCB \
+  --root-only --outdir outputs/jet_variations --kinematic-variation jets
+```
+
+Each pass starts from NanoAOD. It recalculates object selection, the trigger
+lepton and its efficiency weights, jet cleaning/veto, sorting, counts, HT,
+tag eligibility and parton assignments. Jet shifts also rebuild Type-1 MET
+from the complete regular and auxiliary jet collections with correlated
+per-jet factors. Electron shifts can therefore retain entering events.
+
+| Group | Contents | Passes including nominal |
+| --- | --- | ---: |
+| `jes` | 27 signed JES source pairs | 55 |
+| `jer` | Global JER up/down | 3 |
+| `jets` | Full JES + global JER | 57 |
+| `electron` | Electron scale/smearing up/down | 5 |
+| `muon` | Muon total scale/resolution up/down | 5 |
+| `all` | All of the above | 65 |
+
+For a single pass use `jes_<Source>Up/Down`, `jerUp/Down`,
+`electron_{scale,smear}Up/Down`, or `muon_{scale,resolution}Up/Down`.
+For example, `--kinematic-variation jes_RelativeBalDown` selects one signed
+source; the [manifest](jes-2024-full-source-manifest.json) lists all 27.
+The previous muon component shifts remain available as
+`muon_{scale,resolution}{Stat,Syst}Up/Down`. Components and totals are alternative
+models. `Total`, reduced JES and regional JER are not additional independent
+nuisances in the default model.
+
+Groups write one subdirectory per pass under `--outdir` and, if supplied,
+`--output-root-location`. Shifted filenames append `__<pass>` to the tag.
+The `KinematicVariation` integer branch identifies each pass; IDs are fixed in
+[`kinematic_variations.py`](../src/vcb/processors/kinematic_variations.py).
+`outfiles/<tag>.kinematics.json` records its name, ID, jet options, input files
+and jet-payload paths/hashes, including for a pass with no selected events.
+
+Normalize and merge each pass separately. Each is a copy of the same MC
+sample with the same all-input denominator; summing denominators across
+passes would dilute the yield. `--save-systematics` independently adds
+weight-only branches to each pass. All nonnominal passes require 2024 MC and
+the local runner. Explicitly requested missing payloads or unsupported
+configurations raise. Optional lepton-to-MET and unclustered-energy terms
+are outside this implementation. Global JER and any later reduced model
+still require nuisance-constraint checks in the final fit.
+
+Condor supports the same single-pass names through
+`condor/submit_batches.py --kinematic-variation <pass>`; generate a separate
+campaign/tag per pass. Do not combine `--kinematic-variation` with an active
+legacy `--muon-pt-variation`.
 
 ## Muon momentum passes
 
@@ -91,8 +148,8 @@ selection, and recalculates trigger-lepton choice, jet cleaning, generator
 matching and efficiency weights. Thus it retains events entering under a shift.
 Normalize each pass as a separate copy of the same sample using its all-input
 denominator; never sum denominators across the five copies or normalize to
-each pass's selected yield. Existing Condor submission templates run nominal;
-they do not automatically submit these additional passes.
+each pass's selected yield. Condor defaults to nominal; use its single-pass
+`--kinematic-variation muon_<variation>` option for additional campaigns.
 
 Individual choices are `nominal`, `scaleUp`, `scaleDown`, `resolutionUp`,
 `resolutionDown`, or the eight component choices

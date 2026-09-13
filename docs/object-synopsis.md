@@ -18,7 +18,8 @@ angles in radians, and impact parameters in cm.
 1. Save the input transverse momentum as `pt_raw`. Apply the nominal 2024 EGM
    resolution smearing to every electron's pT before selection. The random draw
    is reproducible from the event identifiers and electron index. Save scale
-   up/down and smearing up/down pT values; selections use nominal pT. Eta, phi,
+   up/down and smearing up/down pT values; selections use the active pass's pT.
+   Preserve nominal pT and the NanoAOD electron index. Eta, phi,
    mass, and charge retain their input values.
 2. Keep electrons with `mvaIso_WP90`, pT > 20, |eta| < 2.5, |dz| < 0.2, and
    |dxy| < 0.045. Reject the ECAL gap, 1.444 <= |supercluster eta| < 1.566;
@@ -42,7 +43,8 @@ angles in radians, and impact parameters in cm.
 **Output fields**
 
 - Kinematics and charge: `Electron{Pt,Eta,Phi,Mass,charge}{i}`.
-- Energy correction records: `Electron{PtRaw,PtScaleUp,PtScaleDown,PtSmearUp,PtSmearDown}{i}`.
+- Energy correction records: `Electron{PtRaw,PtNominal,PtScaleUp,PtScaleDown,PtSmearUp,PtSmearDown}{i}`.
+- Input identity: `ElectronNanoIdx{i}`.
 - Selection and matching: `ElectronMvaIsoWP90{i}`, `ElectronTrigMatchEGamma{i}`,
   `electronsNumlMatchedTop1{i}`. The last name expands to
   `electronsNumlMatchedTop10`, `electronsNumlMatchedTop11`, and `electronsNumlMatchedTop12`.
@@ -123,6 +125,10 @@ This does not implement the separate high-pT GE/TuneP or resolution treatment.
 2. Apply Summer24 V5 nominal jet energy corrections (JEC), followed by
    JRV2 nominal jet energy resolution (JER) smearing. JER uses a compatible
    generator jet when available and reproducible stochastic smearing otherwise.
+   JES passes multiply nominal smeared pT/mass by `1 +/- signed_uncertainty`.
+   JER passes vary its scale factor by the released fractional uncertainty,
+   starting from unsmeared JEC pT with the same match and random draw. Update
+   `rawFactor` consistently and repeat every following jet-selection step.
    Update pT, mass, and `rawFactor`; retain eta and phi. Nominal JER is applied
    even when systematic variations are disabled.
 3. Save each jet's original input index and attach the two jet charges from
@@ -168,34 +174,38 @@ This does not implement the separate high-pT GE/TuneP or resolution treatment.
 - Parton assignments: `Gen{HadB,LepB,HadQ1,HadQ2}JetIdx`.
 - Assigned-parton truth: `Gen{HadTopB,LepTopB,Q1,Q2}{Pt,Eta,Phi,Mass}`,
   `GenQ{1,2}PdgId`.
-- Counts and event quantities: `nJets`, `nGenJets`, `ht`, `Rho`.
+- Counts and event quantities: `nJets`, `nGenJets`, `ht`, `Rho`, `KinematicVariation`.
   `Rho` is the input `fixedGridRhoFastjetAll` used for the corrections.
+  `KinematicVariation` is the stable ID of the active complete pass; see
+  [the CLI reference](cli.md#kinematic-variation-passes).
 
 ## MET
 
 1. Start from `RawPuppiMET`. Rebuild Type-1 PUPPI MET using the full regular
    jet collection before lepton cleaning, analysis cuts, or output truncation.
    Include `CorrT1METJet`, the separate low-pT jet collection omitted from
-   the input `Jet` table; apply the same nominal JEC/JER to these jets.
+   the input `Jet` table; apply the same active JEC/JER treatment to these jets.
 2. For each contributing collection, reconstruct the muon-subtracted raw jet:
    pT = raw pT times `1 - muonSubtrFactor`, eta = jet eta plus
    `muonSubtrDeltaEta`, and phi = jet phi plus `muonSubtrDeltaPhi`, wrapped
    into [-pi, pi). This subtraction is used only for MET.
 3. Evaluate L1 and full JEC using the muon-subtracted pT and direction.
-   Multiply the full-correction pT by the jet's nominal JER factor.
+   Multiply the full-correction pT by the jet's active JER and JES factors.
    Retain contributions with this corrected pT > 15 and electromagnetic
-   fraction < 0.9 (`chEmEF + neEmEF` for regular jets, `EmEF` for auxiliary jets).
-4. Subtract the vector sum of `(full JEC + JER pT) - (L1 pT)` from raw MET,
+   fraction < 0.9 (`chEmEF + neEmEF` for regular jets, `EmEF` for auxiliary jets),
+   and muon-subtracted |eta| < 5.2. Recompute eligibility in each pass.
+4. Subtract the vector sum of `(active corrected pT) - (unchanged L1 pT)` from raw MET,
    using the muon-subtracted phi for each jet. Convert the resulting x/y
    components to pT and phi. Auxiliary jets affect MET only; they do not become
-   saved analysis jets. Electron energy corrections are not propagated into MET.
+   saved analysis jets. Lepton energy corrections are not propagated into MET.
 5. Require all eight input event-quality flags: `goodVertices`,
    `globalSuperTightHalo2016Filter`, `EcalDeadCellTriggerPrimitiveFilter`,
    `BadPFMuonFilter`, `BadPFMuonDzFilter`, `eeBadScFilter`,
    `ecalBadCalibFilter`, and `hfNoisyHitsFilter`. A missing flag raises an error.
 6. Save the corrected MET pT and phi. There is no MET magnitude cut in this
    processor. The raw MET, auxiliary jet collection, individual quality flags,
-   and MET uncertainty variations are not written.
+   and a separate set of MET uncertainty columns are not written. Each JES/JER
+   pass's `METPt`/`METPhi` already carry its correlated shift.
 
 **Output fields**
 

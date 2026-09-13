@@ -484,68 +484,35 @@ For 2024 MC AK4 jets, correctionlib evaluates the Summer24 V5 `L1L2L3Res`
 compound correction on raw pT/mass, then applies nominal JRV2 hybrid JER
 smearing. The resulting factors update `pt`, `mass`, and `rawFactor` before jet
 cleaning and selection. The current 2024 data and AK8 paths retain NanoAOD
-energies, and JES/JER variations are not written by the skimmer.
+energies. The 2024 MC path supports complete JES/JER variation passes.
 
-### Deriving JES/JER variations from the skim
+### Complete JES/JER variation passes
 
-The skimmer writes nominal energies only — `get_jec_jets` returns `None` for
-`jec_shifted_vars` on the 2024 path, and `vcbSkimmer` discards it. The
-variations are instead meant to be evaluated **at analysis time**, from the
-saved columns. This section records what that does and does not buy, because
-the boundary is not obvious.
+Use [`--kinematic-variation jets`](cli.md#kinematic-variation-passes) to run
+nominal, the 27 full JES source pairs and global JER up/down from NanoAOD.
+`all` adds four electron and four muon shifts. The
+[implementation record](jet-met-electron-variations-2024-plan.md) documents the
+source manifest, reference conventions and validation.
 
-#### What the payloads need, and what the skim provides
+JES evaluates the released **signed** source uncertainty at nominal JEC+JER
+eta/pT, multiplies nominal pT/mass by `1 +/- delta`, and retains the same JER
+realization. JER uses `SF_nominal * (1 +/- SFUncertainty)` with unsmeared JEC
+pT, the same hybrid generator match and hash inputs; negative smear factors
+are truncated to zero. `rawFactor` is updated consistently.
 
-Everything below lives in the bundled `2024_jet_jerc.json.gz`:
+Each active pass repeats all selections, jet-veto candidates, trigger-lepton
+choice and SFs, cleaning, sorting, counts, HT, tag eligibility and parton
+assignment. Type-1 MET is rebuilt from the complete regular and disjoint
+auxiliary jets with the same per-jet JES/JER factors and newly evaluated
+acceptance. The L1 reference stays unchanged. Global JER is an independent
+nuisance from the JES sources named `RelativeJER*`.
 
-| correction | inputs | available downstream? |
-|---|---|---|
-| `V5_MC_Total` (JES) | `JetEta`, `JetPt` | ✅ `ak4JetEta`, `ak4JetPt` |
-| `V5_MC_Regrouped_*` (11 sources) | `JetEta`, `JetPt` | ✅ same |
-| `JRV2_MC_ScaleFactor` (JER SF) | `JetEta`, `JetPt` | ✅ same |
-| `JRV2_MC_PtResolution` (JER σ) | `JetEta`, `JetPt`, `Rho` | ✅ **only because `Rho` is saved** |
-
-JES is therefore a pure per-jet lookup: the payload returns a *fractional*
-uncertainty δ(η, pT), and the shifted jet is `pt · (1 ± δ)`, mass likewise. No
-`rho`, no `area`, no raw pT. This is why the full 11-source regrouped
-decomposition costs nothing to add later.
-
-JER is harder, because the smear is the hybrid of a deterministic and a
-stochastic branch (see `_jer_smear_2024`), and reproducing it needs four things
-beyond the SF: the resolution σ (hence `Rho`), the gen-matched pT
-(`ak4JetMatchedGenJetPt`), the ΔR of that match (recoverable from the saved
-`GenJet*` collection), and the `hashprng` entropy source, which is the event
-number (`event`). All four are now in the output.
-
-#### Where it stops being exact
-
-The offline route shifts the jets *that are in the file*. It does not re-run the
-skimmer's decisions, all of which were made with nominal energies:
-
-- **`pt > 15` migration.** A jet at 14.8 GeV nominal that would clear 15 GeV
-  under JES-up is simply absent, and nothing downstream can invent it. The leak
-  is one-sided: shifting down can be done exactly (drop jets that fall below the
-  analysis cut), shifting up cannot.
-- **`nJets` and `ht`** were computed on the nominal selection. `ht` is
-  recomputable from the saved slots only when `nJets ≤ 10`.
-- **Type-1 MET** was rebuilt by summing over *every* jet in the event, including
-  sub-threshold and lepton-overlapping ones that are not in the output at all
-  (`JECs.type1_met_2024`). Its JES/JER shift is therefore **not** derivable from
-  the ten saved jets except approximately.
-- **The jet-veto map decision** is an event-level cut evaluated on nominal
-  energies, over a candidate list that is not the saved collection.
-
-The practical rule: the offline route is **exact for per-jet quantities above a
-threshold comfortably clear of 15 GeV**, and **approximate for `nJets`, `ht`,
-MET and the veto**. Since the JES uncertainty is a few percent, the migration
-band around the skim threshold is roughly 14.2–15.9 GeV; if the analysis cuts
-jets at 25–30 GeV, no analysis jet is ever in it. MET is the one that needs
-thought for this analysis, because W → ℓν is reconstructed from it.
-
-If the MET systematic turns out to matter at the precision this calibration
-needs, the fix is to propagate the shifts inline in the skimmer — the
-`jec_shifted_vars` machinery in `get_jec_jets` exists for exactly that and only
-the 2024 branch declines to fill it.
+`KinematicVariation` identifies the pass in each output event; a JSON sidecar
+records its name and payload provenance. `Rho`, input indices and nominal
+lepton pT remain useful diagnostics. A nominal skim cannot supply complete
+variations: it has already discarded entering events, analysis jets and the
+auxiliary MET collection. Normalize each pass with the same all-input
+normalization prescription in its own campaign.
 
 ---
 

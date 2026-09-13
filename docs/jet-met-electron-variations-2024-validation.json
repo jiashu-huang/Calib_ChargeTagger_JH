@@ -1,0 +1,827 @@
+{
+  "date": "2026-09-13",
+  "implementation_base_commit": "8cc5a818ce2fe28f0c34ca4c3370746422c1d20e",
+  "fixture": {
+    "path": "tests/data/test-input.root",
+    "sha256": "905b861b28901a35e33c2eb6214bac177ecd0174b493157804ee414a710cfc40",
+    "entries": 208780
+  },
+  "unit_tests": {
+    "passed": 227,
+    "subtests_passed": 18,
+    "final_cli_recheck_passed": 19
+  },
+  "lint": "PASS; src/vcb, tests, condor; vendored code excluded by repository policy",
+  "nominal_regression": {
+    "selected": 59537,
+    "old_columns": 734,
+    "new_columns": [
+      "KinematicVariation",
+      "ElectronNanoIdx0",
+      "ElectronNanoIdx1",
+      "ElectronNanoIdx2",
+      "ElectronPtNominal0",
+      "ElectronPtNominal1",
+      "ElectronPtNominal2"
+    ],
+    "changed_existing_columns": []
+  },
+  "smoke": {
+    "processed_input_entries": 2008,
+    "output_columns": 759,
+    "weight_systematics": true,
+    "input": "tests/data/test-input.root",
+    "input_file_entries": 208780,
+    "directory": "/tmp/vcb-kinematic-smoke",
+    "reference": "/tmp/vcb-kinematic-smoke/nominal/nano_skim_smoke_batch_0.root",
+    "normalization": {
+      "np_nominal": [
+        684415.330585103
+      ],
+      "nevents": [
+        670723.375
+      ]
+    },
+    "results": {
+      "electron_scaleDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 219,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "electron_scaleUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 219,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "electron_smearDown": {
+        "common": 518,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 218,
+        "selected": 518,
+        "entering": 0,
+        "leaving": 1
+      },
+      "electron_smearUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 219,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jerDown": {
+        "common": 518,
+        "changed_nJets": 105,
+        "changed_jet_slots": 165,
+        "changed_met": 518,
+        "changed_trigger_pt": 0,
+        "selected": 518,
+        "entering": 0,
+        "leaving": 1
+      },
+      "jerUp": {
+        "common": 519,
+        "changed_nJets": 38,
+        "changed_jet_slots": 115,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteMPFBiasDown": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteMPFBiasUp": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteScaleDown": {
+        "common": 519,
+        "changed_nJets": 2,
+        "changed_jet_slots": 2,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteScaleUp": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 1,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteStatDown": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_AbsoluteStatUp": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 4,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_FlavorQCDDown": {
+        "common": 519,
+        "changed_nJets": 7,
+        "changed_jet_slots": 7,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_FlavorQCDUp": {
+        "common": 519,
+        "changed_nJets": 12,
+        "changed_jet_slots": 12,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_FragmentationDown": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_FragmentationUp": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpDataMCDown": {
+        "common": 519,
+        "changed_nJets": 22,
+        "changed_jet_slots": 31,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpDataMCUp": {
+        "common": 519,
+        "changed_nJets": 28,
+        "changed_jet_slots": 39,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtBBDown": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 9,
+        "changed_met": 492,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtBBUp": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 5,
+        "changed_met": 492,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtEC1Down": {
+        "common": 519,
+        "changed_nJets": 2,
+        "changed_jet_slots": 6,
+        "changed_met": 424,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtEC1Up": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 11,
+        "changed_met": 424,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtEC2Down": {
+        "common": 519,
+        "changed_nJets": 5,
+        "changed_jet_slots": 8,
+        "changed_met": 279,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtEC2Up": {
+        "common": 519,
+        "changed_nJets": 7,
+        "changed_jet_slots": 11,
+        "changed_met": 287,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtHFDown": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 6,
+        "changed_met": 201,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtHFUp": {
+        "common": 519,
+        "changed_nJets": 8,
+        "changed_jet_slots": 13,
+        "changed_met": 215,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtRefDown": {
+        "common": 519,
+        "changed_nJets": 7,
+        "changed_jet_slots": 7,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_PileUpPtRefUp": {
+        "common": 519,
+        "changed_nJets": 11,
+        "changed_jet_slots": 11,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeBalDown": {
+        "common": 519,
+        "changed_nJets": 12,
+        "changed_jet_slots": 39,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeBalUp": {
+        "common": 519,
+        "changed_nJets": 5,
+        "changed_jet_slots": 36,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeFSRDown": {
+        "common": 519,
+        "changed_nJets": 7,
+        "changed_jet_slots": 17,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeFSRUp": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 9,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJEREC1Down": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 3,
+        "changed_met": 380,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJEREC1Up": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 2,
+        "changed_met": 380,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJEREC2Down": {
+        "common": 519,
+        "changed_nJets": 5,
+        "changed_jet_slots": 13,
+        "changed_met": 279,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJEREC2Up": {
+        "common": 519,
+        "changed_nJets": 6,
+        "changed_jet_slots": 15,
+        "changed_met": 284,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJERHFDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 2,
+        "changed_met": 200,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeJERHFUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 201,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtBBDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 490,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtBBUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 2,
+        "changed_met": 490,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtEC1Down": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 4,
+        "changed_met": 424,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtEC1Up": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 2,
+        "changed_met": 424,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtEC2Down": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 3,
+        "changed_met": 279,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtEC2Up": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 6,
+        "changed_met": 279,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtHFDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 1,
+        "changed_met": 201,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativePtHFUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 200,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeSampleDown": {
+        "common": 519,
+        "changed_nJets": 25,
+        "changed_jet_slots": 63,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeSampleUp": {
+        "common": 519,
+        "changed_nJets": 10,
+        "changed_jet_slots": 42,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatECDown": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 7,
+        "changed_met": 476,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatECUp": {
+        "common": 519,
+        "changed_nJets": 2,
+        "changed_jet_slots": 6,
+        "changed_met": 476,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatFSRDown": {
+        "common": 519,
+        "changed_nJets": 1,
+        "changed_jet_slots": 2,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatFSRUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatHFDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 2,
+        "changed_met": 200,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_RelativeStatHFUp": {
+        "common": 519,
+        "changed_nJets": 2,
+        "changed_jet_slots": 4,
+        "changed_met": 203,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_SinglePionECALDown": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 4,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_SinglePionECALUp": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 4,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_SinglePionHCALDown": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 4,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_SinglePionHCALUp": {
+        "common": 519,
+        "changed_nJets": 3,
+        "changed_jet_slots": 3,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_TimePtEtaDown": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 11,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "jes_TimePtEtaUp": {
+        "common": 519,
+        "changed_nJets": 4,
+        "changed_jet_slots": 11,
+        "changed_met": 519,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "muon_resolutionDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 298,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "muon_resolutionUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 298,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "muon_scaleDown": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 298,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "muon_scaleUp": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 298,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      },
+      "nominal": {
+        "common": 519,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 0,
+        "selected": 519,
+        "entering": 0,
+        "leaving": 0
+      }
+    },
+    "verdict": "PASS"
+  },
+  "full_fixture": {
+    "output_columns": 741,
+    "weight_systematics": false,
+    "all_pass_pickle_totals_equal": true,
+    "input": "tests/data/test-input.root",
+    "input_file_entries": 208780,
+    "directory": "/tmp/vcb-kinematic-full",
+    "reference": "tests/outfile/test-output.root",
+    "normalization": {
+      "np_nominal": [
+        69805971.43478915
+      ],
+      "nevents": [
+        69792312.0
+      ]
+    },
+    "results": {
+      "electron_scaleDown": {
+        "common": 59522,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 24910,
+        "selected": 59522,
+        "entering": 0,
+        "leaving": 15
+      },
+      "electron_scaleUp": {
+        "common": 59537,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 24925,
+        "selected": 59558,
+        "entering": 21,
+        "leaving": 0
+      },
+      "electron_smearDown": {
+        "common": 59522,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 24910,
+        "selected": 59544,
+        "entering": 22,
+        "leaving": 15
+      },
+      "electron_smearUp": {
+        "common": 59512,
+        "changed_nJets": 0,
+        "changed_jet_slots": 0,
+        "changed_met": 0,
+        "changed_trigger_pt": 24900,
+        "selected": 59530,
+        "entering": 18,
+        "leaving": 25
+      },
+      "jerDown": {
+        "common": 59406,
+        "changed_nJets": 10584,
+        "changed_jet_slots": 18602,
+        "changed_met": 59404,
+        "changed_trigger_pt": 0,
+        "selected": 59440,
+        "entering": 34,
+        "leaving": 131
+      },
+      "jerUp": {
+        "common": 59530,
+        "changed_nJets": 5456,
+        "changed_jet_slots": 13701,
+        "changed_met": 59528,
+        "changed_trigger_pt": 0,
+        "selected": 59604,
+        "entering": 74,
+        "leaving": 7
+      },
+      "jes_RelativeBalDown": {
+        "common": 59512,
+        "changed_nJets": 1223,
+        "changed_jet_slots": 4760,
+        "changed_met": 59510,
+        "changed_trigger_pt": 0,
+        "selected": 59514,
+        "entering": 2,
+        "leaving": 25
+      },
+      "jes_RelativeBalUp": {
+        "common": 59536,
+        "changed_nJets": 1363,
+        "changed_jet_slots": 5002,
+        "changed_met": 59534,
+        "changed_trigger_pt": 0,
+        "selected": 59570,
+        "entering": 34,
+        "leaving": 1
+      }
+    },
+    "verdict": "PASS"
+  },
+  "roundtrip": {
+    "nominal": {
+      "comparisons": 5420807,
+      "differing": 0,
+      "unexplained_dropped_jets": 0,
+      "verdict": "PASS"
+    },
+    "jerUp": {
+      "comparisons": 5392162,
+      "differing": 0,
+      "unexplained_dropped_jets": 0,
+      "verdict": "PASS"
+    },
+    "electron_scaleUp": {
+      "comparisons": 5422762,
+      "differing": 0,
+      "unexplained_dropped_jets": 0,
+      "verdict": "PASS"
+    },
+    "jes_RelativeBalDown": {
+      "comparisons": 5430871,
+      "differing": 0,
+      "unexplained_dropped_jets": 0,
+      "verdict": "PASS"
+    }
+  },
+  "scope": "All 65 passes ran on one adjusted 2008-event chunk; nominal and eight targeted shifts ran on the full fixture. This is implementation validation, not a collision-data closure or final-fit nuisance-constraint study.",
+  "verdict": "PASS"
+}

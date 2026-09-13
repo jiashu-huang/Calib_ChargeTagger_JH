@@ -1,12 +1,16 @@
 # HTCondor batch processing
 
-Last update: **2026-07-26**
+Last update: **2026-09-13**
 
 One Condor job per `batch_*` input directory. Each job runs the `vcb` skimmer
 on all ROOT files in its batch and writes one skimmed ROOT + one totals pickle.
 The skimmer never writes `finalWeight` — its denominator sums over every batch,
 which no single job can know. It is appended afterwards, in place, by
 `scripts/normalize.py`.
+
+Run the submitter from the `ttbar` environment (activate it or prefix the
+commands below with `micromamba run -n ttbar`). The worker's environment
+selection remains controlled independently by `--mamba-env`.
 
 ## Worked example: 2024 production
 
@@ -80,6 +84,7 @@ micromamba run -n ttbar python -u -m vcb.run \
 | `--naming-tag` | `batch_NNN` | names the outputs; the worker renames them to `<tag>/roots/batch_NNN.root` and `<tag>/pickles/batch_NNN.pkl`, which is the pairing `normalize.py` relies on |
 | `--files-name` | *required* | whatever you passed to `submit_batches.py`. Must match a key in `xsecs`, else the run normalizes to `weight_norm = 1`; `vcb.run` refuses to start if it is missing altogether |
 | `--save-systematics` | off unless passed | mirrors `submit_batches.py --save-systematics`. Always written out in full (`--save-systematics` or `--no-save-systematics`) so the worker script records which mode it ran. See below |
+| `--kinematic-variation` | `nominal` | One complete 2024 MC pass, e.g. `jerUp`, `jes_RelativeBalDown` or `electron_smearUp`. See [the pass list](../docs/cli.md#kinematic-variation-passes). Use a separate campaign/tag per pass; group names are local-runner options. |
 | `--batch-size` | `9999` | forces one ROOT per job; the worker asserts exactly one and fails otherwise |
 | `--maxchunks` | `0` | no cap — process the whole batch |
 | `--chunksize` | `1000000` | events per coffea chunk |
@@ -121,12 +126,26 @@ not refuse — a submitter that blocks is a submitter people work around.
 `dirty: true` in a production's `campaign.json` means its commit hash does not
 describe what ran.
 
+#### Kinematic variations
+
+For each desired pass, generate a campaign with a distinct tag and
+`--kinematic-variation <pass>`. The worker runs the full input NanoAOD selection
+and copies the corresponding ROOT, totals pickle and
+`metadata/<batch>.kinematics.json` together. `campaign.json` records the pass
+name/ID. The ROOT also stores `KinematicVariation` on every event. Non-nominal
+temporary filenames include the pass name; the output ROOT/pickle pairing
+retains the normal batch naming within its separate campaign.
+
+Normalize and merge each campaign separately. Never mix nominal and shifted
+copies in a normalization denominator or a merged event sample. Weight-only
+`--save-systematics` can be enabled independently in every campaign.
+
 #### Systematic variations
 
 `--save-systematics` is **off by default** and worth turning on for any real
 production. It adds 18 `weight_*Up/Down` columns — pile-up, ISR/FSR parton
 shower, and the six lepton scale factors — plus their `np_*` denominators in
-the totals pickle (699 branches instead of 681).
+the totals pickle (759 branches instead of 741).
 
 The reason to decide *before* submitting rather than after: the raw `PSWeight`
 array is not written to the skim, so **ISR/FSR variations cannot be rebuilt
@@ -165,9 +184,9 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
 
 The default `--schema-mode auto` detects nominal or systematic output from
 the first ROOT file and requires that mode for every file checked. Nominal
-output must match the committed `tests/outfile/test-output-schema.csv` (681
+output must match the committed `tests/outfile/test-output-schema.csv` (741
 branches); systematic output must also contain all 18 supported up/down weight
-branches (699 total). `finalWeight` is allowed in either mode. Missing columns,
+branches (759 total). `finalWeight` is allowed in either mode. Missing columns,
 unknown extras, incomplete variation sets, and mixed modes fail validation.
 
 Use `--schema-mode systematics` for a campaign run with `--save-systematics`

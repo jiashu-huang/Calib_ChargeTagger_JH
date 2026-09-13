@@ -40,6 +40,12 @@ git submodule and is not pip-installed from upstream.
   (2026-09-06). It also includes `CorrT1METJet` after nominal JEC/JER and the
   Type-1 pT/EM-fraction cuts. Auxiliary jets use geometric hybrid gen matching
   for JER because they have no `genJetIdx`; they do not enter analysis jets.
+  On 2026-09-13, added single-source signed JES and global JER up/down passes
+  using the fractional JRV2 `SFUncertainty`, fixed nominal hash inputs and
+  hybrid matches. The corresponding per-jet factors also propagate to Type-1
+  MET for both collections, with active pT acceptance and |eta| < 5.2 after
+  muon subtraction. Missing mandatory 2024 payloads raise; raw NanoAOD records
+  are preserved for independent passes, including typed empty collections.
 - `xsecs.py` — added `xsecs["TTtoLNuCB"]`.
 - **Pileup overhaul (2026-07-24)** — `add_pileup_weight` rewritten:
   - takes `Pileup_nTrueInt` (the Poisson mean the LUM weights are derived in);

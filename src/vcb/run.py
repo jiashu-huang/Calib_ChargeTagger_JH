@@ -25,8 +25,10 @@ import argparse
 import copy
 import importlib
 import inspect
+import json
 import warnings
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 
 import yaml
@@ -36,6 +38,8 @@ from boostedhh.hh_vars import DATA_SAMPLES
 from boostedhh.processors import SkimmerABC
 from boostedhh.xsecs import xsecs
 from vcb import vcb_utils
+from vcb.processors.kinematic_variations import GROUPS, resolve_variation
+from vcb.processors.kinematic_variations import VARIATION_IDS as KINEMATIC_VARIATION_IDS
 from vcb.processors.muon_ss import TOTAL_VARIATIONS, VARIATION_IDS, validate_variation
 
 
@@ -147,6 +151,7 @@ def get_processor(
     prescale_factor: int | None = None,
     skimmer: str | None = None,
     muon_pt_variation: str = "nominal",
+    kinematic_variation: str = "nominal",
 ):
     # Factory for processor instances. Currently only "skimmer" is supported.
     if processor == "skimmer":
@@ -155,20 +160,25 @@ def get_processor(
         skimmer_module = importlib.import_module(f"vcb.processors.{skimmer_name}")
         skimmer_cls = _select_skimmer_class(skimmer_module, skimmer_name, class_name)
 
+        resolve_variation(kinematic_variation, muon_pt_variation)
         # Preserve compatibility with alternate skimmers for nominal runs.
-        muon_options = {}
+        variation_options = {}
+        if kinematic_variation != "nominal":
+            if "kinematic_variation" not in inspect.signature(skimmer_cls).parameters:
+                raise ValueError(f"{skimmer_cls.__name__} does not support kinematic variations")
+            variation_options["kinematic_variation"] = kinematic_variation
         if muon_pt_variation != "nominal":
             validate_variation(muon_pt_variation)
             if "muon_pt_variation" not in inspect.signature(skimmer_cls).parameters:
                 raise ValueError(f"{skimmer_cls.__name__} does not support muon pT variations")
-            muon_options["muon_pt_variation"] = muon_pt_variation
+            variation_options["muon_pt_variation"] = muon_pt_variation
         return skimmer_cls(
             xsecs=xsecs,
             save_systematics=save_systematics,
             region=region,
             nano_version=nano_version,
             prescale_factor=prescale_factor,
-            **muon_options,
+            **variation_options,
         )
 
 
@@ -191,6 +201,28 @@ def _default_naming_tag(args, fileset: dict) -> str:
     return f"{args.starti}-{args.endi}"
 
 
+def _jet_payload_metadata(year: str) -> dict:
+    """Record the same bundled-first files selected by the 2024 JEC loader."""
+    if year != "2024":
+        return {}
+    from boostedhh.processors import corrections
+
+    result = {}
+    for name, candidates in {
+        "jec_jer": (corrections.JEC_JER_2024_BUNDLED, corrections.JEC_JER_2024_CVMFS),
+        "smearing": (corrections.JERSMEAR_2024_BUNDLED, corrections.JERSMEAR_2024_CVMFS),
+    }.items():
+        path = next((Path(p) for p in candidates if Path(p).is_file()), None)
+        if path is None:
+            raise FileNotFoundError(f"Missing 2024 {name} payload")
+        result[name] = {"path": str(path), "sha256": sha256(path.read_bytes()).hexdigest()}
+    result["jec"] = corrections.JEC_2024_MC_COMPOUND
+    result["jer_resolution"] = corrections.JER_2024_MC_RESO
+    result["jer_scale_factor"] = corrections.JER_2024_MC_SF
+    result["jer_fractional_uncertainty"] = corrections.JER_2024_MC_SF_UNCERTAINTY
+    return result
+
+
 def _run_single(args):
     # Build the processor with all CLI-configured options.
     p = get_processor(
@@ -201,6 +233,7 @@ def _run_single(args):
         args.prescale_factor,
         args.skimmer,
         muon_pt_variation=getattr(args, "muon_pt_variation", "nominal"),
+        kinematic_variation=getattr(args, "kinematic_variation", "nominal"),
     )
 
     # Select output formats by processor type (skimmer always saves both).
@@ -268,9 +301,12 @@ def _run_single(args):
             filetag = args.file_tag
         else:
             filetag = _default_naming_tag(args, fileset)
-        variation = getattr(args, "muon_pt_variation", "nominal")
-        if variation != "nominal":
-            filetag = f"{filetag}__muon_{variation}"
+        variation = resolve_variation(
+            getattr(args, "kinematic_variation", "nominal"),
+            getattr(args, "muon_pt_variation", "nominal"),
+        )
+        if variation.name != "nominal":
+            filetag = f"{filetag}__{variation.name}"
 
         # Resolve output directory: use explicit --outdir or auto-generate a timestamped one.
         outputs_root = Path("outputs")
@@ -300,6 +336,21 @@ def _run_single(args):
             root_dir=root_outdir,
         )
 
+        # A standalone ROOT carries the stable ID; this sidecar explains it
+        # even for a pass with no selected events. Each pass is one copy of MC.
+        metadata_dir = run_outdir / "outfiles"
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        (metadata_dir / f"{filetag}.kinematics.json").write_text(json.dumps({
+            "schema_version": 1,
+            "variation": variation.name,
+            "identifier": variation.identifier,
+            "jet_options": variation.jet_options,
+            "jet_payloads": _jet_payload_metadata(args.year),
+            "year": args.year,
+            "fileset": fileset,
+            "normalization": "Normalize this pass separately using all input events; do not sum passes.",
+        }, indent=2) + "\n")
+
         # Update the "latest" symlink to point to this run's output directory.
         # outputs/ may not exist yet when --outdir points somewhere else.
         outputs_root.mkdir(parents=True, exist_ok=True)
@@ -312,8 +363,26 @@ def _run_single(args):
 
 
 def main(args):
-    """Each muon variation starts from NanoAOD and gets its own complete skim."""
+    """Each object variation starts from NanoAOD and gets its own complete skim."""
+    kinematic = getattr(args, "kinematic_variation", "nominal")
     variation = getattr(args, "muon_pt_variation", "nominal")
+    if kinematic != "nominal":
+        if variation != "nominal":
+            raise ValueError("Use only one of --kinematic-variation and --muon-pt-variation")
+        if args.year != "2024" or args.executor == "dask":
+            raise ValueError("Kinematic variations require 2024 MC and the local runner")
+        if kinematic not in GROUPS:
+            resolve_variation(kinematic)
+            return _run_single(args)
+        parent = Path(args.outdir) if args.outdir else Path("outputs") / datetime.now().strftime("%Y%m%d_%H%M")
+        for shift in GROUPS[kinematic]:
+            run_args = copy.copy(args)
+            run_args.kinematic_variation = shift
+            run_args.outdir = str(parent / shift)
+            if args.output_root_location:
+                run_args.output_root_location = str(Path(args.output_root_location) / shift)
+            _run_single(run_args)
+        return None
     if variation != "nominal":
         if args.year != "2024":
             raise ValueError("Muon pT variations require 2024 MC")
@@ -352,6 +421,16 @@ if __name__ == "__main__":
         help=(
             "Skimmer module name in src/processors, optionally with class name "
             "(e.g., vcbSkimmer, vcbSkimmer.py, ttSkimmer)."
+        ),
+    )
+    parser.add_argument(
+        "--kinematic-variation",
+        choices=(*KINEMATIC_VARIATION_IDS, *GROUPS),
+        default="nominal",
+        help=(
+            "2024 MC object pass. 'all' runs 65 complete passes; 'jets' runs nominal plus "
+            "27 JES pairs and global JER up/down. Groups jes, jer, electron, muon are also "
+            "available. Each group writes separate pass directories and retains entering events."
         ),
     )
     parser.add_argument(

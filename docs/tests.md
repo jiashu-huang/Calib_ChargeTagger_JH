@@ -26,6 +26,36 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 ## The integration run
 
+`tests/test_kinematic_variations.py` checks the supplied 27-source manifest,
+payload signatures, separate CLI groups, legacy muon aliases, electron trigger
+entry/exit and Condor single-pass generation. `tests/test_type1_met.py` also
+checks signed JES, fractional JER uncertainties, identical stochastic draws,
+strict hybrid matching, zero-smear recovery and correlated Type-1 changes
+through both regular and auxiliary jets, including threshold crossings.
+
+For a bounded end-to-end check of all 65 passes, including weight variations:
+
+```bash
+micromamba run -n ttbar python -m vcb.run \
+  --year 2024 --files tests/data/test-input.root --files-name TTtoLNuCB \
+  --kinematic-variation all --root-only --save-systematics \
+  --chunksize 2000 --maxchunks 1 --naming-tag smoke --outdir outputs/kinematic_check
+micromamba run -n ttbar python diagnostics/check_kinematic_passes.py \
+  --directory outputs/kinematic_check --input tests/data/test-input.root \
+  --expect-group all --report outputs/kinematic_check/validation.json
+```
+
+The diagnostic checks identical all-input totals, migrations, signed JES
+values, jet identity/charges, active lepton momenta, sorting, tag eligibility
+and efficiency weights reevaluated using the input electron's supercluster
+eta and the active trigger-lepton pT. It expects one ROOT batch per pass.
+Coffea adjusts chunk boundaries: this fixture's first requested 2,000-event
+chunk contains 2,008 events. Set `--maxchunks 0` for the complete input; the
+diagnostic can also compare a directory of individual passes to
+`--reference-root tests/outfile/test-output.root` after the nominal test below.
+The jet round-trip diagnostic automatically reads `KinematicVariation` when
+checking a shifted ROOT against NanoAOD; old files without it use nominal.
+
 ```bash
 # fixture is git-ignored — copy it in once
 cp /isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger/tests/data/test-input.root tests/data/

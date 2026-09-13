@@ -248,6 +248,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skimmer", default="vcbSkimmer", help="Skimmer module to run.")
     parser.add_argument(
+        "--kinematic-variation", default="nominal",
+        help="One 2024 MC pass, e.g. jerUp or jes_RelativeBalDown. Use a separate campaign per pass.",
+    )
+    parser.add_argument(
         "--chunksize",
         type=int,
         default=1_000_000,
@@ -358,6 +362,13 @@ def main() -> None:
     """Generate the Condor campaign."""
     args = parse_args()
 
+    # Validate before creating campaign directories. Workers load the same
+    # pass registry from this editable installation; groups are local-only.
+    from vcb.processors.kinematic_variations import Variation
+
+    variation = Variation(args.kinematic_variation)
+    variation.validate_sample(args.year)
+
     if (
         args.batch_start is not None
         and args.batch_end is not None
@@ -433,10 +444,12 @@ def main() -> None:
                 "INPUT_LIST": str(input_list_path),
                 "OUTPUT_ROOTS_DIR": str(roots_dir),
                 "OUTPUT_PICKLES_DIR": str(pickles_dir),
+                "OUTPUT_METADATA_DIR": str(metadata_dir),
                 "WORK_DIR": str(work_dir),
                 "YEAR": args.year,
                 "FILES_NAME": args.files_name,
                 "SKIMMER": args.skimmer,
+                "KINEMATIC_VARIATION": variation.name,
                 "CHUNKSIZE": str(args.chunksize),
                 "MAXCHUNKS": str(args.maxchunks),
                 "BATCH_SIZE": str(args.batch_size),
@@ -505,6 +518,8 @@ def main() -> None:
         "year": args.year,
         "files_name": args.files_name,
         "skimmer": args.skimmer,
+        "kinematic_variation": variation.name,
+        "kinematic_variation_id": variation.identifier,
         "chunksize": args.chunksize,
         "maxchunks": args.maxchunks,
         "batch_size": args.batch_size,

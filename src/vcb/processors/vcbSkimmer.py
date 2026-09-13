@@ -24,7 +24,8 @@ Event acceptance in this processor:
   `electronSS_EtDependent` payload before any electron selection, since the
   correction is what decides which electrons clear the pT thresholds
   (`electron_ss.py`). The uncorrected pT is kept as `ElectronPtRaw`, and MC
-  additionally carries the four scale/smearing shifted pTs.
+  additionally carries the four scale/smearing shifted pTs. An electron
+  variation activates its pT before selection, including entering events.
 - Correct tight, PF-isolated 2024 muons in the validated 26--200 GeV range
   with MuonScaReKIT before selection (`muon_ss.py`). Data receives scale;
   MC receives scale and residual resolution smearing. A selected momentum
@@ -33,6 +34,8 @@ Event acceptance in this processor:
 
 Jet handling in this processor:
 - Build AK4 jets from NanoAOD `events.Jet` and apply year-dependent JECs.
+  For 2024 MC, full JES source or global JER up/down passes rerun selection
+  and propagate the same per-jet factors to Type-1 MET.
 - Keep AK4 jets with corrected `pt > 15 GeV` and `|eta| < 4.7`; a jet at
   exactly 15 GeV is not selected.
 - Require the Run-3 AK4 PUPPI *Tight* jet ID, recomputed from the PF energy
@@ -72,9 +75,9 @@ Jet handling in this processor:
   collection can be sanity-checked against the truth-level one it came from.
   Each reco jet points into that collection with `ak4JetGenJetIdx`, and
   `nGenJets` records how many gen jets the event actually had.
-- Save the event pile-up energy density as `Rho`. This is the input JER needs
-  and the per-jet columns cannot supply, so writing it is what makes the JES/JER
-  variations derivable from the skim without a reprocessing pass.
+- Save the event pile-up energy density as `Rho` for correction diagnostics.
+  Complete JES/JER passes start from NanoAOD to retain selection migrations,
+  unsaved jets and the auxiliary jets used by Type-1 MET.
 - The Qk charges come from the fork's separate `JetQk` collection, which is
   indexed over the *unfiltered* jets; `objects.attach_jet_charge` handles the
   match and guards the assumption it rests on.
@@ -134,10 +137,11 @@ from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 
 from . import GenSelection, objects  # Local gen selection and object definitions.
 from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
+from .kinematic_variations import resolve_variation
 from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
 from .muon_ss import PT_VARIATIONS as MUON_PT_VARIATIONS
 from .muon_ss import VARIATION_IDS as MUON_VARIATION_IDS
-from .muon_ss import apply_muon_scale_smearing, validate_variation
+from .muon_ss import apply_muon_scale_smearing
 from .top_pt import top_pt_weights  # ttbar top-pT reweighting SFs (standalone columns).
 
 # -----------------------------------------------------------------------------
@@ -335,6 +339,8 @@ class vcbSkimmer(SkimmerABC):
         # reversible after the fact.
         "ElectronEnergy": {
             "pt_raw": "PtRaw",
+            "pt_nominal": "PtNominal",
+            "nanoIdx": "NanoIdx",
         },
         # The shifted pTs for the EGM scale/smearing systematics, MC only.
         # Saved per electron rather than as a weight because a pT shift changes
@@ -392,6 +398,7 @@ class vcbSkimmer(SkimmerABC):
         nano_version: str = "v12_private",
         prescale_factor: int = None,
         muon_pt_variation: str = "nominal",
+        kinematic_variation: str = "nominal",
     ):
         # Initialize the base Processor/Skimmer state first.
         super().__init__()
@@ -411,13 +418,13 @@ class vcbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
         # Optional prescale: keep only events with event % N == 0.
         self._prescale_factor = prescale_factor
-        validate_variation(muon_pt_variation)
-        self._muon_pt_variation = muon_pt_variation
+        self._variation = resolve_variation(kinematic_variation, muon_pt_variation)
+        self._muon_pt_variation = self._variation.muon
 
         # Log the configuration for user visibility.
         logger.info(
             f"Running skimmer with:\nsystematics {self._systematics}\nregion {self._region}"
-            f"\nmuon pT variation {self._muon_pt_variation}"
+            f"\nkinematic variation {self._variation.name}"
         )
 
     @property  # a decorator that turns a method into a read-only attribute
@@ -447,18 +454,7 @@ class vcbSkimmer(SkimmerABC):
 
         # isData is defined by the absence of genWeight.
         isData = not hasattr(events, "genWeight")
-
-        # datasets for saving jec variations
-        isJECs = (  # noqa: F841
-            "HHto4B" in dataset
-            or "TT" in dataset
-            or "Wto2Q" in dataset
-            or "Zto2Q" in dataset
-            or "Hto2B" in dataset
-            or "WW" in dataset
-            or "ZZ" in dataset
-            or "WZ" in dataset
-        )
+        self._variation.validate_sample(year, isData)
 
         # gen-weights
         gen_weights = events["genWeight"].to_numpy() if not isData else None
@@ -471,7 +467,7 @@ class vcbSkimmer(SkimmerABC):
         selection_args = (selection, cutflow, isData, gen_weights)
 
         # JEC factory loader
-        JEC_loader = JECs(year)
+        JEC_loader = JECs(year, **self._variation.jet_options)
 
         #########################
         # Object definitions
@@ -483,10 +479,12 @@ class vcbSkimmer(SkimmerABC):
         num_leptons = 3  # We will save up to 3 leptons
 
         # Apply EGM and MUO momentum corrections to the full collections before
-        # selection. A muon variation replaces active pT here, so it can change
+        # selection. A lepton variation replaces active pT here, so it can change
         # acceptance, trigger-lepton choice, jet cleaning, SFs and GenSelection.
         # Separate runner passes restart from NanoAOD to retain entering events.
-        corrected_electrons = apply_electron_scale_smearing(events, events.Electron, year, isData)
+        corrected_electrons = apply_electron_scale_smearing(
+            events, events.Electron, year, isData, self._variation.electron
+        )
         corrected_muons = apply_muon_scale_smearing(
             events, events.Muon, year, isData, self._muon_pt_variation
         )
@@ -633,19 +631,13 @@ class vcbSkimmer(SkimmerABC):
         if JEC_loader.met_factory is not None:
             # 2022/2023: coffea pickle factory (unchanged behaviour).
             met = JEC_loader.met_factory.build(met, jets, {}) if isData else met
-        elif not isData:
+        elif year == "2024" and not isData:
             # 2024: no pickle factory, and CorrectedMETFactory cannot be used --
             # it requires MetUnclustEnUpDeltaX/Y, which NanoAODv15 does not ship
             # (it has ptUnclusteredUp/Down instead). Rebuild Type-1 explicitly.
-            if RAW_MET_COLLECTION in events.fields:
-                type1_met = JEC_loader.type1_met_2024(events[RAW_MET_COLLECTION], jets, events)
-                if type1_met is not None:
-                    met = type1_met
-            else:
-                logger.warning(
-                    f"{RAW_MET_COLLECTION} not in NanoAOD; keeping {MET_COLLECTION} "
-                    "uncorrected (it will be inconsistent with the recorrected jets)."
-                )
+            if RAW_MET_COLLECTION not in events.fields:
+                raise KeyError(f"{RAW_MET_COLLECTION} is required for 2024 Type-1 MET")
+            met = JEC_loader.type1_met_2024(events[RAW_MET_COLLECTION], jets, events)
 
         print("* ak4 JECs:\t", f"{time.time() - start:.2f}")
 
@@ -896,6 +888,9 @@ class vcbSkimmer(SkimmerABC):
         eventVars["MuonMomentumVariation"] = np.full(
             len(events), MUON_VARIATION_IDS[self._muon_pt_variation], dtype=np.int32
         )
+        eventVars["KinematicVariation"] = np.full(
+            len(events), self._variation.identifier, dtype=np.int32
+        )
         eventVars["nJets"] = ak.num(jets).to_numpy()
         if not isData:
             # Gen jets *in the event*, which is not the same as gen jets in the
@@ -909,13 +904,8 @@ class vcbSkimmer(SkimmerABC):
         # corrections with (`fixedGridRhoFastjetAll` -- NanoAOD ships six rho
         # flavours and they are not interchangeable). One float per event.
         #
-        # Saved because it is the missing input for redoing JER downstream. The
-        # JES uncertainty payloads (`V5_MC_Total`, `V5_MC_Regrouped_*`) and the
-        # JER scale factor take only (JetEta, JetPt), both of which are already
-        # per-jet columns -- but `JRV2_MC_PtResolution` takes (JetEta, JetPt,
-        # Rho), so without this the resolution cannot be evaluated and the JER
-        # systematic is not reconstructible from the skim at any price. See
-        # docs/processor.md, "Deriving JES/JER variations from the skim".
+        # Saved for correction diagnostics. Complete variations are separate
+        # NanoAOD passes: this skim has already discarded events and jets.
         rho = (
             events.Rho.fixedGridRhoFastjetAll
             if "Rho" in events.fields
@@ -940,17 +930,6 @@ class vcbSkimmer(SkimmerABC):
                 HLTVars[f"HLT_{trigger}"] = zeros
 
         print("HLT vars", f"{time.time() - start:.2f}")
-
-        # # JEC variations for VBF Jets
-        # if self._region == "signal" and isJECs:
-        #     for var in ["pt"]:
-        #         key = self.skim_vars["Jet"][var]
-        #         for label, shift in utils.jecs.items():
-        #             if shift in ak.fields(vbf_jets):
-        #                 for vari in ["up", "down"]:
-        #                     vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
-        #                         vbf_jets[shift][vari][var], 2, axis=1
-        #                     )
 
         skimmed_events = {
             **genVars,

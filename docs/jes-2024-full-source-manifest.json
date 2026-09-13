@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "status": "Implemented full 2024 JES basis; kinematic_variations.JES_SOURCES is checked against this manifest by unit tests.",
+  "applicability": {
+    "data_year": "2024",
+    "simulation_campaign": "Summer24",
+    "jec_tag": "Summer24Prompt24_V5_MC",
+    "jet_collection": "AK4PFPuppi",
+    "source_basis": "Case I full JES source set",
+    "number_of_sources": 27
+  },
+  "provenance": {
+    "workbook_path": "/isilon/export/home/jhuan166/.codex/attachments/581cac15-d3f4-47ed-b165-30c4f7e3e784/JEC Uncertainty Correlation 2017 and 2016.xlsx",
+    "workbook_sha256": "134128275f430602f702f6c3e9021f4a0b7c043731da5b96fa5589f44318bbc6",
+    "worksheet": "Simple",
+    "source_cells": "A2:A28",
+    "ideal_correlation_cells": "B2:B28",
+    "simple_correlation_cells": "C2:C28",
+    "workbook_link_context": "User supplied this workbook as the Case I table linked by the current JERC uncertainty page.",
+    "recommendation_page": "https://cms-jme-jerc.docs.cern.ch/recommendations/uncertainties/#treatment-alternatives",
+    "payload_path": "src/boostedhh/corrections/2024_jet_jerc.json.gz",
+    "payload_sha256": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540"
+  },
+  "within_2024_treatment": {
+    "different_sources": "Independent nuisance parameters.",
+    "same_source": "One shared coefficient across jets and events and the corresponding Type-1 MET response; retain the signed correction output.",
+    "relative_jer_sources": "Retained as JES calibration uncertainties, independent of standalone JER variations.",
+    "correction_inputs": [
+      "JetEta",
+      "JetPt"
+    ],
+    "exclude_aggregate_and_alternative_entries": true
+  },
+  "historical_correlation_scope": {
+    "years": [
+      "2016",
+      "2017"
+    ],
+    "apply_columns_as_2024_cross_jet_correlations": false,
+    "apply_columns_as_run3_cross_year_model": false,
+    "note": "The workbook columns describe historical correlations between years. They do not rescale a single-year JES variation or decorrelate that source between jets. Use separate current guidance if combining years or periods."
+  },
+  "sources": [
+    {
+      "source": "AbsoluteMPFBias",
+      "correction_key": "Summer24Prompt24_V5_MC_AbsoluteMPFBias_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A2",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "AbsoluteScale",
+      "correction_key": "Summer24Prompt24_V5_MC_AbsoluteScale_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A3",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "AbsoluteStat",
+      "correction_key": "Summer24Prompt24_V5_MC_AbsoluteStat_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A4",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "FlavorQCD",
+      "correction_key": "Summer24Prompt24_V5_MC_FlavorQCD_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A5",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "Fragmentation",
+      "correction_key": "Summer24Prompt24_V5_MC_Fragmentation_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A6",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "PileUpDataMC",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpDataMC_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A7",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "PileUpPtBB",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpPtBB_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A8",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "PileUpPtEC1",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpPtEC1_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A9",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": "Potentially will be updated"
+    },
+    {
+      "source": "PileUpPtEC2",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpPtEC2_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A10",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": "Potentially will be updated"
+    },
+    {
+      "source": "PileUpPtHF",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpPtHF_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A11",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "PileUpPtRef",
+      "correction_key": "Summer24Prompt24_V5_MC_PileUpPtRef_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A12",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeFSR",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeFSR_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A13",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeJEREC1",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeJEREC1_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A14",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeJEREC2",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeJEREC2_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A15",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeJERHF",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeJERHF_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A16",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativePtBB",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativePtBB_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A17",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativePtEC1",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativePtEC1_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A18",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativePtEC2",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativePtEC2_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A19",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativePtHF",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativePtHF_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A20",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeBal",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeBal_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A21",
+      "historical_2016_2017_correlation_ideal": "50% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeSample",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeSample_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A22",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeStatEC",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeStatEC_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A23",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeStatFSR",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeStatFSR_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A24",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "RelativeStatHF",
+      "correction_key": "Summer24Prompt24_V5_MC_RelativeStatHF_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A25",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    },
+    {
+      "source": "SinglePionECAL",
+      "correction_key": "Summer24Prompt24_V5_MC_SinglePionECAL_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A26",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "SinglePionHCAL",
+      "correction_key": "Summer24Prompt24_V5_MC_SinglePionHCAL_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A27",
+      "historical_2016_2017_correlation_ideal": "100% correlated",
+      "historical_2016_2017_correlation_simple": "100% correlated",
+      "workbook_note": null
+    },
+    {
+      "source": "TimePtEta",
+      "correction_key": "Summer24Prompt24_V5_MC_TimePtEta_AK4PFPuppi",
+      "workbook_source_cell": "Simple!A28",
+      "historical_2016_2017_correlation_ideal": "no correlation",
+      "historical_2016_2017_correlation_simple": "no correlation",
+      "workbook_note": null
+    }
+  ]
+}

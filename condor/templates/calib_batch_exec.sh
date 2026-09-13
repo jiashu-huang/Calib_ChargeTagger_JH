@@ -8,10 +8,12 @@ BATCH_ID="@@BATCH_ID@@"
 INPUT_LIST="@@INPUT_LIST@@"
 OUTPUT_ROOTS_DIR="@@OUTPUT_ROOTS_DIR@@"
 OUTPUT_PICKLES_DIR="@@OUTPUT_PICKLES_DIR@@"
+OUTPUT_METADATA_DIR="@@OUTPUT_METADATA_DIR@@"
 WORK_DIR="@@WORK_DIR@@"
 YEAR="@@YEAR@@"
 FILES_NAME="@@FILES_NAME@@"
 SKIMMER="@@SKIMMER@@"
+KINEMATIC_VARIATION="@@KINEMATIC_VARIATION@@"
 CHUNKSIZE="@@CHUNKSIZE@@"
 MAXCHUNKS="@@MAXCHUNKS@@"
 BATCH_SIZE="@@BATCH_SIZE@@"
@@ -87,7 +89,7 @@ done
 
 # vcb.run updates outputs/latest relative to the process CWD,
 # so the parent outputs/ directory must exist inside the worker work area.
-mkdir -p "$OUTPUT_ROOTS_DIR" "$OUTPUT_PICKLES_DIR" "$WORK_DIR" "$WORK_DIR/outputs"
+mkdir -p "$OUTPUT_ROOTS_DIR" "$OUTPUT_PICKLES_DIR" "$OUTPUT_METADATA_DIR" "$WORK_DIR" "$WORK_DIR/outputs"
 pushd "$WORK_DIR" >/dev/null
 
 # Single source tree: vcb + vendored boostedhh both live under src/.
@@ -104,6 +106,7 @@ mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
   python -u -m vcb.run \
     --processor skimmer \
     --skimmer "$SKIMMER" \
+    --kinematic-variation "$KINEMATIC_VARIATION" \
     --year "$YEAR" \
     --files "${INPUT_FILES[@]}" \
     --files-name "$FILES_NAME" \
@@ -116,8 +119,13 @@ mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
     --outdir "$WORK_DIR"
 
 shopt -s nullglob
-ROOT_OUTPUTS=("$WORK_DIR"/nano_skim_"$BATCH_ID"_batch_*.root)
-PICKLE_OUTPUT="$WORK_DIR/outfiles/$BATCH_ID.pkl"
+FILETAG="$BATCH_ID"
+if [ "$KINEMATIC_VARIATION" != "nominal" ]; then
+  FILETAG="${BATCH_ID}__${KINEMATIC_VARIATION}"
+fi
+ROOT_OUTPUTS=("$WORK_DIR"/nano_skim_"$FILETAG"_batch_*.root)
+PICKLE_OUTPUT="$WORK_DIR/outfiles/$FILETAG.pkl"
+KINEMATIC_METADATA="$WORK_DIR/outfiles/$FILETAG.kinematics.json"
 
 if [ ! -f "$PICKLE_OUTPUT" ]; then
   echo "ERROR: expected pickle not found: $PICKLE_OUTPUT" >&2
@@ -133,14 +141,15 @@ fi
 # Pickle first, ROOT second: normalization pairs each ROOT with its pickle, so
 # "a ROOT exists" must imply "its pickle exists" even if the job dies between
 # the two moves. Do not swap this order.
+cp -f "$KINEMATIC_METADATA" "$OUTPUT_METADATA_DIR/$BATCH_ID.kinematics.json"
 if [ "$KEEP_INTERMEDIATE" -eq 1 ]; then
   cp -f "$PICKLE_OUTPUT" "$OUTPUT_PICKLES_DIR/$BATCH_ID.pkl"
   cp -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
 else
   mv -f "$PICKLE_OUTPUT" "$OUTPUT_PICKLES_DIR/$BATCH_ID.pkl"
   mv -f "${ROOT_OUTPUTS[0]}" "$OUTPUT_ROOTS_DIR/$BATCH_ID.root"
-  rm -f "$WORK_DIR"/out_"$BATCH_ID"_batch_*.parquet || true
-  rm -f "$WORK_DIR"/num_batches_"$BATCH_ID".txt || true
+  rm -f "$WORK_DIR"/out_"$FILETAG"_batch_*.parquet || true
+  rm -f "$WORK_DIR"/num_batches_"$FILETAG".txt || true
   rm -rf "$WORK_DIR"/outparquet || true
   rm -rf "$WORK_DIR"/outfiles || true
   rm -rf "$WORK_DIR"/outputs || true
