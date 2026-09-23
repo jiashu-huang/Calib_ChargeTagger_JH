@@ -101,7 +101,7 @@ def _electrons_near_plateau():
         "pt": pt, "eta": np.full(n, 0.5), "phi": np.zeros(n), "mass": np.zeros(n),
         "charge": np.ones(n, int), "superclusterEta": np.full(n, 0.5),
         "r9": np.full(n, 0.95), "seedGain": np.full(n, 12.0),
-        "mvaIso_WP90": np.ones(n, bool), "dz": np.zeros(n), "dxy": np.zeros(n),
+        "mvaIso_WP90": np.ones(n, bool),
     }.items()}, with_name="PtEtaPhiMCandidate", behavior=candidate.behavior)
     trig = ak.with_field(electrons, ak.ones_like(electrons.pt, dtype=int) * 11, "id")
     trig = ak.with_field(trig, ak.ones_like(trig.pt, dtype=int) * 2, "filterBits")

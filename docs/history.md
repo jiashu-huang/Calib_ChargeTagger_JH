@@ -536,3 +536,37 @@ Documented in [`README.md`](../README.md) (gen-truth conventions, alongside the
 one-to-one jet match) and [`docs/processor.md`](processor.md). Five unit tests
 cover both child orderings, all six decay modes, the by-type-not-by-\|pdgId\|
 distinction, and the impossible same-type pair.
+
+### 2026-09-23 — Lepton impact-parameter cuts removed
+
+`good_electrons` and `good_muons` applied `|dxy| < 0.045` and `|dz| < 0.2` cm
+on top of the lepton IDs. These are the H→ττ values, inherited from the bbττ
+code this repo descends from, and neither EGM nor MUO recommends them.
+AN-25-214, the 2024 |Vcb| analysis this calibration follows, applies no
+impact-parameter cut beyond its IDs. The 2026-09-23 audit cross-check
+recommended the same. The old cuts also fell outside the phase space of the
+scale factors:
+
+- EGM measures its SFs on electrons with ID requirements only.
+- MUO measures after `|dxy| < 0.2` and `|dz| < 0.5` cm on the probe, and asks
+  for a dedicated signal-efficiency study for anything tighter.
+
+Both selections now rely on their IDs alone. `tightId` still applies its own
+`|dxy| < 0.2` and `|dz| < 0.5` cm. For those, MUO recommends estimating the
+pileup-dependent signal loss; see finding 8 of the
+[2024 MC audit](audit-2024-mc-2026-09-11.md).
+
+Effect on `tests/data/test-input.root`:
+
+- The nominal skim grows from 59,537 to **59,713 events (+176, +0.30%)**. Of
+  these, 154 enter the electron channel and 22 the muon channel. None leave.
+- Among the common events, 58 gain a good lepton: 24 electrons and 34 muons.
+  In one, a newly accepted muon takes priority and moves the event from the
+  electron to the muon channel. No other value changes.
+- The summed nominal weight rises by 0.30%.
+- The schema and first-event baselines are unchanged. The jet-tagger round
+  trip still passes with zero differences.
+
+**Productions skimmed before this date** still carry the old cuts. Those skims
+do not contain the events and leptons the cuts rejected, so no analysis-level
+cut can reproduce the new selection. Re-skim to adopt it.

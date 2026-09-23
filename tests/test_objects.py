@@ -4,6 +4,8 @@ Unit tests for the object-selection helpers in `vcb.processors.objects`.
 The electron supercluster-eta helper and the ECAL crack veto, on hand-built
 awkward arrays (no NanoAOD file); one test reaches into the bundled EGM payload
 to check the veto edges against the scale factor binning they exist to protect.
+The lepton selections are checked to apply no impact-parameter cut beyond
+their IDs, as in AN-25-214.
 
 Then the AK4 PUPPI jet ID, which is validated against JME's own
 `jetid.json.gz` on cvmfs: the JSON's decision tree is walked here in plain
@@ -21,6 +23,7 @@ from pathlib import Path
 import awkward as ak
 import numpy as np
 import pytest
+from coffea.nanoevents.methods import candidate
 
 from vcb.processors import lepton_sf
 from vcb.processors.objects import (
@@ -29,6 +32,8 @@ from vcb.processors.objects import (
     ak4_jet_id,
     attach_jet_charge,
     electron_supercluster_eta,
+    good_electrons,
+    good_muons,
     in_ecal_crack,
     jetveto_candidate_jets,
 )
@@ -119,6 +124,60 @@ class TestVetoMatchesScaleFactorBinning(unittest.TestCase):
                 continue
             for pt in (25.0, 45.0, 150.0, 600.0):
                 self.assertEqual(self.id_sf(eta, pt), (1.0, 1.0, 1.0))
+
+
+def one_event_of_leptons(**fields) -> ak.Array:
+    """One event of candidates, with the vector behaviour metric_table needs."""
+    counts = [len(fields["pt"])]
+    return ak.zip(
+        {name: ak.unflatten(np.asarray(value), counts) for name, value in fields.items()},
+        with_name="PtEtaPhiMCandidate",
+        behavior=candidate.behavior,
+    )
+
+
+def events_with_trigger(leptons: ak.Array, pdgid: int, filterbits: int, path: str) -> ak.Array:
+    """Fire `path` and place a matching trigger object on top of every lepton."""
+    trig = ak.with_field(leptons, ak.ones_like(leptons.pt, dtype=int) * pdgid, "id")
+    trig = ak.with_field(trig, ak.ones_like(leptons.pt, dtype=int) * filterbits, "filterBits")
+    events = ak.Array({"HLT": {path: np.ones(1, dtype=bool)}})
+    return ak.with_field(events, trig, "TrigObj")
+
+
+class TestLeptonSelectionUsesIdOnly(unittest.TestCase):
+    """
+    AN-25-214 applies no impact-parameter cut beyond the lepton IDs. Leptons
+    well outside the old bbtautau |dxy| < 0.045, |dz| < 0.2 cm window must still
+    be selected and trigger-matched, and the selection must not need the
+    impact-parameter fields at all.
+    """
+
+    DISPLACED = {"dxy": [0.15, -0.09], "dz": [0.40, -0.35]}
+    KINEMATICS = {"pt": [45.0, 40.0], "eta": [0.3, -1.0], "phi": [0.5, -2.0], "charge": [1, -1]}
+
+    def test_displaced_electrons_are_kept(self):
+        for extra in (self.DISPLACED, {}):
+            with self.subTest(impact_parameter_fields=bool(extra)):
+                electrons = one_event_of_leptons(
+                    **self.KINEMATICS, mass=[0.0, 0.0], superclusterEta=[0.3, -1.0],
+                    mvaIso_WP90=[True, True], **extra,
+                )
+                events = events_with_trigger(electrons, 11, 2, "Ele30_WPTight_Gsf")
+                selected, matches = good_electrons(events, electrons, "2024")
+                self.assertEqual(ak.to_list(ak.num(selected)), [2])
+                self.assertEqual(ak.to_list(matches["ElectronTrigMatchEGamma"]), [[True, True]])
+
+    def test_displaced_muons_are_kept(self):
+        for extra in (self.DISPLACED, {}):
+            with self.subTest(impact_parameter_fields=bool(extra)):
+                muons = one_event_of_leptons(
+                    **self.KINEMATICS, mass=[0.106, 0.106], tightId=[True, True],
+                    pfRelIso04_all=[0.05, 0.10], **extra,
+                )
+                events = events_with_trigger(muons, 13, 8, "IsoMu24")
+                selected, matches = good_muons(events, muons, "2024")
+                self.assertEqual(ak.to_list(ak.num(selected)), [2])
+                self.assertEqual(ak.to_list(matches["MuonTrigMatchMuon"]), [[True, True]])
 
 
 def evaluate_jetid_json(node: dict | float, jet: dict) -> float:

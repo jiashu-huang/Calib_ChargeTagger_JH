@@ -21,9 +21,10 @@ angles in radians, and impact parameters in cm.
    up/down and smearing up/down pT values; selections use the active pass's pT.
    Preserve nominal pT and the NanoAOD electron index. Eta, phi,
    mass, and charge retain their input values.
-2. Keep electrons with `mvaIso_WP90`, pT > 20, |eta| < 2.5, |dz| < 0.2, and
-   |dxy| < 0.045. Reject the ECAL gap, 1.444 <= |supercluster eta| < 1.566;
-   use `superclusterEta`, or `eta + deltaEtaSC` if that field is absent.
+2. Keep electrons with `mvaIso_WP90`, pT > 20 and |eta| < 2.5. As in
+   AN-25-214, no impact-parameter cut is applied beyond the ID. Reject the
+   ECAL gap, 1.444 <= |supercluster eta| < 1.566; use `superclusterEta`, or
+   `eta + deltaEtaSC` if that field is absent.
 3. Mark an electron as trigger-matched when `HLT_Ele30_WPTight_Gsf` fired,
    pT >= 32, and a trigger electron with filter bit 1 (mask 2) lies within
    delta-R < 0.2.
@@ -73,8 +74,9 @@ angles in radians, and impact parameters in cm.
    and residual MC resolution smearing. Data receives scale only. Preserve
    input momentum outside the validated range and record coverage status.
    Physical charge and PF relative isolation retain their NanoAOD definitions.
-2. Keep muons with `tightId`, `pfRelIso04_all < 0.15`, pT > 20,
-   |eta| < 2.4, |dz| < 0.2, and |dxy| < 0.045.
+2. Keep muons with `tightId`, `pfRelIso04_all < 0.15`, pT > 20 and
+   |eta| < 2.4. As in AN-25-214, no impact-parameter cut is applied beyond
+   the ID; `tightId` itself requires |dxy| < 0.2 and |dz| < 0.5.
 3. Mark a muon as trigger-matched when `HLT_IsoMu24` fired, pT >= 26, and a
    trigger muon with filter bit 3 (mask 8) lies within delta-R < 0.2.
 4. Choose the highest-pT matched muon as the event's trigger lepton. An

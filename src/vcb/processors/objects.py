@@ -410,13 +410,16 @@ def good_electrons(events, leptons: ElectronArray, year: str):
     # https://twiki.cern.ch/twiki/bin/view/CMS/MultivariateElectronIdentificationRun3
     # The crack veto is in supercluster eta (see in_ecal_crack); the outer
     # |eta| < 2.5 acceptance bound stays on track eta, unchanged.
+    #
+    # No impact-parameter cut beyond the ID, as in AN-25-214 (sections 3.2 and
+    # 4.2). The |dxy| < 0.045, |dz| < 0.2 cm pair inherited from bbtautau is the
+    # H -> tau tau convention, not an EGM one, and EGM measures its scale
+    # factors on electrons with ID requirements only.
     lsel = (
         leptons.mvaIso_WP90
         & (leptons.pt > 20)
         & (abs(leptons.eta) < 2.5)
         & ~in_ecal_crack(electron_supercluster_eta(leptons))
-        & (abs(leptons.dz) < 0.2)
-        & (abs(leptons.dxy) < 0.045)
     )
     leptons = leptons[lsel]
 
@@ -457,13 +460,14 @@ Trigger quality bits in NanoAOD v12
 def good_muons(events, leptons: MuonArray, year: str):
     trigobj = events.TrigObj
 
+    # No impact-parameter cut beyond the ID, as in AN-25-214. `tightId` already
+    # requires |dxy| < 0.2 and |dz| < 0.5 cm, the cuts MUO applies to its
+    # tag-and-probe probes; anything tighter would need its own efficiency study.
     lsel = (
         leptons.tightId
         & (leptons.pfRelIso04_all < 0.15)
         & (leptons.pt > 20)
         & (abs(leptons.eta) < 2.4)
-        & (abs(leptons.dz) < 0.2)
-        & (abs(leptons.dxy) < 0.045)
     )
     leptons = leptons[lsel]
 

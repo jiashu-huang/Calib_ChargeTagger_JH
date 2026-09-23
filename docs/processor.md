@@ -44,8 +44,11 @@ pileup, and cross-section lookups.
 | pT | > 20 GeV |
 | \|η\| | < 2.5 (track η) |
 | ECAL crack veto | **not** 1.444 ≤ \|η_SC\| < 1.566 |
-| \|dz\| | < 0.2 cm |
-| \|dxy\| | < 0.045 cm |
+
+As in AN-25-214, there is no impact-parameter cut beyond the ID. The
+`|dxy| < 0.045`, `|dz| < 0.2` cm pair inherited from bbtautau was removed on
+2026-09-23: it is the H→ττ convention, not an EGM one, and EGM measures its
+scale factors on electrons with ID requirements only.
 
 Trigger matching against EGamma trigger objects: filter bit 1 (the generic
 single-electron WPTight bit, valid for both Ele32 and Ele30), ΔR < 0.2, and a
@@ -179,12 +182,14 @@ status codes, validation results and remaining data/MC closure work.
 
 | Cut | Threshold |
 |-----|-----------|
-| Tight ID | `tightId == True` |
+| Tight ID | `tightId == True` (includes \|dxy\| < 0.2 cm, \|dz\| < 0.5 cm) |
 | PF rel. iso (ΔR 0.4) | `pfRelIso04_all < 0.15` |
 | pT | > 20 GeV |
 | \|η\| | < 2.4 |
-| \|dz\| | < 0.2 cm |
-| \|dxy\| | < 0.045 cm |
+
+As for electrons, no impact-parameter cut is applied beyond the ID
+(AN-25-214). Cuts tighter than the Tight ID's own would need the dedicated
+signal-efficiency study MUO asks for.
 
 Trigger matching against single-muon trigger objects: filter bit 3, ΔR < 0.2,
 offline pT >= 26 GeV (`HLT_IsoMu24`, all years).

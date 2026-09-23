@@ -27,8 +27,6 @@ def make_muons(pt=(50.0, 70.0, 120.0, 180.0), counts=None, **overrides):
         "tightId": np.ones(n, dtype=bool),
         "pfRelIso04_all": np.full(n, 0.1),
         "nTrackerLayers": np.full(n, 12),
-        "dxy": np.zeros(n),
-        "dz": np.zeros(n),
         "mass": np.full(n, 0.105658),
     }
     fields.update(overrides)

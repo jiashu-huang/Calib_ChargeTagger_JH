@@ -9,9 +9,9 @@ mode        : JEC/JER recomputed for year 2024 -- dropped jets get an exact reas
 
 Events
 ------------------------------------------------------------------------------
-  in the output file                 : 59537
+  in the output file                 : 59713
   in the input file                  : 208780
-  matched to an input event          : 59537
+  matched to an input event          : 59713
   NOT found in the input file        : 0
   with no trigger lepton (PAD_VAL)   : 0   (no jet cleaning applied)
   saved nJets != jets passing the cuts: 0
@@ -19,26 +19,26 @@ Events
 
 Saved jet slots
 ------------------------------------------------------------------------------
-  filled slots checked               : 318871
-  matched to an input jet            : 318871   (max dR 0)
+  filled slots checked               : 319717
+  matched to an input jet            : 319717   (max dR 0)
   with NO input jet match            : 0
   saved pT != recomputed pT          : 0
   saved NanoIdx != eta/phi match     : 0
 
 Tagger + jet-charge comparisons (17 fields x matched slot)
 ------------------------------------------------------------------------------
-  comparisons made                   : 5420807
-  identical                          : 5420807
+  comparisons made                   : 5435189
+  identical                          : 5435189
   DIFFERING                          : 0
 
 Input jets absent from the output
 ------------------------------------------------------------------------------
-  total                              : 122549
-    lepton_cleaned                   : 59544   (dR <= 0.4 of the trigger lepton)
-    pt_below_threshold               : 50370   (corrected pT <= 15.0 GeV)
-    eta_out_of_range                 : 2120   (|eta| >= 4.7)
-    failed_jet_id                    : 9820   (fails the Run-3 AK4 PUPPI Tight jet ID)
-    truncated_beyond_slots           : 695   (passed selection, but was not among the 10 highest corrected pT of an event with > 10 selected jets)
+  total                              : 122907
+    lepton_cleaned                   : 59691   (dR <= 0.4 of the trigger lepton)
+    pt_below_threshold               : 50531   (corrected pT <= 15.0 GeV)
+    eta_out_of_range                 : 2128   (|eta| >= 4.7)
+    failed_jet_id                    : 9860   (fails the Run-3 AK4 PUPPI Tight jet ID)
+    truncated_beyond_slots           : 697   (passed selection, but was not among the 10 highest corrected pT of an event with > 10 selected jets)
     UNEXPLAINED                      : 0   (no known reason -- investigate)
 
   A jet can fail several cuts at once; it is counted under the first
