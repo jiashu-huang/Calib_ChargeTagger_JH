@@ -14,6 +14,7 @@ YEAR="@@YEAR@@"
 FILES_NAME="@@FILES_NAME@@"
 SKIMMER="@@SKIMMER@@"
 KINEMATIC_VARIATION="@@KINEMATIC_VARIATION@@"
+TRUTH_LABEL_MANIFEST=@@TRUTH_LABEL_MANIFEST@@
 CHUNKSIZE="@@CHUNKSIZE@@"
 MAXCHUNKS="@@MAXCHUNKS@@"
 BATCH_SIZE="@@BATCH_SIZE@@"
@@ -102,11 +103,17 @@ export CONDA_PKGS_DIRS="$WORK_DIR/.conda/pkgs"
 export MAMBA_PKGS_DIRS="$WORK_DIR/.conda/pkgs"
 mkdir -p "$XDG_CACHE_HOME" "$CONDA_PKGS_DIRS"
 
+TRUTH_LABEL_ARGS=()
+if [ -n "$TRUTH_LABEL_MANIFEST" ]; then
+  TRUTH_LABEL_ARGS=(--truth-label-manifest "$TRUTH_LABEL_MANIFEST")
+fi
+
 "$MICROMAMBA_BIN" run -n "$MAMBA_ENV" \
   python -u -m vcb.run \
     --processor skimmer \
     --skimmer "$SKIMMER" \
     --kinematic-variation "$KINEMATIC_VARIATION" \
+    "${TRUTH_LABEL_ARGS[@]}" \
     --year "$YEAR" \
     --files "${INPUT_FILES[@]}" \
     --files-name "$FILES_NAME" \

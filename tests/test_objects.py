@@ -18,6 +18,7 @@ from __future__ import annotations
 import gzip
 import json
 import unittest
+from hashlib import sha256
 from pathlib import Path
 
 import awkward as ak
@@ -155,6 +156,16 @@ class TestLeptonSelectionUsesIdOnly(unittest.TestCase):
     DISPLACED = {"dxy": [0.15, -0.09], "dz": [0.40, -0.35]}
     KINEMATICS = {"pt": [45.0, 40.0], "eta": [0.3, -1.0], "phi": [0.5, -2.0], "charge": [1, -1]}
 
+    def test_2024_requires_ele30_bit_instead_of_generic_cross_trigger_bit(self):
+        electrons = one_event_of_leptons(
+            **self.KINEMATICS, mass=[0., 0.], superclusterEta=[0.3, -1.0],
+            mvaIso_WP90=[True, True],
+        )
+        for bits, expected in ((2, False), (1 << 18, True), ((1 << 18) | 2, True)):
+            events = events_with_trigger(electrons, 11, bits, "Ele30_WPTight_Gsf")
+            _, matches = good_electrons(events, electrons, "2024")
+            self.assertEqual(ak.to_list(matches["ElectronTrigMatchEGamma"]), [[expected] * 2])
+
     def test_displaced_electrons_are_kept(self):
         for extra in (self.DISPLACED, {}):
             with self.subTest(impact_parameter_fields=bool(extra)):
@@ -162,7 +173,7 @@ class TestLeptonSelectionUsesIdOnly(unittest.TestCase):
                     **self.KINEMATICS, mass=[0.0, 0.0], superclusterEta=[0.3, -1.0],
                     mvaIso_WP90=[True, True], **extra,
                 )
-                events = events_with_trigger(electrons, 11, 2, "Ele30_WPTight_Gsf")
+                events = events_with_trigger(electrons, 11, 1 << 18, "Ele30_WPTight_Gsf")
                 selected, matches = good_electrons(events, electrons, "2024")
                 self.assertEqual(ak.to_list(ak.num(selected)), [2])
                 self.assertEqual(ak.to_list(matches["ElectronTrigMatchEGamma"]), [[True, True]])
@@ -217,7 +228,13 @@ def evaluate_jetid_json(node: dict | float, jet: dict) -> float:
 
 
 def load_jetid_correction(era: str, name: str) -> dict:
-    with gzip.open(JSONPOG_JME / era / "jetid.json.gz") as payload_file:
+    path = JSONPOG_JME / era / "jetid.json.gz"
+    if era == "2024_Summer24":
+        path = Path(__file__).resolve().parents[1] / "src/boostedhh/corrections/2024_jetid.json.gz"
+        assert sha256(path.read_bytes()).hexdigest() == (
+            "2ae07e7b7c67332fa4ccc374c7b3cfe667c653ce65c3f421f956460e46b1eb35"
+        )
+    with gzip.open(path) as payload_file:
         payload = json.load(payload_file)
     return next(c for c in payload["corrections"] if c["name"] == name)["data"]
 
@@ -257,6 +274,22 @@ def as_jet_array(fields: dict[str, np.ndarray]) -> ak.Array:
     )
 
 
+@pytest.mark.parametrize(("wp", "key"), [
+    ("tight", "AK4PUPPI_Tight"), ("tightlepveto", "AK4PUPPI_TightLeptonVeto"),
+])
+def test_2024_jet_id_matches_pinned_reference_without_cvmfs(monkeypatch, tmp_path, wp, key):
+    monkeypatch.setitem(globals(), "JSONPOG_JME", tmp_path / "no-cvmfs")
+    tree = load_jetid_correction("2024_Summer24", key)
+    fields = random_jets(20000, seed=2024)
+    expected = []
+    for index in range(len(fields["eta"])):
+        jet = {key: values[index] for key, values in fields.items()}
+        jet["multiplicity"] = jet["chMultiplicity"] + jet["neMultiplicity"]
+        expected.append(evaluate_jetid_json(tree, jet) == 1.)
+    actual = ak.to_numpy(ak.flatten(ak4_jet_id(as_jet_array(fields), wp=wp)))
+    np.testing.assert_array_equal(actual, expected)
+
+
 @unittest.skipUnless(JSONPOG_JME.is_dir(), "jsonpog-integration not mounted (needs cvmfs)")
 class TestAK4JetIDMatchesJME(unittest.TestCase):
     """
@@ -268,7 +301,7 @@ class TestAK4JetIDMatchesJME(unittest.TestCase):
 
     def assert_matches(self, era: str, wp: str, correction: str, n: int = 20000):
         tree = load_jetid_correction(era, correction)
-        fields = random_jets(n, seed=hash(era + wp) % (2**32))
+        fields = random_jets(n, seed=int(sha256((era + wp).encode()).hexdigest()[:8], 16))
         ours = ak.to_numpy(ak.flatten(ak4_jet_id(as_jet_array(fields), wp=wp)))
 
         theirs = np.empty(n, dtype=bool)

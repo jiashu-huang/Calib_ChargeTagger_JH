@@ -1,5 +1,14 @@
 # Normalization: where `finalWeight` should be computed
 
+**Current integrity checks (2026-10-27):** signed and zero weights are retained;
+every event is checked before normalization, and stale branches cannot be
+silently skipped. See the [current implementation record](normalization-integrity-2026-10-27.md).
+
+**Current optional top-pT support (2026-10-27):** prescription version 3
+preserves the all-input denominators needed for `weight × topPtWeight / D_T`,
+including joint PU/shower/scale/PDF alternatives. The nominal second pass is
+unchanged. See the [current top-pT contract](top-pt-normalization-2026-10-27.md).
+
 **Status: implemented on `second-pass-finalWeight` (2026-07-26).** The analysis
 below (written 2026-07-24, when `fix_final_weight.py` still existed) led to a
 design combining Option D's pairing checks with an in-place branch append and

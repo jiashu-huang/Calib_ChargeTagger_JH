@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import math
 import unittest
+from pathlib import Path
 
 import awkward as ak
 import numpy as np
+import pytest
 from coffea.analysis_tools import Weights
 
 from vcb.processors import lepton_sf
@@ -181,3 +183,69 @@ class TestBinningEdges(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_trigger_total_includes_stat_missing_from_published_systup():
+    csets = lepton_sf.get_lepton_correctionsets("2024")
+    eta = np.array([.5, 2.1, -1.7])
+    pt = np.array([45., 120., 32.])
+    factors = lepton_sf.muon_scale_factors(csets, "2024", eta, pt)
+    for name, key in [("muon_id", "muon_id"), ("muon_iso", "muon_iso"),
+                      ("muon_trigger", "muon_hlt")]:
+        corr = csets["muon"][lepton_sf.LEPTON_SF_KEYS["2024"][key]]
+        nominal, up, down = factors[name]
+        stat, syst = [corr.evaluate(eta, pt, value) for value in ("stat", "syst")]
+        np.testing.assert_allclose((up - nominal)**2, stat**2 + syst**2, rtol=1e-11)
+        np.testing.assert_allclose((nominal - down)**2, stat**2 + syst**2, rtol=1e-11)
+        if name == "muon_trigger":
+            # Actual pinned HLT payload contradicts its combined-error description.
+            np.testing.assert_allclose(corr.evaluate(eta, pt, "systup") - nominal, syst)
+            assert np.all(up > corr.evaluate(eta, pt, "systup"))
+        else:
+            np.testing.assert_allclose(up, corr.evaluate(eta, pt, "systup"), rtol=1e-14)
+
+
+def test_components_replace_one_factor_without_dividing_by_zero():
+    weights = Weights(3, storeIndividual=True)
+    weights.add("genweight", np.array([-2., 3., 4.]))
+    weights.add("muon_trigger", np.array([.9, 0., 1.]))
+    weights.add("other_efficiency", np.array([.8, .7, 1.]))
+    errors = {"muon_trigger": {"stat": np.array([.1, .2, 0.]),
+                               "syst": np.array([.2, .3, 0.])}}
+    before = weights.weight().copy()
+    result = lepton_sf.lepton_component_weights(weights, errors)
+    np.testing.assert_allclose(result["weight_muon_trigger_statUp"], [-1.6, .42, 4.])
+    np.testing.assert_allclose(result["weight_muon_trigger_systDown"], [-1.12, -.63, 4.])
+    np.testing.assert_array_equal(weights.weight(), before)
+
+
+def test_muon_component_errors_are_zero_in_other_flavors():
+    weights = Weights(3, storeIndividual=True)
+    weights.add("genweight", np.array([-2., 3., 4.]))
+    errors = lepton_sf.add_lepton_weights(
+        weights, "2024",
+        trigger_leptons([{"pt": 45., "superclusterEta": .4}, None, None], ELECTRON_FIELDS),
+        np.array([True, False, False]),
+        trigger_leptons([None, {"pt": 45., "eta": .5}, None], MUON_FIELDS),
+        np.array([False, True, False]),
+    )
+    variations = lepton_sf.lepton_component_weights(weights, errors)
+    assert set(variations) == lepton_sf.MUON_COMPONENT_WEIGHT_BRANCHES
+    for factors in errors.values():
+        for error in factors.values():
+            np.testing.assert_array_equal(error[[0, 2]], [0., 0.])
+    for varied in variations.values():
+        np.testing.assert_allclose(varied[[0, 2]], weights.weight()[[0, 2]], rtol=1e-15)
+
+
+def test_changed_muon_payload_is_rejected(tmp_path):
+    import gzip
+
+    path = tmp_path / "changed.json.gz"
+    bundled = lepton_sf.package_path / "corrections/2024_muon_Z.json.gz"
+    path.write_bytes(gzip.compress(gzip.decompress(bundled.read_bytes()) + b" "))
+    with pytest.raises(ValueError, match="checksum"):
+        lepton_sf._load_correctionset(
+            str(path), str(Path(tmp_path) / "missing"), "Muon SF",
+            lepton_sf.MUON_SF_2024_SHA256,
+        )

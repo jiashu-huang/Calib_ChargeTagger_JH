@@ -16,6 +16,8 @@ import pathlib
 import pickle
 import random
 import sys
+from functools import lru_cache
+from hashlib import sha256
 
 import awkward as ak
 import correctionlib
@@ -107,8 +109,10 @@ def add_pileup_weight(weights: Weights, year: str, nTrueInt: np.ndarray):
     NOT the sampled integer count ``Pileup_nPU``.
     """
     # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
-    # clip to the [0, 100) range covered by the puWeights binning
-    nTrueInt = np.clip(nTrueInt, 0, 99)
+    nTrueInt = np.asarray(nTrueInt, dtype=np.float64)
+    if nTrueInt.shape != weights.weight().shape or not np.all(np.isfinite(nTrueInt)):
+        raise ValueError("Pileup_nTrueInt must contain one finite value per event")
+    # Let the released payload handle out-of-range inputs (2024: flow=clamp).
 
     bundled = package_path + f"/corrections/{year}_puWeights.json.gz"
     if pathlib.Path(bundled).is_file():
@@ -122,11 +126,13 @@ def add_pileup_weight(weights: Weights, year: str, nTrueInt: np.ndarray):
     corr = list(cset.keys())[0]
     print(f"Pileup {year}: using {path} (correction '{corr}')")
 
-    # evaluate and clip up to 10 to avoid large weights
+    # Preserve the released factors, including the high-pileup tail.
     values = {
-        var: np.clip(cset[corr].evaluate(nTrueInt, var), 0, 10)
+        var: cset[corr].evaluate(nTrueInt, var)
         for var in ("nominal", "up", "down")
     }
+    if any(not np.all(np.isfinite(value)) for value in values.values()):
+        raise ValueError("Nonfinite pileup correction")
     weights.add("pileup", values["nominal"], values["up"], values["down"])
 
 
@@ -153,29 +159,22 @@ def get_vpt(genpart, check_offshell=False):
 
 def add_ps_weight(weights, ps_weights):
     """
-    Parton Shower Weights (FSR and ISR)
-    """
+    Four-entry PS layout: ISR/FSR muR x2, then ISR/FSR muR x0.5.
 
+    Up/Down describe the renormalization scale, not the amount of radiation.
+    The Vcb 2024 caller verifies this ordering against the input branch title.
+    Unknown layouts must not silently become unity variations.
+    """
     nweights = len(weights.weight())
     nom = np.ones(nweights)
-
-    up_isr = np.ones(nweights)
-    down_isr = np.ones(nweights)
-    up_fsr = np.ones(nweights)
-    down_fsr = np.ones(nweights)
-
-    if len(ps_weights[0]) == 4:
-        up_isr = ps_weights[:, 0]  # ISR=2, FSR=1
-        down_isr = ps_weights[:, 2]  # ISR=0.5, FSR=1
-
-        up_fsr = ps_weights[:, 1]  # ISR=1, FSR=2
-        down_fsr = ps_weights[:, 3]  # ISR=1, FSR=0.5
-
-    elif len(ps_weights[0]) > 1:
-        print("PS weight vector has length ", len(ps_weights[0]))
-
-    weights.add("ISRPartonShower", nom, up_isr, down_isr)
-    weights.add("FSRPartonShower", nom, up_fsr, down_fsr)
+    if len(ps_weights) != nweights or not bool(ak.all(ak.num(ps_weights, axis=1) == 4)):
+        raise ValueError("PSWeight must contain four members for every event")
+    ratios = ak.to_numpy(ps_weights)
+    if ratios.shape != (nweights, 4) or not np.all(np.isfinite(ratios)):
+        raise ValueError("PSWeight must be a finite rectangular four-member array")
+    # Weights.add mutates variation arrays while converting them to modifiers.
+    weights.add("ISRPartonShower", nom, ratios[:, 0].copy(), ratios[:, 2].copy())
+    weights.add("FSRPartonShower", nom, ratios[:, 1].copy(), ratios[:, 3].copy())
 
 
 def get_pdf_weights(events):
@@ -218,16 +217,27 @@ def get_scale_weights(events):
 
     See also https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L93 for an example.
     """
-    if len(events[0].LHEScaleWeight) > 0:
-        if len(events[0].LHEScaleWeight) == 9:
-            variations = events.LHEScaleWeight[:, [0, 1, 3, 5, 7, 8]].to_numpy()
-            nominal = events.LHEScaleWeight[:, 4].to_numpy()[:, np.newaxis]
-            variations /= nominal
-        else:
-            variations = events.LHEScaleWeight[:, [0, 1, 3, 4, 6, 7]].to_numpy()
-        return np.clip(variations, 0.0, 4.0)
-    else:
+    lengths = ak.to_numpy(ak.num(events.LHEScaleWeight, axis=1))
+    if not len(lengths):
+        return np.empty((0, 6), dtype=np.float32)
+    if np.all(lengths == 0):
         return None
+    count = int(lengths[0])
+    if count not in (8, 9) or not np.all(lengths == count):
+        raise ValueError("LHEScaleWeight must contain consistently eight or nine members")
+    ratios = ak.to_numpy(events.LHEScaleWeight)
+    if not np.all(np.isfinite(ratios)):
+        raise ValueError("Nonfinite LHEScaleWeight member")
+    if count == 9:
+        nominal = ratios[:, 4, np.newaxis]
+        if np.any(nominal == 0):
+            raise ValueError("Cannot normalize LHEScaleWeight to a zero central member")
+        variations = ratios[:, [0, 1, 3, 5, 7, 8]] / nominal
+    else:
+        variations = ratios[:, [0, 1, 3, 4, 6, 7]]
+    if not np.all(np.isfinite(variations)):
+        raise ValueError("Nonfinite normalized LHEScaleWeight ratio")
+    return variations
 
 
 # 2024 (Summer24) jet corrections applied via correctionlib -- the bundled
@@ -785,13 +795,35 @@ def get_jmsr(
 # apply to both Data and MC
 # https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444?u=anmalara
 # https://cms-talk.web.cern.ch/t/jes-for-2022-re-reco-cde-and-prompt-fg/32873
+JETVETO_2024_BUNDLED = package_path + "/corrections/2024_jetvetomaps.json.gz"
+JETVETO_2024_CVMFS = (
+    f"{_CAT_JME}/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jetvetomaps.json.gz"
+)
+JETVETO_2024_SHA256 = "849cd1098814175ab58faac4834df0a353de63482f4017e22c0134ee7e840aec"
+
+
+@lru_cache(maxsize=4)
+def _load_jetveto_2024(bundled: str, fallback: str):
+    for name in (bundled, fallback):
+        path = pathlib.Path(name)
+        if path.is_file():
+            raw = path.read_bytes()
+            if sha256(raw).hexdigest() != JETVETO_2024_SHA256:
+                raise ValueError(f"Jet veto 2024 payload checksum mismatch: {path}")
+            return correctionlib.CorrectionSet.from_string(gzip.decompress(raw).decode())
+    raise FileNotFoundError(f"Missing required 2024 jet-veto payload: {bundled}, {fallback}")
+
+
 def get_jetveto_event(jets: JetArray, year: str):
     """
     Get event selection that rejects events with jets in the veto map
     """
 
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    cset = (
+        _load_jetveto_2024(JETVETO_2024_BUNDLED, JETVETO_2024_CVMFS)
+        if year == "2024" else correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    )
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):

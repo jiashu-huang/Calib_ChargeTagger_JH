@@ -123,22 +123,24 @@ def attach_jet_charge(jets: JetArray, events) -> JetArray:
 
     The fork writes jet charge to its own flat table rather than extending
     `Jet`, and it builds that table from `slimmedJetsPuppi` -- the raw MiniAOD
-    collection -- while the `Jet` table comes from `finalJetsPuppi`, which is
-    `slimmedJetsPuppi` filtered to `pt > 15`. So `nJetQk >= nJet`, with equality
+    collection -- while the `Jet` table comes from `finalJetsPuppi`, after
+    NanoAOD jet updates and the `pt > 15` selection. So `nJetQk >= nJet`, with equality
     in only ~16% of events, and there is no pT/eta/phi in `JetQk` to match on.
 
-    What makes the positional match `JetQk[i] <-> Jet[i]` correct is that the
-    whole chain preserves order: `updatedPatJets` recomputes JECs without
-    sorting and `PATJetRefSelector` only filters, so `Jet` is `JetQk` with a
-    suffix of sub-threshold jets removed. Checked against the data as well --
-    on events where `nJet == nJetQk` the match is exact by construction, and
-    the sign agreement between Qk05 and `Jet_PflavCharge` there (0.6081 +-
+    The positional match `JetQk[i] <-> Jet[i]` is an assumption about this
+    production, not a CMSSW guarantee. `updatedPatJets` defaults to sort=True;
+    `PATJetRefSelector` then filters. A prefix match requires that the upstream
+    JEC preserve the MiniAOD ordering and that the removed jets form a suffix.
+    Equal collection lengths alone do not establish correspondence. Per-jet
+    charged-energy and forward-jet checks support the mapping in the audited
+    signal/inclusive samples. An additional statistical cross-check found that
+    the sign agreement between Qk05 and `Jet_PflavCharge` on equal-length events (0.6081 +-
     0.0018) is 0.4 sigma from the same quantity on events where the prefix is
     assumed (0.6074 +- 0.0008). A broken prefix would pull the second toward
     0.5, and does for deliberately shifted controls (~0.47).
 
-    That argument is an inference about the producer, not something the file
-    asserts, so the length guard below is a hard error rather than a warning:
+    These checks cannot prove alignment in every production. The length guard
+    below catches only the case that makes a prefix match impossible:
     if a future production ever makes `JetQk` shorter than `Jet`, the prefix
     is meaningless and silently attaching the wrong charge to a jet would
     corrupt exactly the observable this analysis calibrates.
@@ -182,9 +184,9 @@ def ak4_jet_id(jets: JetArray, wp: str = "tight") -> ak.Array:
     exercise of the exception the twiki grants: "For analyses that perform any
     special cleaning or selections between jets and leptons, the jet ID can also
     be applied without the vetoing on leptons to avoid possible biases."
-    good_ak4jets() does exactly that special cleaning (DeltaR > 0.4 against the
-    trigger lepton), so the lepton-fake jets TightLepVeto targets are already
-    gone geometrically. What the extra cuts would still remove is genuine
+    good_ak4jets() performs this cleaning (DeltaR > 0.4 against the trigger
+    lepton). It removes that lepton's overlap; it does not prove all lepton-fake
+    jets are gone. The extra cuts can also remove genuine
     semileptonic heavy-flavour jets (b -> mu + X inside the cone) -- precisely
     the jets whose soft lepton carries the charge information this analysis is
     calibrating a tagger on. That is the "possible bias" in our case.
@@ -424,9 +426,9 @@ def good_electrons(events, leptons: ElectronArray, year: str):
     leptons = leptons[lsel]
 
     # Trigger: (filterbit, ptcut for matched lepton)
-    # filterbit 1 = "1e (WPTight)" is the generic single-electron WPTight bit, so it is
-    # valid for both Ele32 (2022/2023) and Ele30 (2024); only the pT cut is year-dependent.
-    triggers = {"EGamma": (1, single_ele_lepton_pt(year))}
+    # Summer24 NanoAOD: bit 18 identifies the Ele30 single-electron filter.
+    # Generic WPTight bit 1 also accepts cross-trigger objects in this menu.
+    triggers = {"EGamma": (18 if year == "2024" else 1, single_ele_lepton_pt(year))}
     trig_leptons = trigobj[trigobj.id == PDGID.e]
 
     TrigMatchDict = {

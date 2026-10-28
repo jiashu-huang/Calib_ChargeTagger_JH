@@ -1,78 +1,69 @@
 # AGENTS.md
 
-Operating notes for agents working in `Calib_ChargeTagger_JH`. Run all
-commands from the repository root unless stated otherwise.
+`Calib_ChargeTagger_JH` is the NanoAOD skimmer for the |Vcb| analysis and
+jet-charge-tagger calibration. Command examples assume the repository root.
 
-## Environment & setup
+Complete requested changes, including relevant validation and fixes for
+failures they introduce. Routine local edits and checks within that scope
+need no separate approval at each step.
 
-- **Python / Coffea (the skimmer):** the `ttbar` micromamba environment.
-  Prefix commands with `micromamba run -n ttbar ...`, or
-  `micromamba activate ttbar` for an interactive shell. One editable install:
+## Environment
 
-  ```bash
-  micromamba create -f environment.yaml       # once per machine
-  micromamba run -n ttbar pip install -e ".[diagnostics,test]"
-  ```
+- Use `micromamba run -n ttbar ...` for Python/Coffea commands, or activate
+  `ttbar` in an interactive shell. See [setup](README.md#setup) when creating
+  the environment or changing dependencies. The editable install supplies
+  both `vcb` and vendored `boostedhh` from `src/`; do not install `bbtautau`
+  or upstream `boostedhh`, which would shadow this code.
+- For merging, use `micromamba run -n ttbar hadd ...`. The CMSSW runtime in
+  `../CMSSW_15_1_0_patch4/src` is also an option.
 
-  This installs both `vcb` and the vendored `boostedhh` (single source tree
-  under `src/`). Do **not** pip-install `bbtautau` or the upstream
-  `boostedhh` — they would shadow this repo's code.
+## Repository constraints
 
-- **`hadd` (merge step):** the ROOT bundled in the `ttbar` env works
-  (`micromamba run -n ttbar hadd ...`, verified). A CMSSW runtime
-  (`../CMSSW_15_1_0_patch4/src` + `scramv1 runtime`) also works if preferred.
+- `src/boostedhh/` is vendored from LPC-HH/boostedhh @ `71bd456`. Do not
+  auto-format or lint it; preserve its exclusion in `pyproject.toml`. Sync
+  by diff and record deliberate local changes in
+  [VENDORED.md](src/boostedhh/VENDORED.md).
+- `diagnostics/` is excluded from lint by policy. Its
+  `check_jet_tagger_roundtrip.py` and `plot_trigger_lepton_pt_flavor.py` are
+  maintained parts of `tests/test_run.py`, despite that exclusion.
+- Keep the documentation map in `README.md` and durable details in `docs/`.
+  Move superseded notes to `docs/archive/` with a header naming their
+  replacement. Root `PLAN.md` is ignored scratch; promote durable content
+  before finishing.
+- Condor workers use the live checkout. Keep its source fixed while a
+  production is running; use an isolated checkout for concurrent edits.
 
-## Ground rules
+## Documentation by task
 
-- **`src/boostedhh/` is vendored upstream code — do not auto-format or lint
-  it.** ruff excludes it via `pyproject.toml`; keep it that way so
-  `diff -r` against LPC-HH/boostedhh @ `71bd456` stays trivial. Sync by diff,
-  not by rewrite. Record any deliberate local change in
-  [src/boostedhh/VENDORED.md](src/boostedhh/VENDORED.md).
-- **`diagnostics/` are standalone scripts, excluded from lint by policy.**
-  Most were copied as-is from the old repo, but two were written fresh in
-  *this* repo and are load-bearing despite living here:
-  `check_jet_tagger_roundtrip.py` (invoked by `tests/test_run.py`; its report
-  is a committed baseline) and `plot_trigger_lepton_pt_flavor.py` (renders the
-  trigger turn-on check plot). Treat those two as real code even though the
-  linter skips them.
-- **Docs layout:** the root `README.md` is the front door and carries the
-  documentation map; deep dives and design records live in `docs/`
-  (committed); superseded notes go to `docs/archive/` with a header saying
-  what supersedes them. A root `PLAN.md` is git-ignored working scratch —
-  promote anything durable out of it before finishing a task.
-- Committed regression baselines live in `tests/outfile/`
-  (`test-output-schema.csv`, `test-output-0th-event.txt`,
-  `test-jet-tagger-roundtrip.txt`). If a change is *supposed* to alter the skim
-  output, regenerate them with
-  `micromamba run -n ttbar python tests/test_run.py` and commit the diff;
-  unexplained baseline diffs are bugs. `test-jet-tagger-roundtrip.txt` must end
-  in `VERDICT: PASS` — `tests/test_run.py` exits non-zero otherwise.
+Read the guides relevant to the task; [README.md](README.md) has the full map.
 
-## Orientation
+- Event selection and weights: [event synopsis](docs/event-synopsis.md).
+- Object corrections and output fields: [object synopsis](docs/object-synopsis.md).
+- CLI behavior: [CLI reference](docs/cli.md).
+- Batch production, normalization, and merging: [Condor guide](condor/README.md).
+- Test selection and fixture setup: [tests](docs/tests.md).
 
-- [README.md](README.md) — purpose, setup, how to run, and the full
-  documentation map.
-- [docs/processor.md](docs/processor.md) — how the skimmer works internally.
-- [docs/cli.md](docs/cli.md) — every `vcb.run` flag, incl. overlaps and inert ones.
-- [condor/README.md](condor/README.md) — batch production on HTCondor.
-- [docs/normalization.md](docs/normalization.md) — why `finalWeight` is a
-  second pass (design record).
-- [docs/tests.md](docs/tests.md) — test suite details and the jet-tagger
-  round-trip check.
-- [docs/history.md](docs/history.md) — lineage back to the old
-  `Calib_ChargeTagger` repo and its logs.
+## Validation
 
-## Checks before committing
+For documentation-only edits, review the diff and links. For Python changes,
+lint affected paths within `src/vcb`, `tests`, and `condor`, and run relevant
+unit tests. Use the full checks below when changes span modules or focused
+checks leave uncertainty. There are no pre-commit hooks to run them for you.
 
 ```bash
-micromamba run -n ttbar ruff check src/vcb tests condor  # lint (vendored code + diagnostics excluded)
-micromamba run -n ttbar python -m pytest tests/ -q       # unit tests, no data needed
+micromamba run -n ttbar ruff check src/vcb tests condor
+micromamba run -n ttbar python -m pytest tests/ -q  # no NanoAOD fixture needed
 ```
 
-This repo does **not** use pre-commit — there are no hooks, so run the two
-commands above by hand.
+For changes affecting skim output or integration behavior, run
+`micromamba run -n ttbar python tests/test_run.py`. It needs the ~1 GB
+`tests/data/test-input.root` fixture and takes a few minutes. It regenerates
+three tracked baselines in `tests/outfile/`: `test-output-schema.csv`,
+`test-output-0th-event.txt`, and `test-jet-tagger-roundtrip.txt`. Review each
+diff and include intentional updates with the change; unexplained differences
+are bugs. The round-trip report must end in `VERDICT: PASS`; the script also
+fails if an output event lacks a trigger lepton.
 
-The integration run (`tests/test_run.py`) needs the ~1 GB fixture at
-`tests/data/test-input.root` (copy from the old repo, see README) and takes a
-few minutes.
+If a needed dependency or fixture is unavailable, complete feasible checks
+and report what remains unverified. Once relevant checks pass, broaden or
+repeat them only for new changes, failures, or unresolved concerns.

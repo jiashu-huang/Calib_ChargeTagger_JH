@@ -50,8 +50,9 @@ As in AN-25-214, there is no impact-parameter cut beyond the ID. The
 2026-09-23: it is the H→ττ convention, not an EGM one, and EGM measures its
 scale factors on electrons with ID requirements only.
 
-Trigger matching against EGamma trigger objects: filter bit 1 (the generic
-single-electron WPTight bit, valid for both Ele32 and Ele30), ΔR < 0.2, and a
+Trigger matching against EGamma trigger objects: bit 18 for the 2024 Ele30
+filter (generic bit 1 also accepts cross-trigger objects), bit 1 for earlier
+years, ΔR < 0.2, and a
 year-dependent offline pT cut above the HLT turn-on — 35 GeV for 2022/2023
 (`HLT_Ele32_WPTight_Gsf`), 32 GeV for 2024 (`HLT_Ele30_WPTight_Gsf`).
 
@@ -339,17 +340,16 @@ revise these numbers — worth re-checking before the calibration is finalised.
 
 Design notes:
 
-- **Tight, not TightLepVeto — a deliberate exception, not the default.** JME's
-  general recommendation *is* TightLepVeto. The twiki grants an explicit
-  carve-out we fall under: *"For analyses that perform any special cleaning or
-  selections between jets and leptons, the jet ID can also be applied without
-  the vetoing on leptons to avoid possible biases."* The ΔR > 0.4 cleaning
-  above is that special cleaning, so the lepton-fake jets TightLepVeto targets
-  are already gone geometrically. What its `muEF < 0.8` / `chEmEF < 0.8` cuts
-  would still remove is genuine semileptonic heavy-flavour jets (b → μ + X
-  inside the cone) — precisely the jets whose soft lepton carries the charge
-  information this analysis calibrates a tagger on. That is the "possible
-  bias" in our case. Measured cost on `tests/data/test-input.root`: 0.4 % of
+- **Tight with trigger-lepton cleaning.** JME generally recommends
+  TightLepVeto. The public
+  [CMS-DP-2024-028](https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsDP24028)
+  allows an analysis-dependent exception when jet/lepton cleaning or selection
+  makes the lepton veto introduce a bias. Our ΔR > 0.4 cleaning removes
+  overlap with the chosen trigger lepton; it does not prove that every
+  lepton-fake jet is removed. TightLepVeto's `muEF < 0.8` / `chEmEF < 0.8`
+  cuts can also remove semileptonic heavy-flavour jets carrying useful charge
+  information. This motivates Tight for analysis jets, subject to analysis
+  validation. Measured TightLepVeto cost on `tests/data/test-input.root`: 0.4 % of
   b-jets and 1.0 % of c-jets (pT > 20, \|η\| < 2.5).
   The exception applies to the *analysis* jets only. The jet-veto map decides
   which events to discard, not which jets to keep, and JERC names TightLepVeto
@@ -404,11 +404,12 @@ The `ak.argsort` that fixes both sits between `attach_jet_charge` and the
 `ak4JetNanoIdx` is captured immediately after `get_jec_jets` — JECs change
 energies but neither reorder nor filter, so it is the input index — and it is
 the only column that points back at the file once the sort has permuted the
-slots. It is also the `JetQk` index, by the same prefix argument, and
-`set(range(nJets)) - set(saved indices)` recovers exactly which jets the
-ten-slot truncation dropped. `diagnostics/check_jet_tagger_roundtrip.py`
+slots. The current `JetQk` attachment uses that same numeric index under a
+production-specific prefix assumption; equal table lengths do not prove the
+association. `diagnostics/check_jet_tagger_roundtrip.py`
 re-derives the correspondence independently from η/φ and then checks the saved
-column against it, so the provenance is verified rather than asserted.
+`Jet` index. This proves the input-Jet-to-output correspondence, not the
+upstream JetQk-to-Jet association; see [the diagnostic limits](tests.md).
 
 A second pointer, `ak4JetGenJetIdx`, indexes the truth side: it is NanoAOD's
 `Jet_genJetIdx` clamped to the `GenJet*` slots, so `GenJetPt[ak4JetGenJetIdx]`
@@ -532,27 +533,29 @@ Relevant files (line numbers as of the current commit):
   selection" of `pt > 15`, the **TightLepVeto** jet ID and
   `chEmEF + neEmEF < 0.9`, applied to the *uncleaned* corrected collection.
   These are not the analysis jets `good_ak4jets` returns.
-- [`src/boostedhh/processors/corrections.py`](../src/boostedhh/processors/corrections.py#L649-L675)
-  (lines 649–675) implements `get_jetveto_event`; the year → correction-name
-  map is at [lines 664–671](../src/boostedhh/processors/corrections.py#L664-L671),
-  and the CVMFS path is built by `get_pog_json`
-  ([lines 58–73](../src/boostedhh/processors/corrections.py#L58-L73)).
-- The map payload is the campaign-specific correctionlib
-  `jetvetomaps.json.gz` read from the CMS JSON POG CVMFS tree
-  (`/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/`). It is
-  **not bundled** in this repository, so CVMFS must be reachable from wherever
-  the skimmer runs (including condor workers).
+- [`src/boostedhh/processors/corrections.py`](../src/boostedhh/processors/corrections.py)
+  implements `get_jetveto_event` and the year-to-correction-name map.
+- The 2024 map is bundled as `2024_jetvetomaps.json.gz`, with a dated
+  `2026-07-16` CAT fallback and a checked compressed-file SHA-256. Missing or
+  changed content stops processing. Provenance is in the
+  [payload README](../src/boostedhh/corrections/README.md). Earlier years still
+  use their JSON POG CVMFS paths.
 
 After JEC, the skimmer evaluates the year-specific Run-3 jet-veto map at the eta
 and phi of every candidate jet. A nonzero map value marks a vetoed detector
 region. The event fails `ak4_jetveto` if any candidate jet lies in such a
-region; otherwise it passes. This selection is applied to both data and MC. Eta
+region; otherwise it passes. The map helper applies to both data and MC,
+although the 2024 runner currently rejects collision data. Eta
 and phi are clipped to the map range before evaluation.
 
-For 2024 the resolved payload is `POG/JME/2024_Summer24/jetvetomaps.json.gz`,
-correction `Summer24Prompt24_RunBCDEFGHI_V1`, map type `jetvetomap` — the
+For 2024 the bundled payload contains correction
+`Summer24Prompt24_RunBCDEFGHI_V1`, map type `jetvetomap` — the
 campaign matching the `Summer24MiniAODv6` MC and the `Summer24Prompt24_V5` JEC
 above.
+
+Its decompressed content matches the former JSON POG source; pinning the
+release changes neither map values nor the selected events in the signal and
+TTBB validation samples.
 
 ### Candidate jets — JERC's "minimal selection"
 
@@ -626,6 +629,12 @@ only one, so no ambiguity arises. The full branch list is in
 [`tests/outfile/test-output-schema.csv`](../tests/outfile/test-output-schema.csv);
 unit tests for the helpers are in
 [`tests/test_vcb_gen_truth.py`](../tests/test_vcb_gen_truth.py).
+
+The two event labels, `GenWDecay` and `GenNExtraBQuarks`, have independent
+validity flags and impose no matching cut. The extra-quark count requires a
+complete generator-truth sidecar; ordinary NanoAOD leaves it unknown.
+Definitions, status codes and preparation are in
+[event truth labels](event-truth-labels.md).
 
 ### `GenQ1` is down-type, `GenQ2` is up-type
 
@@ -886,18 +895,21 @@ Pile-up enters the output in two independent ways.
   filled with `PAD_VAL` (−99999) and only `nPV` is real. Nothing selects on
   them, so downstream code can re-derive or validate the reweighting — and
   because `nTrueInt` is stored, a future weight-file update is a
-  post-processing rescale rather than a re-skim.
+  post-processing numerator rescale. A new normalization denominator still
+  requires the revised PU sum over all inputs, including rejected events;
+  selected-event counters alone cannot supply it.
 * **As an event weight.** `add_weights` evaluates the correction on `nTrueInt`
-  (clipped to `[0, 99]`) for `nominal`, `up`, and `down`, clips each returned
-  weight to `[0, 10]`, and adds all three to the coffea `Weights` container as
+  for `nominal`, `up`, and `down`, uses the payload's own `flow="clamp"` for
+  overflow inputs, and preserves each returned factor without a cap. It adds
+  all three to the coffea `Weights` container as
   `"pileup"`. It is then folded multiplicatively into `weight` (together with
   `genweight`, the ISR/FSR PS weights, and the σ×L normalization) and into
   `weight_noxsec`, and is written out on its own as `single_weight_pileup`.
   Because `"pileup"` is in `norm_preserving_weights`, it is also part of the
   partial weight summed into `totals["np_nominal"]`; since
   `finalWeight = weight / np_nominal` divides by that same sum, pile-up
-  reweighting reshapes pile-up-dependent distributions without moving the
-  overall normalization. The `up`/`down` variations live in the `Weights`
+  reweighting preserves the inclusive generator normalization. The selected
+  yield can change through acceptance. The `up`/`down` variations live in the `Weights`
   object but are only written (as `weight_pileupUp`/`Down` plus
   `np_pileupUp`/`Down` totals) when the skimmer runs with
   `--save-systematics`, which is off by default — hence the committed baseline
@@ -911,7 +923,12 @@ The correction is a function of `NumTrueInteractions` = `Pileup_nTrueInt`, the
 only 0.82, so the old call mis-weighted 51% of events by >25% and cost
 effective statistics (N_eff/N = 0.44 → 0.74). It never errored — the payload
 is 100 unit-wide bins with `flow: clamp`, so an integer input still landed in
-a valid bin. Yields were unaffected either way, pile-up being norm-preserving.
+a valid bin. Inclusive normalization is preserved; selected yields can change.
+
+The [October weight realignment](weight-realignment-2026-10-27.md) records the
+uncapped prescription in ROOT, validates PS/LHE metadata and rejects mixing
+old capped batches with this convention. Required 2024 lepton-SF payloads
+must load before processing begins.
 
 One caveat on the implementation: `single_weight_pileup` is not the bare
 pile-up weight. The σ×L normalization loop multiplies *every* entry of
@@ -947,6 +964,17 @@ They are kept apart rather than merged into one lepton SF so the electron and
 muon channels can carry independent nuisance parameters downstream; `up`/`down`
 variations exist in the `Weights` container and are written only under
 `--save-systematics`, exactly like pile-up.
+
+For MUO, the total shift is computed as nominal ± sqrt(stat² + syst²).
+The pinned June 2026 payload's ID/ISO `systup/down` already include both
+components, but the IsoMu24 categories include only `syst`. The explicit
+component calculation includes the missing trigger statistical error.
+Twelve additional full-event branches,
+`weight_muon_{id,iso,trigger}_{stat,syst}{Up,Down}`, preserve the separate
+components. Use either the total or a component model for each step;
+do not count both. All lepton alternatives use the nominal normalization
+denominator. Bin correlations remain downstream. This is weight prescription
+version 2 and retained in version 3; see [the readiness record](cms-readiness-2026-10-27.md).
 
 `add_lepton_weights` still assigns 1.0 to an event with no trigger lepton —
 weights are computed for every event read and masked only at the very end — but
@@ -1057,10 +1085,8 @@ our extrapolation rather than anybody's recommendation. That asymmetry is also
 why the `data*` columns are stuck at 13 TeV: NNLO-NLO could be carried across
 beam energies precisely because it is a ratio of two *calculations*, both
 evaluable at any √s, while the data-based fits have a 2015 dataset, a Run 2 tune
-and a Run 2 PDF baked in. No 13.6 TeV differential ttbar cross section unfolded
-to parton-level top pT exists to update them from — the only published Run 3 TOP
-results are inclusive ttbar (CMS-PAS-TOP-22-012) and tW (TOP-23-008), the latter
-being where the extrapolation trick came from in the first place.
+and a Run 2 PDF baked in. This processor has no measured 13.6 TeV replacement
+for those data-based fits. Their saved values remain historical comparisons.
 
 **Not folded into `weight`.** These columns are appended *after* the σ×L loop in
 `add_weights`, so unlike the `single_weight_*` diagnostics they carry no
@@ -1076,18 +1102,24 @@ nor `finalWeight`, nor `np_nominal`. Three reasons:
   no division, no inverse.
 * Which column to apply is a per-use-case decision, and this skim feeds more
   than one (tagger efficiency vs. Vcb signal).
-* Whether top-pT belongs in the `np_nominal` denominator is an unresolved
-  normalization question. That denominator sums over **all events read, before
-  cuts**, so it cannot be reconstructed from the skim afterwards — folding the
-  factor into `weight` now would silently decide it. Keeping the columns
-  separate leaves the decision open; making it later costs a re-skim.
+* Adoption remains an analysis-model choice. Version 3 preserves optional
+  all-input denominators `np_topPtWeight_<model>` and their joint
+  PU/shower/scale/PDF sums, so that choice can preserve inclusive normalization
+  downstream. These sums exclude lepton SFs and sigma*L. See the
+  [top-pT normalization contract](top-pt-normalization-2026-10-27.md).
 
 **Gating.** ttbar only (`TTtoLNuCB`, `TT1L2Q`, `TTtoLNu2Q`, matched as
-substrings). The TOP PAG weights are explicitly *not* valid for single top or
-ttX — top production may look similar, but there is no evidence the same
-mismodelling applies. A non-ttbar dataset gets **no columns at all**, not
-columns of 1.0, so nobody can apply them there by accident. Events without
-exactly two hard-process last-copy tops get 1.0.
+substrings), including `TTBB-TTtoLNu2Q`. This is a storage/routing rule, not
+approval for every generator. The public CMS
+[TOP-22-009 paper](https://cds.cern.ch/record/2872305/files/CMS-TOP-22-009-arXiv.pdf?version=1)
+uses top-pT modelling for its ttbar components, including ttbb, while
+excluding single top and ttV/ttH; it does not establish a universal Summer24
+prescription. Other sample names get no factors. A usable pair requires one
+hard-process last-copy top and one antitop with finite, nonnegative pT.
+Otherwise the factors are 1 and `TopPtWeightValid=False`; these events remain
+in all sums. `Norm/n_top_pt_valid + n_top_pt_invalid` equals `n_input_events`.
+The legacy `nevents` field is the signed sum of MC generator weights, not a
+literal event count; its value is preserved for compatibility.
 
 **Clamping.** Above 500 GeV the data-based weights hold at their 500 GeV value,
 per the twiki — the measurements they are fitted to do not extend further. The

@@ -11,7 +11,7 @@ Flags come from four places, in this order:
 | [`run_utils.parse_common_run_args`](../src/boostedhh/run_utils.py#L78) | `--starti --endi --executor --files --files-name --batch-size --yaml --file-tag` |
 | [`run_utils.parse_common_hh_args`](../src/boostedhh/run_utils.py#L107) | `--year --samples --subsamples --maxchunks --chunksize --save-systematics --save-root` |
 | [`vcb_utils.parse_common_run_args`](../src/vcb/vcb_utils.py#L47) | `--processor --region --nano-version --prescale-factor` |
-| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --kinematic-variation --muon-pt-variation --naming-tag --outdir --root-only --output-root-location` |
+| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --kinematic-variation --muon-pt-variation --truth-label-manifest --naming-tag --outdir --root-only --output-root-location` |
 
 Boolean flags are mutually exclusive pairs: `add_bool_arg` generates a `--no-<name>`
 alongside each of `--save-root` and `--save-systematics`. `--root-only` is a plain
@@ -20,6 +20,9 @@ alongside each of `--save-root` and `--save-systematics`. `--root-only` is a pla
 `finalWeight` has no flag at all: the skimmer never writes it. It is appended in a
 second pass by [condor/scripts/normalize.py](../condor/scripts/normalize.py), which
 needs the whole sample to know the denominator.
+
+The 2024 entry point supports MC only. Collision-data input fails explicitly
+until certified-lumi selection, data JEC and data MET are implemented.
 
 ## What each one does
 
@@ -54,7 +57,7 @@ grouped on the way out.
 | `--root-only` | off | Write *only* the ROOT skim: no parquet, no `num_batches_<tag>.txt`, and the `outparquet/` scratch is deleted afterwards. `outfiles/<tag>.pkl` is still written. |
 | `--naming-tag` | first 32 chars of the input stem | Output file tag: `nano_skim_<tag>_batch_N.root`, `outfiles/<tag>.pkl`. |
 | `--file-tag` | `None` | Same thing, lower precedence. |
-| `--save-systematics` / `--no-save-systematics` | off | Also write `weight_<syst>Up/Down` branches and `np_<syst>Up/Down` totals. Off is why the baseline schema has `single_weight_pileup` but no pile-up variation branches. |
+| `--save-systematics` / `--no-save-systematics` | off | Write 18 total weight alternatives plus 12 muon stat/syst component alternatives. For ttbar retain raw PDF/alpha-S members and identities. Version 3 saves all-input denominators and their joint top-pT sums; missing or unverified requested PDF inputs fail. |
 
 ### Processor
 
@@ -63,6 +66,7 @@ grouped on the way out.
 | `--skimmer` | `vcbSkimmer` | Module under `src/vcb/processors/` to run. Accepts `vcbSkimmer`, `vcbSkimmer.py`, or a path. |
 | `--muon-pt-variation` | `nominal` | Active 2024 MC momentum pass. `all` runs nominal plus four total scale/resolution shifts from the original NanoAOD, each in its own subdirectory; see below. |
 | `--kinematic-variation` | `nominal` | One 2024 MC object shift or a group (`all`, `jets`, `jes`, `jer`, `electron`, `muon`). Each pass reruns the complete skim; see below. |
+| `--truth-label-manifest` | none | Complete generator extra-b counts keyed by NanoAOD UUID. Without it, counts are unknown; with it, missing sources or identity mismatches fail. See [event truth labels](event-truth-labels.md). |
 | `--processor` | `skimmer` | Only choice is `skimmer`. |
 | `--executor` | `iterative` | Only `dask` vs. not-`dask` is honoured — see *Inert*. |
 | `--region` | `signal` | Only choice is `signal`; indexes a one-entry HLT dict. |
@@ -189,6 +193,13 @@ are ignored silently. Within the other branch, `--yaml` beats
 A hidden side effect worth knowing: with `--files`, an unreadable input raises
 instead of being skipped. This is why a NanoAOD with no `Events` tree kills the
 whole job rather than being dropped.
+
+All 2024 runs now use `skipbadfiles=False`, including indexed filesets.
+Before processing, each MC file must identify the supported PS layout and,
+for ttbar, the LHE-scale grid. Required lepton-SF payloads must be available.
+Unknown titles, inconsistent file layouts and malformed event weights fail.
+The 2024 runner rejects `--executor dask` because that path cannot persist the
+required weight metadata; use the local runner or the supported Condor wrapper.
 
 **`--files-name` controls normalization, so it is mandatory.** The skimmer
 reconstructs the dataset name from the fileset key and looks it up in `xsecs`

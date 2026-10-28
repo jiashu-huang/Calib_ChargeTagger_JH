@@ -31,6 +31,7 @@ import unittest
 
 import awkward as ak
 import numpy as np
+import pytest
 from coffea.nanoevents.methods import nanoaod
 
 from boostedhh.processors.utils import GEN_FLAGS
@@ -44,7 +45,9 @@ from vcb.processors.top_pt import (
     _sf_nnlo_nlo,
     _sf_nnlo_nlo_13p6tev,
     _sf_run3_extrapolation,
+    top_pt_normalization,
     top_pt_weights,
+    top_pt_weights_and_validity,
 )
 
 TOP_PDGID = 6
@@ -349,7 +352,7 @@ class TestTopSelection(unittest.TestCase):
 class TestDatasetGate(unittest.TestCase):
     def test_ttbar_datasets_get_every_column(self):
         events = make_events([ttbar_event(150.0, 150.0)])
-        for dataset in ("TTtoLNuCB", "TTtoLNu2Q", "TT1L2Q"):
+        for dataset in ("TTtoLNuCB", "TTtoLNu2Q", "TT1L2Q", "TTBB-TTtoLNu2Q"):
             weights = top_pt_weights(events, dataset)
             self.assertEqual(set(weights), set(SF_FUNCTIONS), dataset)
 
@@ -368,6 +371,43 @@ class TestDatasetGate(unittest.TestCase):
         events = make_events([ttbar_event(150.0, 150.0)])
         for dataset in ("TWminustoLNu2Q", "TTZToLLNuNu", "WJetsToLNu", "SingleMuon"):
             self.assertEqual(top_pt_weights(events, dataset), {}, dataset)
+
+
+def test_invalid_top_pairs_have_unity_fallback_and_explicit_validity():
+    events = make_events([
+        [(6, 100., GOOD_FLAGS), (6, 200., GOOD_FLAGS)],
+        ttbar_event(np.nan, 200.), ttbar_event(100., np.inf),
+        ttbar_event(-1., 200.), [(6, 100., GOOD_FLAGS)],
+        ttbar_event(100., 200.),
+    ])
+    factors, valid = top_pt_weights_and_validity(events, "TTBB-TTtoLNu2Q")
+    np.testing.assert_array_equal(valid, [False, False, False, False, False, True])
+    for values in factors.values():
+        np.testing.assert_array_equal(values[:5], np.ones(5))
+        assert np.all(np.isfinite(values))
+    assert top_pt_weights_and_validity(events, "TTZToLLNuNu") == ({}, None)
+
+
+def test_top_pt_sums_preserve_signed_zero_and_joint_generator_weights():
+    factors = {name: np.array([.5, 1.25, 1., 2.]) for name in SF_FUNCTIONS}
+    base = np.array([2., -4., 0., 3.])
+    ratios = np.array([[0., -1.], [2., 5.], [-7., 8.], [.5, 2.]])
+    original = base.copy()
+    totals = top_pt_normalization(factors, base)
+    joint = top_pt_normalization(factors, base, "pdf_weights", ratios)
+    for name in factors:
+        assert totals[f"np_{name}"] == 2.  # 1 - 5 + 0 + 6, including rejected-event contributions.
+        np.testing.assert_array_equal(joint[f"np_{name}_pdf_weights"], [-7., -14.])
+    np.testing.assert_array_equal(base, original)
+    empty = {name: np.empty(0) for name in factors}
+    assert all(value == 0. for value in top_pt_normalization(empty, []).values())
+    assert top_pt_normalization({}, base) == {}
+    with pytest.raises(ValueError, match="Incomplete"):
+        top_pt_normalization({next(iter(factors)): np.ones(4)}, base)
+    with pytest.raises(ValueError, match="finite event weights"):
+        top_pt_normalization(factors, [2., -4., np.nan, 3.])
+    with pytest.raises(ValueError, match="finite rectangular ratios"):
+        top_pt_normalization(factors, base, "pdf_weights", [[np.inf], [0], [0], [0]])
 
 
 if __name__ == "__main__":

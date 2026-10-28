@@ -46,7 +46,7 @@ class SkimmerABC(processor.ProcessorABC):
             keys=list(events.keys()),
         )
 
-    def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None) -> None:
+    def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None, save_empty: bool = False) -> None:
         """
         Saves pandas dataframe events to the configured intermediate parquet directory.
         """
@@ -61,7 +61,7 @@ class SkimmerABC(processor.ProcessorABC):
         # need to write with pyarrow as pd.to_parquet doesn't support different types in
         # multi-index column names
         table = pa.Table.from_pandas(pddf)
-        if len(table) != 0:  # skip dataframes with empty entries
+        if len(table) != 0 or save_empty:
             pq.write_table(table, local_dir / fname)
 
     def get_dataset_norm(self, year, dataset):

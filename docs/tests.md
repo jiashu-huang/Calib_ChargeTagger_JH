@@ -12,8 +12,11 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 | File | What it does |
 |---|---|
+| [tests/test_normalization.py](../tests/test_normalization.py) | Complete signed-weight preflight, late scale mismatches, nonfinite denominators and quotients, unchanged ROOT files after failed checks, empty/zero-weight outputs, verified reruns and actual forced ROOT rewriting. |
+| [tests/test_skim_preservation.py](../tests/test_skim_preservation.py) | Extra-lepton identity, heavy-flavour origin, isolation, threshold migration and truncation; unclustered-MET vector rebasing; signed/zero PDF ratios, actual signal/TTBB layouts, incompatible mappings, per-chunk sums including empty selections, and zero/one-event ROOT shapes. |
+| [tests/test_event_truth_labels.py](../tests/test_event_truth_labels.py) | W modes and unknowns; primary top/W b exclusions; shower-copy removal; extra b radiation within top decays; malformed ancestry; independent validity; source UUID, checksum, event-order and chunk-join checks. |
 | [tests/test_muon_ss.py](../tests/test_muon_ss.py) | Pinned MUO nominal and C++ resolution reference values; Crystal Ball core/tails and tracker-layer edges; statistical/systematic errors; data/MC and domain handling; empty/missing inputs and payload integrity; chunk/order reproducibility; an entering event through the real trigger selection; separate CLI passes. |
-| [tests/test_validate_processed.py](../tests/test_validate_processed.py) | Uses small ROOT files to check nominal/systematic schema detection before and after normalization, batch and merged targets, explicit modes, mixed campaigns, missing or unexpected columns, and exact custom schemas. Missing or invalid schema files must fail. |
+| [tests/test_validate_processed.py](../tests/test_validate_processed.py) | Small ROOT campaigns check schema modes, missing/unexpected columns, signed and zero weights, cancellations, weighted fractions outside zero to one, scale consistency, denominator/receipt failures and partially normalized campaigns. |
 | [tests/test_type1_met.py](../tests/test_type1_met.py) | Checks MET against explicit jet-minus-muon vectors, including phi wrapping. Covers auxiliary `CorrT1METJet` threshold crossings after JEC/JER, the EM-fraction cut, empty collections, hybrid gen matching, and smearing reproducibility across chunk sizes. |
 | [tests/test_package.py](../tests/test_package.py) | One smoke test: the installed distribution's version matches `vcb.__version__`. Fails if `vcb` isn't importable or the editable install is stale/missing — i.e. it catches a broken **Setup** before anything else does. |
 | [tests/test_vcb_gen_truth.py](../tests/test_vcb_gen_truth.py) | Six unit tests for the gen-truth helpers in [src/vcb/processors/GenSelection.py](../src/vcb/processors/GenSelection.py), run on hand-built awkward arrays (no NanoAOD file). Covers: **(1)** W decay-mode masks split hadronic vs. leptonic with τ counted as *leptonic*; **(2)** the `GenWto{UD,US,CD,CS,UB,BC}` flavor tags are unordered (q1/q2 swap-invariant) and mutually exclusive — exactly one fires per W; **(3)** gen quarks stored with mass 0 get the PDG mass back from their flavor (c → 1.27, b → 4.18 GeV; light quarks stay 0, already-non-zero masses untouched); **(4)–(6)** lepton mass, charge, and flavor come from the PDG id with the right sign convention (`11` → −1, `-11` → +1) and flavor stored as \|pdgId\|; and throughout, missing entries stay `PAD_VAL` rather than silently becoming 0. |
@@ -25,6 +28,27 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 | [tests/test_run.py](../tests/test_run.py) | **Not a pytest test** — a standalone end-to-end script (pytest collects no tests from it). Runs the real skimmer on one NanoAOD file and regenerates the regression artifacts in `tests/outfile/`. Needs the fixture and takes a few minutes. |
 
 ## The integration run
+
+`tests/test_weight_prescription.py` checks the released PU tail and overflow
+policy, signed/zero/large PS and LHE ratios, malformed inputs, source-title
+ordering, missing lepton payloads, empty-output metadata, and rejection of
+incompatible weight conventions before merging. Version 1 remains readable
+separately; incomplete version-2 component weights and the unsupported 2024
+collision-data path must fail.
+
+Top-pT follow-up tests cover malformed/missing top pairs, explicit validity,
+signed and zero normalization contributions, joint generator ratios, empty
+selections, wrong count/vector shapes, corrupt records and version-2/3
+compatibility. The end-to-end source comparison checks all-input sums against
+the original NanoAOD, including the events rejected by reconstruction cuts.
+
+`tests/test_lepton_sf.py` checks the released MUO trigger-category discrepancy,
+the combined stat/syst total and separate full-event alternatives, including
+zero nominal factors, negative generator weights and flavour masking.
+`tests/test_selection_payloads.py` checks the pinned veto-map values, event
+mask and missing/corrupt-payload failures. The 2024 Jet-ID reference is now
+bundled: `tests/test_objects.py` tests both working points offline with stable
+random seeds. Only the older-era CVMFS comparisons can skip when it is absent.
 
 `tests/test_kinematic_variations.py` checks the supplied 27-source manifest,
 payload signatures, separate CLI groups, legacy muon aliases, electron trigger
@@ -101,14 +125,17 @@ collection — while `Jet` comes from `finalJetsPuppi` (`pt > 15`). So
 `nJetQk >= nJet`, with equality in only ~16 % of events, and `JetQk` carries no
 kinematics to match on. Both the skimmer
 ([`objects.attach_jet_charge`](../src/vcb/processors/objects.py)) and this check
-take the first `nJet` entries, which is right because the CMSSW chain preserves
-order end to end. The round-trip therefore verifies the *plumbing* — that a
-charge survived JEC, selection, cleaning and slot padding still on its own jet —
+take the first `nJet` entries. This relies on a production-specific ordering
+assumption: `updatedPatJets` defaults to `sort=True`, then the selector filters.
+Equal table lengths do not prove equal ordering. The round-trip verifies that
+the assigned charge survives JEC, selection, cleaning and slot padding —
 but does not independently re-prove the prefix itself, since both sides assume
-it. That was validated separately against `Jet_PflavCharge`: sign agreement is
-0.6081 ± 0.0018 on events where `nJet == nJetQk` (alignment exact by
-construction) and 0.6074 ± 0.0008 where the prefix is assumed, a 0.4 σ
-difference, while deliberately shifted controls sit at ~0.47.
+it. An independent statistical check against `Jet_PflavCharge` gives sign
+agreement 0.6081 ± 0.0018 when `nJet == nJetQk` and 0.6074 ± 0.0008 in the
+remaining events, a 0.4 σ difference; deliberately shifted controls sit at
+~0.47. This supports the audited production, but cannot prove every jet's
+association. An explicit source index or a shared final jet collection is
+needed upstream for that guarantee.
 
 Note the sentinels: `-999` (no constituent above the 0.95 GeV cut), `-998`
 (zero jet pT) and `-997` (neutral jet, ~21 % of jets) are the producer's, not

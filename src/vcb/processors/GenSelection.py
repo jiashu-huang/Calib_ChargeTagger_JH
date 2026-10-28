@@ -141,6 +141,18 @@ def _w_flavor_tag_arrays(q1_pdgid: ak.Array, q2_pdgid: ak.Array):
     }
 
 
+def _event_w_decay_labels(q1_pdgid, q2_pdgid, semileptonic):
+    """TT2Q=0, TTCB=1, unknown=-1; independent of reco matching and b radiation."""
+    tags = _w_flavor_tag_arrays(q1_pdgid, q2_pdgid)
+    physical = ak.to_numpy(ak.fill_none(semileptonic & (q1_pdgid * q2_pdgid < 0), False))
+    tt2q = physical & (tags["GenWtoUD"] | tags["GenWtoUS"]
+                      | tags["GenWtoCD"] | tags["GenWtoCS"])
+    ttcb = physical & tags["GenWtoBC"]
+    label = np.full(len(q1_pdgid), -1, dtype=np.int32)
+    label[tt2q], label[ttcb] = 0, 1
+    return {"GenWDecay": label, "GenWDecayValid": tt2q | ttcb}
+
+
 def _supplement_zero_quark_masses(quark_masses: ak.Array, quark_pdg_ids: ak.Array):
     """Overwrite zero quark masses with the requested PDG-based flavor masses."""
 
@@ -468,6 +480,15 @@ def gen_selection_Vcb(
         "GenQ2PdgId": _single_value_to_numpy(qs_3.pdgId, dtype=np.int32),
     }
 
+    semileptonic = (
+        (ak.num(tops, axis=1) == 2)
+        & (ak.sum(tops.pdgId == TOP_PDGID, axis=1) == 1)
+        & (ak.sum(tops.pdgId == -TOP_PDGID, axis=1) == 1)
+        & (ak.sum(hadronic_w_mask, axis=1) == 1)
+        & (ak.sum(leptonic_w_mask, axis=1) == 1)
+    )
+    GenEventLabels = _event_w_decay_labels(qs_2.pdgId, qs_3.pdgId, semileptonic)
+
     # Must equal `vcbSkimmer.process`'s num_ak4_jets: the assignment may only point
     # at jets that are actually written, so a smaller value here would silently drop
     # matches and a larger one would emit indices past the end of the saved slots.
@@ -526,4 +547,5 @@ def gen_selection_Vcb(
         **GenTopBVars,
         **GenWbcVars,
         **GenQVars,
+        **GenEventLabels,
     }

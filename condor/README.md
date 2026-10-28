@@ -140,12 +140,46 @@ Normalize and merge each campaign separately. Never mix nominal and shifted
 copies in a normalization denominator or a merged event sample. Weight-only
 `--save-systematics` can be enabled independently in every campaign.
 
+#### Event truth labels
+
+For the exact extra-b-quark label, pass `--truth-label-manifest /path/manifest.json`
+to `submit_batches.py`. The worker forwards it to the processor; the campaign
+records its path and checksum. Build it from the paired native generator-truth
+files as described in [event truth labels](../docs/event-truth-labels.md).
+Without a manifest, the count is unknown and the W-decay label is still written.
+
 #### Systematic variations
 
 `--save-systematics` is **off by default** and worth turning on for any real
-production. It adds 18 `weight_*Up/Down` columns — pile-up, ISR/FSR parton
-shower, and the six lepton scale factors — plus their `np_*` denominators in
-the totals pickle (759 branches instead of 741).
+production. Weight prescription versions 2 and 3 add 18 `weight_*Up/Down` total
+alternatives — pile-up, ISR/FSR parton shower, and the six lepton scale factors —
+plus 12 muon statistical/systematic component alternatives. Use either a step's
+total or its components in a fit, not both. Only norm-preserving terms get
+separate `np_*` denominators in the totals pickle and ROOT `Norm` tree;
+lepton variations use the nominal denominator. For ttbar it also saves every PDF member
+ratio, the verified LHA mapping, and all-input member sums. The signal fixture
+has 103 members; the measured TTBB pilot has 101. See the
+[October implementation record](../docs/skim-realignment-2026-10-27.md).
+
+The follow-up [weight realignment](../docs/weight-realignment-2026-10-27.md)
+removes PU/scale clipping and requires verified 2024 PS/scale layouts and
+lepton-SF payloads. Shower Up/Down means muR x2/x0.5. `WeightMetadata` records
+the convention even in nominal-only output. The merge, normalization and
+validation tools reject mixing it with older capped output. Regenerate that
+output from NanoAOD and compute fresh all-input denominators to adopt the fix.
+
+The [muon follow-up](../docs/cms-readiness-2026-10-27.md) defines version 2,
+including the statistical error missing from the released IsoMu24 `systup/down`
+categories. Version 1 remains readable in its own campaign; mixing versions fails.
+2024 collision-data production is explicitly unsupported.
+
+The [top-pT follow-up](../docs/top-pt-normalization-2026-10-27.md) defines
+version 3. It preserves all-input top-pT normalization and joint sums with
+every saved norm-preserving variation, plus a validity flag/counts. These are
+also retained through merge and forced normalization, checked against the
+pickle, and reported in `normalization.json/global_top_pt_sums`. This does not
+apply a top-pT factor to nominal `weight` or `finalWeight`. Versions 1/2 remain
+readable separately; mixing them with version 3 fails.
 
 The reason to decide *before* submitting rather than after: the raw `PSWeight`
 array is not written to the skim, so **ISR/FSR variations cannot be rebuilt
@@ -170,8 +204,12 @@ to each `roots/batch_*.root` in place — existing branches untouched, ~3 bytes
 per event written, seconds not minutes. Provenance (denominator + a fingerprint
 of the batch list) lands in each file and in `metadata/normalization.json`.
 
-A ROOT without a Norm tree or pickle is a hard error; already-normalized files
-are skipped (`--force` recomputes them via a full rewrite). To normalize after
+A ROOT without a Norm tree or pickle is a hard error. The complete campaign
+is checked before writing: weights and quotients must be finite, zero weights
+must be consistent, and all nonzero-event ratios must give the same sample
+factor. D must be finite and nonzero. Already-normalized files are skipped
+only after their values and provenance match; stale output requires `--force`
+to recompute it via a full rewrite. To normalize after
 merging instead, run with `--target merged` — hadd concatenates the per-batch
 `Norm` entries, so the merged file carries its own denominator.
 
@@ -184,26 +222,33 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
 
 The default `--schema-mode auto` detects nominal or systematic output from
 the first ROOT file and requires that mode for every file checked. Nominal
-output must match the committed `tests/outfile/test-output-schema.csv` (741
-branches); systematic output must also contain all 18 supported up/down weight
-branches (759 total). `finalWeight` is allowed in either mode. Missing columns,
+output must match the committed `tests/outfile/test-output-schema.csv`;
+systematic output must also contain all 18 total up/down weight branches and,
+for prescription versions 2/3, all 12 muon component branches,
+and the ttbar PDF members specified by `PdfMetadata`.
+`finalWeight` is allowed in either mode. Missing columns,
 unknown extras, incomplete variation sets, and mixed modes fail validation.
 
 Use `--schema-mode systematics` for a campaign run with `--save-systematics`
-to catch even the absence of all 18 variations. Use `--schema-mode nominal`
+to catch even the absence of all variation branches. Use `--schema-mode nominal`
 to require nominal output. These modes work for both batches and merged files.
 For a different schema, `--schema-baseline /path/to/schema.csv` replaces mode
 detection with an exact column list, allowing only `finalWeight` as an extra.
 The two options are mutually exclusive; a missing or invalid CSV is an error.
 
 Per file: the branch-name check above,
-non-empty, required branches present, `Norm` tree, finite weights, a single
-σ×L across every event, `nTrueInt` in range, and `finalWeight == weight /
+required branches present, `Norm` tree (including empty selections), finite weights, a single
+sample factor across every nonzero event, finite nonnegative `nTrueInt`, and `finalWeight == weight /
 global_np_nominal` bit-exact with matching provenance. Campaign-wide: the
-`Norm` sum equals the pickle sum, one σ×L across all files, and
+`Norm` sums equal the pickle sums, PDF mappings agree, the sample factor is consistent across files, and
 `Σ finalWeight == σL × Σ(weight_noxsec) / global_np_nominal` — the identity
 that catches a `finalWeight` written with the wrong denominator. Exit code is
 non-zero if anything fails.
+
+Signed and zero weights are retained. The weighted selection fraction is not
+restricted to zero through one, and a canceled sum does not disable checks.
+The inferred sample factor checks arithmetic; it does not certify a physical
+cross section. See [normalization integrity](../docs/normalization-integrity-2026-10-27.md).
 
 ### 3. Merge (optional)
 
@@ -228,8 +273,9 @@ the predicted yield; summing over one batch gives *that batch's share* of the
 yield, not a full-sample estimate. Analyse a subset only if you mean to.
 
 If you would rather merge first and normalize once, swap the order and run
-`normalize.py --target merged`. Do not do both — the second pass skips files
-that already have `finalWeight` rather than dividing twice.
+`normalize.py --target merged`. Choose one workflow. A later invocation using
+a different target may require `--force` because its batch fingerprint changes;
+forced normalization always recomputes from the original `weight` branch.
 
 ## Notes
 

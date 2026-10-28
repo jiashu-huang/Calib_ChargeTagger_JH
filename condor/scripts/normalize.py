@@ -14,8 +14,8 @@ paired pickle in pickles/<stem>.pkl. A ROOT with neither is a hard error: its
 events would enter the numerator with no matching denominator contribution,
 silently inflating every yield.
 
-Provenance is written next to the branch (TParameter finalWeight_np_nominal +
-TNamed finalWeight_provenance carrying a fingerprint of the batch list) and to
+Provenance is written next to the branch (TNamed finalWeight_provenance
+carrying the denominator and a fingerprint of the batch list) and to
 metadata/normalization.json, so a stale finalWeight -- one computed from a
 batch list that no longer matches the files on disk -- is detectable instead
 of silent.
@@ -24,7 +24,7 @@ Usage:
     micromamba run -n ttbar python condor/scripts/normalize.py \
         --processed-dir <input-root>/processed-nano/<tag> [--target merged]
 
-Idempotent: files that already carry finalWeight are skipped. --force
+Idempotent: files with verified current finalWeight and provenance are skipped. --force
 recomputes and rewrites them (a full uproot rewrite of those files, since ROOT
 cannot cleanly drop an existing branch in place).
 """
@@ -41,6 +41,16 @@ from pathlib import Path
 
 import numpy as np
 import uproot
+
+from vcb.normalization import (
+    finite_sum,
+    infer_sample_scale,
+    normalized_weights,
+    read_normalization_provenance,
+    require_denominator,
+)
+from vcb.processors.pdf_weights import validate_pdf_merge
+from vcb.processors.weight_prescription import read_top_pt_normalization, validate_weight_merge
 
 REL_TOL = 1e-9  # Norm tree vs pickle cross-check
 
@@ -96,8 +106,8 @@ def read_norm_tree(root_path: Path) -> tuple[float, float] | None:
             return None
         norm = handle["Norm"]
         return (
-            float(np.sum(norm["np_nominal"].array(library="np"))),
-            float(np.sum(norm["nevents"].array(library="np"))),
+            finite_sum(norm["np_nominal"].array(library="np"), f"{root_path}: np_nominal"),
+            finite_sum(norm["nevents"].array(library="np"), f"{root_path}: nevents"),
         )
 
 
@@ -129,7 +139,11 @@ def read_pickle_totals(
     if "np_nominal" not in totals:
         raise KeyError(f"totals['np_nominal'] missing in {pickle_path} (data, not MC?)")
 
-    return resolved, float(totals["np_nominal"]), float(totals.get("nevents", 0.0))
+    return (
+        resolved,
+        finite_sum([totals["np_nominal"]], f"{pickle_path}: np_nominal"),
+        finite_sum([totals.get("nevents", 0.0)], f"{pickle_path}: nevents"),
+    )
 
 
 def collect_denominators(
@@ -190,18 +204,35 @@ def collect_denominators(
     return resolved_dataset, per_file, total_nevents
 
 
-def derive_sigma_lumi(root_paths: list[Path]) -> float | None:
-    """sigma x L = weight / weight_noxsec, constant per construction; None if underivable."""
+def derive_sigma_lumi(
+    root_paths: list[Path], denominator: float | None = None,
+    fingerprint: str | None = None, force: bool = False,
+) -> float | None:
+    """Preflight every event before any output is modified; None if all zero/empty."""
+    scale = None
     for root_path in root_paths:
         with uproot.open(root_path) as handle:
             tree = handle["Events"]
-            if tree.num_entries == 0:
-                continue
-            arr = tree.arrays(["weight", "weight_noxsec"], entry_stop=1000, library="np")
-            nonzero = arr["weight_noxsec"] != 0
-            if np.any(nonzero):
-                return float((arr["weight"][nonzero] / arr["weight_noxsec"][nonzero])[0])
-    return None
+            existing = "finalWeight" in tree and not force and denominator is not None
+            if existing:
+                try:
+                    receipt = read_normalization_provenance(handle)
+                    if (receipt is None or receipt["np_nominal"] != denominator
+                            or receipt["fingerprint"] != fingerprint):
+                        raise ValueError("Missing or stale normalization provenance")
+                except ValueError as exc:
+                    raise ValueError(f"{root_path}: {exc}; rerun with --force") from exc
+            fields = ["weight", "weight_noxsec"] + (["finalWeight"] if existing else [])
+            for arrays in tree.iterate(fields, step_size="32 MB", library="np"):
+                try:
+                    scale = infer_sample_scale(arrays["weight"], arrays["weight_noxsec"], scale)
+                    if denominator is not None:
+                        expected = normalized_weights(arrays["weight"], denominator)
+                        if existing and not np.array_equal(arrays["finalWeight"], expected):
+                            raise ValueError("Stale or invalid finalWeight; rerun with --force")
+                except ValueError as exc:
+                    raise ValueError(f"{root_path}: {exc}") from exc
+    return scale
 
 
 def has_final_weight(root_path: Path) -> bool:
@@ -224,14 +255,15 @@ def append_final_weight(root_path: Path, global_np_nominal: float, fingerprint: 
     ROOT.gROOT.SetBatch(True)
 
     # read the weight column once, vectorized (much faster than GetEntry)
-    weights = uproot.open(root_path)["Events"]["weight"].array(library="np")
+    with uproot.open(root_path) as handle:
+        weights = normalized_weights(handle["Events"]["weight"].array(library="np"), global_np_nominal)
 
     fout = ROOT.TFile.Open(str(root_path), "UPDATE")
     tree = fout.Get("Events")
     val = array("d", [0.0])
     branch = tree.Branch("finalWeight", val, "finalWeight/D")
     for w in weights:
-        val[0] = w / global_np_nominal
+        val[0] = w
         branch.Fill()
     tree.Write("", ROOT.TObject.kOverwrite)
 
@@ -255,8 +287,10 @@ def rewrite_final_weight(root_path: Path, global_np_nominal: float, fingerprint:
         norm = (
             handle["Norm"].arrays(library="np") if "Norm" in handle else None
         )
+        metadata = {name: handle[name].arrays() for name in ("PdfMetadata", "WeightMetadata")
+                    if name in handle}
 
-    arrays["finalWeight"] = np.asarray(arrays["weight"], dtype=np.float64) / global_np_nominal
+    arrays["finalWeight"] = normalized_weights(arrays["weight"], global_np_nominal)
 
     temp_path = root_path.with_suffix(".tmp.root")
     if temp_path.exists():
@@ -265,6 +299,8 @@ def rewrite_final_weight(root_path: Path, global_np_nominal: float, fingerprint:
         handle["Events"] = arrays
         if norm is not None:
             handle["Norm"] = norm
+        for name, arrays_metadata in metadata.items():
+            handle[name] = arrays_metadata
     temp_path.replace(root_path)
 
     fout = ROOT.TFile.Open(str(root_path), "UPDATE")
@@ -312,19 +348,26 @@ def main() -> None:
         if not root_paths:
             raise FileNotFoundError(f"No ROOT files found in {roots_dir}")
 
+    validate_pdf_merge(root_paths)
+    weight_prescription = validate_weight_merge(root_paths)
+    top_pt_totals = {}
+    if weight_prescription is not None and weight_prescription["version"] >= 3:
+        for root_path in root_paths:
+            with uproot.open(root_path) as handle:
+                for key, value in read_top_pt_normalization(handle).items():
+                    top_pt_totals[key] = top_pt_totals.get(key, 0.) + value
     dataset, per_file, total_nevents = collect_denominators(
         root_paths, pickles_dir, args.year, args.dataset
     )
-    global_np_nominal = sum(per_file.values())
-    if global_np_nominal == 0.0:
-        raise ValueError("Global np_nominal is 0. Cannot compute finalWeight.")
-
-    sigma_x_lumi = derive_sigma_lumi(root_paths)
+    global_np_nominal = require_denominator(sum(per_file.values()))
+    if not np.isfinite(total_nevents):
+        raise ValueError("Nonfinite total generator-weight sum")
 
     # fingerprint of exactly which files fed the denominator, so a stale
     # finalWeight (batch list changed since) is detectable, not silent
     fingerprint_src = "\n".join(f"{stem}:{per_file[stem]!r}" for stem in sorted(per_file))
     fingerprint = hashlib.sha1(fingerprint_src.encode()).hexdigest()
+    sigma_x_lumi = derive_sigma_lumi(root_paths, global_np_nominal, fingerprint, args.force)
 
     updated, skipped = [], []
     for root_path in root_paths:
@@ -346,9 +389,13 @@ def main() -> None:
         "target": args.target,
         "year": args.year,
         "dataset": dataset,
+        "weight_prescription": weight_prescription,
         "global_np_nominal": global_np_nominal,
+        "global_top_pt_sums": {key: np.asarray(value).tolist() for key, value in top_pt_totals.items()},
         "sigma_x_lumi": sigma_x_lumi,
+        "scale_interpretation": "Inferred multiplicative factor; physical sample normalization is not verified",
         "total_nevents": total_nevents,
+        "total_input_events": top_pt_totals.get("n_input_events"),
         "batches": sorted(per_file),
         "n_batches": len(per_file),
         "fingerprint": fingerprint,
@@ -357,7 +404,7 @@ def main() -> None:
         "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     summary_path = metadata_dir / "normalization.json"
-    summary_path.write_text(json.dumps(summary, indent=2) + "\n")
+    summary_path.write_text(json.dumps(summary, indent=2, allow_nan=False) + "\n")
 
     print(
         f"Global np_nominal = {global_np_nominal} over {len(per_file)} file(s); "

@@ -146,7 +146,7 @@ def flatten_dict(var_dict: dict):
             temp_dict = {f"{key}{obj}": var[:, obj] for obj in range(num_objects)}
             new_dict = {**new_dict, **temp_dict}
         else:
-            new_dict[key] = np.squeeze(var)
+            new_dict[key] = var.reshape(-1)
 
     return new_dict
 
@@ -330,7 +330,7 @@ def run(
 
         # Get all parquet files
         path = Path(local_parquet_dir)
-        parquet_files = list(path.glob("*.parquet"))
+        parquet_files = sorted(path.glob("*.parquet"))
 
         num_batches = int(np.ceil(len(parquet_files) / batch_size))
         if save_parquet:
@@ -361,7 +361,8 @@ def run(
                     rfile["Events"] = ak.Array(
                         # take only top-level column names in multiindex df
                         flatten_dict(
-                            {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                            {key: pddf[key].values[:, 0] if pddf[key].shape[1] == 1
+                             else pddf[key].values for key in pddf.columns.levels[0]}
                         )
                     )
                     # Single-batch MC runs: bundle the normalization denominator
@@ -370,7 +371,9 @@ def run(
                     # IS the global denominator. Only written for num_batches
                     # == 1 -- np_nominal covers the whole run, so stamping it
                     # into several batch files would double-count under hadd.
-                    if num_batches == 1 and norm_totals is not None:
+                    if hasattr(p, "write_root_metadata"):
+                        p.write_root_metadata(rfile, batch)
+                    elif num_batches == 1 and norm_totals is not None:
                         rfile["Norm"] = {
                             "np_nominal": np.array([norm_totals[0]], dtype=np.float64),
                             "nevents": np.array([norm_totals[1]], dtype=np.float64),

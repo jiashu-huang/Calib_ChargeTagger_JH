@@ -2,16 +2,16 @@ AK4 jet tagger round-trip check: skim output vs. NanoAOD input
 ==============================================================================
 output file : tests/outfile/test-output.root
 input files : 1 file(s)
-              tests/data/test-input.root
+              /isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/tests/data/test-input.root
 tree        : Events
 fields      : ak4JetParTNegvsAll, ak4JetParTPosvsAll, ak4JetParTPosvsNeg, ak4JetParTZerovsAll, ak4JetbtagUParTAK4B, ak4JetbtagUParTAK4CvB, ak4JetbtagUParTAK4CvL, ak4JetbtagUParTAK4CvNotB, ak4JetbtagUParTAK4QvG, ak4JetbtagPNetB, ak4JetbtagPNetCvB, ak4JetbtagPNetCvL, ak4JetbtagPNetCvNotB, ak4JetbtagPNetQvG, ak4JetbtagRobustParTAK4B, ak4JetQkCharge05_, ak4JetQkCharge10_
 mode        : JEC/JER recomputed for year 2024 -- dropped jets get an exact reason
 
 Events
 ------------------------------------------------------------------------------
-  in the output file                 : 59713
+  in the output file                 : 59712
   in the input file                  : 208780
-  matched to an input event          : 59713
+  matched to an input event          : 59712
   NOT found in the input file        : 0
   with no trigger lepton (PAD_VAL)   : 0   (no jet cleaning applied)
   saved nJets != jets passing the cuts: 0
@@ -19,23 +19,23 @@ Events
 
 Saved jet slots
 ------------------------------------------------------------------------------
-  filled slots checked               : 319717
-  matched to an input jet            : 319717   (max dR 0)
+  filled slots checked               : 319710
+  matched to an input jet            : 319710   (max dR 0)
   with NO input jet match            : 0
   saved pT != recomputed pT          : 0
   saved NanoIdx != eta/phi match     : 0
 
 Tagger + jet-charge comparisons (17 fields x matched slot)
 ------------------------------------------------------------------------------
-  comparisons made                   : 5435189
-  identical                          : 5435189
+  comparisons made                   : 5435070
+  identical                          : 5435070
   DIFFERING                          : 0
 
 Input jets absent from the output
 ------------------------------------------------------------------------------
-  total                              : 122907
-    lepton_cleaned                   : 59691   (dR <= 0.4 of the trigger lepton)
-    pt_below_threshold               : 50531   (corrected pT <= 15.0 GeV)
+  total                              : 122905
+    lepton_cleaned                   : 59690   (dR <= 0.4 of the trigger lepton)
+    pt_below_threshold               : 50530   (corrected pT <= 15.0 GeV)
     eta_out_of_range                 : 2128   (|eta| >= 4.7)
     failed_jet_id                    : 9860   (fails the Run-3 AK4 PUPPI Tight jet ID)
     truncated_beyond_slots           : 697   (passed selection, but was not among the 10 highest corrected pT of an event with > 10 selected jets)

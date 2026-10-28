@@ -41,6 +41,8 @@ from vcb import vcb_utils
 from vcb.processors.kinematic_variations import GROUPS, resolve_variation
 from vcb.processors.kinematic_variations import VARIATION_IDS as KINEMATIC_VARIATION_IDS
 from vcb.processors.muon_ss import TOTAL_VARIATIONS, VARIATION_IDS, validate_variation
+from vcb.processors.pdf_weights import validate_pdf_fileset
+from vcb.processors.weight_prescription import validate_weight_fileset
 
 
 def _require_files_name(args) -> None:
@@ -152,6 +154,7 @@ def get_processor(
     skimmer: str | None = None,
     muon_pt_variation: str = "nominal",
     kinematic_variation: str = "nominal",
+    truth_label_manifest: str | None = None,
 ):
     # Factory for processor instances. Currently only "skimmer" is supported.
     if processor == "skimmer":
@@ -163,6 +166,10 @@ def get_processor(
         resolve_variation(kinematic_variation, muon_pt_variation)
         # Preserve compatibility with alternate skimmers for nominal runs.
         variation_options = {}
+        if truth_label_manifest is not None:
+            if "truth_label_manifest" not in inspect.signature(skimmer_cls).parameters:
+                raise ValueError(f"{skimmer_cls.__name__} does not support truth-label sidecars")
+            variation_options["truth_label_manifest"] = truth_label_manifest
         if kinematic_variation != "nominal":
             if "kinematic_variation" not in inspect.signature(skimmer_cls).parameters:
                 raise ValueError(f"{skimmer_cls.__name__} does not support kinematic variations")
@@ -211,6 +218,7 @@ def _jet_payload_metadata(year: str) -> dict:
     for name, candidates in {
         "jec_jer": (corrections.JEC_JER_2024_BUNDLED, corrections.JEC_JER_2024_CVMFS),
         "smearing": (corrections.JERSMEAR_2024_BUNDLED, corrections.JERSMEAR_2024_CVMFS),
+        "jet_veto": (corrections.JETVETO_2024_BUNDLED, corrections.JETVETO_2024_CVMFS),
     }.items():
         path = next((Path(p) for p in candidates if Path(p).is_file()), None)
         if path is None:
@@ -234,6 +242,7 @@ def _run_single(args):
         args.skimmer,
         muon_pt_variation=getattr(args, "muon_pt_variation", "nominal"),
         kinematic_variation=getattr(args, "kinematic_variation", "nominal"),
+        truth_label_manifest=getattr(args, "truth_label_manifest", None),
     )
 
     # Select output formats by processor type (skimmer always saves both).
@@ -243,7 +252,7 @@ def _run_single(args):
     save_root = {"skimmer": True}[args.processor]
 
     # By default, skip bad files unless we are explicitly running on data.
-    skipbadfiles = True
+    skipbadfiles = getattr(args, "truth_label_manifest", None) is None
 
     if len(args.files):
         # Direct file list given on the command line: build a single-entry fileset.
@@ -282,6 +291,17 @@ def _run_single(args):
         for key in fileset:
             if key in DATA_SAMPLES:
                 skipbadfiles = False
+
+    validate_weight_fileset(fileset, args.year)
+    if args.year == "2024":
+        skipbadfiles = False
+        if args.executor == "dask":
+            raise ValueError("2024 weight metadata requires the supported local batch runner")
+    if args.save_systematics:
+        validate_pdf_fileset(fileset)
+        skipbadfiles = False
+        if args.executor == "dask":
+            raise ValueError("PDF metadata persistence requires the supported local batch runner")
 
     print(f"Running on fileset {fileset}")
     if args.executor == "dask":
@@ -412,6 +432,10 @@ if __name__ == "__main__":
     # is either given explicitly or caught by _require_files_name below. Set
     # here rather than in boostedhh so the vendored dependency stays untouched.
     parser.set_defaults(files_name=None)
+    parser.add_argument(
+        "--truth-label-manifest", type=str,
+        help="Manifest of complete generator extra-b counts, keyed by NanoAOD file UUID.",
+    )
     run_utils.parse_common_hh_args(parser)
     vcb_utils.parse_common_run_args(parser)
     parser.add_argument(

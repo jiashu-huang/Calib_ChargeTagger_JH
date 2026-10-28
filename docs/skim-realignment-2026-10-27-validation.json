@@ -1,0 +1,104 @@
+{
+  "signal_nominal": {
+    "input_events": 208780,
+    "selected_before": 59713,
+    "selected_after": 59712,
+    "common_events": 59712,
+    "columns": 807,
+    "changed_old_columns": {},
+    "removed_events": [
+      [
+        1,
+        26545,
+        19377125
+      ]
+    ],
+    "extra_lepton_veto_failures_retained": 1108,
+    "extra_electron_origin_codes": {
+      "0": 4,
+      "1": 47,
+      "3": 2,
+      "4": 3,
+      "5": 352,
+      "15": 6,
+      "22": 6
+    },
+    "extra_muon_origin_codes": {
+      "0": 3,
+      "1": 24,
+      "3": 10,
+      "4": 4,
+      "5": 653,
+      "15": 5
+    },
+    "loose_counts_and_source_indices_verified": true,
+    "met_vectors_verified": true
+  },
+  "ttbb": {
+    "inputs": 10000,
+    "selected": 2709,
+    "outputs": 3,
+    "members": 101,
+    "ratios_exact": true,
+    "all_input_sums_match": true,
+    "max_sum_difference": 2.9685907065868378e-09,
+    "pdf_name": "NNPDF31_nnlo_as_0118_nf_4_mc_hessian"
+  },
+  "signal_pdf": {
+    "inputs": 2008,
+    "selected": 520,
+    "outputs": 1,
+    "members": 103,
+    "ratios_exact": true,
+    "all_input_sums_match": true,
+    "max_sum_difference": 0.0,
+    "pdf_name": "NNPDF31_nnlo_as_0118_mc_hessian_pdfas"
+  },
+  "empty": {
+    "inputs": 2008,
+    "selected": 0,
+    "outputs": 1,
+    "members": 103,
+    "ratios_exact": true,
+    "all_input_sums_match": true,
+    "max_sum_difference": 0.0,
+    "pdf_name": "NNPDF31_nnlo_as_0118_mc_hessian_pdfas"
+  },
+  "date": "2026-10-27",
+  "scope": "isolated BRUX working copy; no production submission",
+  "tests": {
+    "passed": 278,
+    "subtests_passed": 22,
+    "dependency_deprecation_warnings": 3,
+    "ruff": "pass"
+  },
+  "integration": {
+    "script": "tests/test_run.py",
+    "jet_tagger_roundtrip": "PASS"
+  },
+  "pdf_pipeline": {
+    "ttbb_batch_validation": "49 passed, 0 failed",
+    "hadd": "PASS, 3 input ROOTs",
+    "merged_validation": "20 passed, 0 failed",
+    "forced_normalization": "PASS; PDF metadata retained",
+    "forced_validation": "20 passed, 0 failed"
+  },
+  "source_metadata": {
+    "NNPDF31_nnlo_as_0118_mc_hessian_pdfas": {
+      "path": "/cvmfs/sft.cern.ch/lcg/external/lhapdfsets/current/NNPDF31_nnlo_as_0118_mc_hessian_pdfas/NNPDF31_nnlo_as_0118_mc_hessian_pdfas.info",
+      "sha256": "63efe51f3207bffdfcdde3703dca712f760ff2611623c4796c3918ba1354706b"
+    },
+    "NNPDF31_nnlo_as_0118_nf_4_mc_hessian": {
+      "path": "/cvmfs/sft.cern.ch/lcg/external/lhapdfsets/current/NNPDF31_nnlo_as_0118_nf_4_mc_hessian/NNPDF31_nnlo_as_0118_nf_4_mc_hessian.info",
+      "sha256": "a0b0295a419ad7ee5887c8edd392b388977509d6768358b68aed1ac0000f8e42"
+    }
+  },
+  "limits": [
+    "PU and LHE-scale clipping remain unchanged.",
+    "PDF fit reduction, alpha-S prior and cross-sample correlations remain downstream.",
+    "TTBB pilot validation uses weight_norm=1; physical normalization and inclusive/dedicated overlap are not established.",
+    "The actual 2024 datasets still need a full PDF-layout and native-truth coverage audit.",
+    "Collision-data processing and high-pT muon prescription remain incomplete.",
+    "No full production campaign or training run submitted."
+  ]
+}

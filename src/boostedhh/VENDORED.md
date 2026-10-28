@@ -17,6 +17,29 @@ git submodule and is not pip-installed from upstream.
 
 ## Local modifications on top of that
 
+- **Pinned 2024 jet-veto map (2026-10-27)** — `corrections.py` loads the
+  bundled July 2026 CAT map or its dated fallback and verifies compressed-file
+  SHA-256. Its values match the former JSON POG map. The same release's Jet-ID
+  payload is bundled as an independent offline test reference. Source and
+  hashes are recorded in `corrections/README.md`. No vendored source was
+  auto-formatted or linted.
+
+- **Weight prescription realignment (2026-10-27)** — `corrections.py` now
+  evaluates the released PU payload without a factor cap or a separate input
+  clamp; the payload supplies its own overflow rule. PS vectors must have four
+  finite entries, and Up/Down retain their muR x2/x0.5 meaning. Scale ratios
+  retain negative, zero and large values; eight/nine-member layouts are checked
+  across every event, and a zero central member fails. The Vcb caller verifies
+  2024 input titles and records the convention separately. No vendored code
+  was auto-formatted or linted.
+
+- **Skim information preservation (2026-10-27)** — `SkimmerABC.dump_table`
+  accepts `save_empty` so rejected-only chunks still reach the output metadata.
+  `run_utils` preserves empty/single-event array dimensions, orders chunk files
+  deterministically, and calls the Vcb processor's metadata hook for exact
+  per-output all-input sums (including PDF members). Other processors retain
+  the existing single-output normalization fallback.
+
 - `hh_vars.py` — trimmed: HH sample dictionaries and SF tables dropped; only
   symbols imported by `boostedhh.utils`/`run_utils` and the `vcb` package kept.
   2024 added to `years` and `LUMI`. On 2026-09-11 the luminosity was corrected

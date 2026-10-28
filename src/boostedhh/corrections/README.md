@@ -15,6 +15,8 @@ because cvmfs mtimes track the sync, not the derivation.
 | `2024_jet_jerc.json.gz` | 2026-07-16 snapshot | 2026-07-23 | 2024 MC AK4 JEC (V5) + nominal JER (JRV2) |
 | `jer_smear.json.gz` | 2025-11-03 | 2026-07-23 | 2024 MC AK4 nominal JER smearing formula |
 | `2024_puWeights.json.gz` | 2026-04-15 snapshot | 2026-07-23 | 2024 pileup event weight (nominal/up/down) |
+| `2024_jetvetomaps.json.gz` | 2026-07-16 snapshot | 2026-10-27 | 2024 event veto map |
+| `2024_jetid.json.gz` | 2026-07-16 snapshot | 2026-10-27 | Independent offline reference for the AK4 Jet-ID tests |
 
 ---
 
@@ -103,8 +105,9 @@ updates jet `pt`, `mass`, and `rawFactor`. It then evaluates the JRV2
 values to the generic `JERSmear` formula in `jer_smear.json.gz` for nominal JER
 smearing.
 
-Current limits: 2024 data JECs are not implemented; 2024 AK8 JECs/JER are not
-implemented; JES/JER up/down variations are not wired into the skimmer output.
+Current limits: 2024 data JECs and AK8 JECs/JER are not implemented. The runner
+rejects 2024 collision data. AK4 JES/global-JER variation passes are available;
+see [the CLI guide](../../../docs/cli.md#kinematic-variation-passes).
 
 ---
 
@@ -185,11 +188,36 @@ reason as `2024_jet_jerc.json.gz`).
 through `correctionlib`, preferring the bundled repo copy and otherwise falling
 back to the CAT campaign directory on cvmfs. It takes the first (only) correction
 key and evaluates `nominal` / `up` / `down` on the per-event `Pileup_nTrueInt`
-(`NumTrueInteractions`, clipped to `[0, 99]`), clipping each resulting weight to
-`[0, 10]`. Note this is `nTrueInt`, the Poisson *mean*, not the sampled count
-`nPU` that upstream `boostedhh` passed. Pileup is norm-preserving, so this
-reshapes pile-up-dependent distributions without changing the overall
-normalization.
+(`NumTrueInteractions`) without an analysis cap. The payload's own overflow
+rule applies; nonfinite inputs or factors fail. This is `nTrueInt`, the Poisson
+mean, not the sampled count `nPU` that upstream `boostedhh` passed. Pileup
+enters the all-input normalization denominator, so it preserves inclusive
+normalization; selected yields can change through acceptance.
+
+---
+
+## `2024_jetvetomaps.json.gz` and `2024_jetid.json.gz`
+
+Both are byte-identical copies from
+`/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/`,
+copied on 2026-10-27. Both also match the `latest` files visible on that date.
+
+| File | Compressed bytes | Compressed SHA-256 | Decompressed SHA-256 |
+| --- | ---: | --- | --- |
+| `2024_jetvetomaps.json.gz` | 312652 | `849cd1098814175ab58faac4834df0a353de63482f4017e22c0134ee7e840aec` | `61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2` |
+| `2024_jetid.json.gz` | 942 | `2ae07e7b7c67332fa4ccc374c7b3cfe667c653ce65c3f421f956460e46b1eb35` | `9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27` |
+
+`get_jetveto_event` uses `Summer24Prompt24_RunBCDEFGHI_V1` / `jetvetomap`,
+preferring the bundle and falling back only to the dated source. Either file
+must match the compressed-file hash; a corrupt bundle is an error even when a
+fallback exists. Run kinematics metadata records the selected map path/hash.
+The map is numerically unchanged from the former JSON POG source.
+
+The Jet-ID file is a test reference; runtime selection still uses
+`objects.ak4_jet_id`. Tests independently walk the released decision tree on
+20,000 random jets per working point, for both Tight and TightLepVeto, without
+requiring CVMFS. This establishes agreement with the released numeric
+definition, not analysis-specific data/MC performance.
 
 [cloudpickle]: https://github.com/cloudpipe/cloudpickle
 [coffea]: https://github.com/scikit-hep/coffea

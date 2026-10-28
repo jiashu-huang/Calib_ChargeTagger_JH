@@ -46,6 +46,7 @@ import json
 import logging
 import math
 from functools import cache
+from hashlib import sha256
 from pathlib import Path
 
 import awkward as ak
@@ -85,9 +86,17 @@ LEPTON_SF_SOURCES = {
         ),
         "muon": (
             "2024_muon_Z.json.gz",
-            f"{_CAT_METADATA}/MUO/{_CAMPAIGN_2024}/latest/muon_Z.json.gz",
+            f"{_CAT_METADATA}/MUO/{_CAMPAIGN_2024}/2026-06-18/muon_Z.json.gz",
         ),
     },
+}
+
+# Pin the payload whose uncertainty-category discrepancy is handled below.
+MUON_SF_2024_SHA256 = "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47"
+MUON_SF_STEPS = ("muon_id", "muon_iso", "muon_trigger")
+MUON_COMPONENT_WEIGHT_BRANCHES = {
+    f"weight_{name}_{component}{direction}"
+    for name in MUON_SF_STEPS for component in ("stat", "syst") for direction in ("Up", "Down")
 }
 
 # -----------------------------------------------------------------------------
@@ -138,11 +147,11 @@ MUON_PT_MIN = 10.0
 MUON_HLT_PT_MIN = 26.0
 MUON_ETA_MAX = 2.4  # upper edge is exclusive, hence the nextafter() below
 
-# Uncertainty labels: EGM varies through a `ValType` category, MUO through a
-# `scale_factors` one. Both up/down are absolute SF values (nominal +- total
-# uncertainty), not multiplicative shifts.
+# EGM's sfup/down are absolute factors. For MUO, derive the total from the
+# explicit stat/syst uncertainties: the June 2026 trigger payload's systup/down
+# omits stat, unlike the ID/ISO categories and the payload's own description.
 EGM_VALTYPES = ("sf", "sfup", "sfdown")
-MUO_VALTYPES = ("nominal", "systup", "systdown")
+MUO_COMPONENTS = ("nominal", "stat", "syst")
 
 _unsupported_year_warned = set()
 
@@ -182,28 +191,31 @@ def _canonicalize_infinities(node, in_edges: bool = False):
 
 
 @cache
-def _load_correctionset(bundled: str, cvmfs: str, what: str):
+def _load_correctionset(bundled: str, cvmfs: str, what: str, expected_sha256: str | None = None):
     """
     Load a CorrectionSet, preferring the bundled repo copy over cvmfs.
 
     Bundled-first matches the JEC/JER and pile-up loaders: condor workers then
-    need neither network nor a particular cvmfs snapshot. Returns None (with a
-    warning) if neither path exists, so a missing payload costs those SFs
-    rather than killing the job.
+    need neither network nor a particular cvmfs snapshot. A required payload
+    missing at both locations stops processing before uncorrected MC is saved.
 
     Cached: the muon payload is ~750 kB of JSON and would otherwise be parsed
     once per chunk.
     """
     for path, tag in ((bundled, "bundled"), (cvmfs, "cvmfs")):
         if Path(path).is_file():
-            with gzip.open(path, "rt") as fh:
-                payload = json.load(fh)
+            with gzip.open(path, "rb") as fh:
+                raw = fh.read()
+            if expected_sha256 is not None and sha256(raw).hexdigest() != expected_sha256:
+                raise ValueError(f"{what}: payload checksum disagrees with the verified release: {path}")
+            payload = json.loads(raw)
             logger.info(f"{what}: using {tag} {path}")
             return correctionlib.CorrectionSet.from_string(
                 json.dumps(_canonicalize_infinities(payload))
             )
-    logger.warning(f"{what} not found (bundled or cvmfs); those scale factors are skipped.")
-    return None
+    raise FileNotFoundError(
+        f"Required {what} payload not found; checked {bundled} and {cvmfs}"
+    )
 
 
 def get_lepton_correctionsets(year: str) -> dict | None:
@@ -214,7 +226,8 @@ def get_lepton_correctionsets(year: str) -> dict | None:
         return None
     return {
         name: _load_correctionset(
-            str(package_path / "corrections" / bundled), cvmfs, f"Lepton SF {year} {name}"
+            str(package_path / "corrections" / bundled), cvmfs, f"Lepton SF {year} {name}",
+            MUON_SF_2024_SHA256 if year == "2024" and name == "muon" else None,
         )
         for name, (bundled, cvmfs) in sources.items()
     }
@@ -297,9 +310,9 @@ def electron_scale_factors(csets: dict, year: str, eta: np.ndarray, pt: np.ndarr
     return out
 
 
-def muon_scale_factors(csets: dict, year: str, eta: np.ndarray, pt: np.ndarray) -> dict:
+def muon_scale_factor_components(csets: dict, year: str, eta: np.ndarray, pt: np.ndarray) -> dict:
     """
-    ``{step: (nominal, up, down)}`` for the ID / isolation / trigger steps.
+    ``{step: (nominal, stat_error, syst_error)}`` for ID / isolation / trigger.
 
     MUO bins in *signed* probe eta (the 2026-06-18 update moved off |eta|), so
     `eta` is the muon eta as-is, only clipped to the covered range.
@@ -313,13 +326,43 @@ def muon_scale_factors(csets: dict, year: str, eta: np.ndarray, pt: np.ndarray) 
     id_pt = np.clip(pt, MUON_PT_MIN, None)
     hlt_pt = np.clip(pt, MUON_HLT_PT_MIN, None)
 
-    return {
-        "muon_id": tuple(cset[keys["muon_id"]].evaluate(eta, id_pt, val) for val in MUO_VALTYPES),
-        "muon_iso": tuple(cset[keys["muon_iso"]].evaluate(eta, id_pt, val) for val in MUO_VALTYPES),
+    values = {
+        "muon_id": tuple(cset[keys["muon_id"]].evaluate(eta, id_pt, val) for val in MUO_COMPONENTS),
+        "muon_iso": tuple(cset[keys["muon_iso"]].evaluate(eta, id_pt, val) for val in MUO_COMPONENTS),
         "muon_trigger": tuple(
-            cset[keys["muon_hlt"]].evaluate(eta, hlt_pt, val) for val in MUO_VALTYPES
+            cset[keys["muon_hlt"]].evaluate(eta, hlt_pt, val) for val in MUO_COMPONENTS
         ),
     }
+    for name, (nominal, stat, syst) in values.items():
+        if not np.all(np.isfinite([nominal, stat, syst])) or np.any(stat < 0) or np.any(syst < 0):
+            raise ValueError(f"Invalid {name} nominal factor or uncertainty")
+    return values
+
+
+def _total_variations(components: dict) -> dict:
+    return {name: (nominal, nominal + np.hypot(stat, syst), nominal - np.hypot(stat, syst))
+            for name, (nominal, stat, syst) in components.items()}
+
+
+def muon_scale_factors(csets: dict, year: str, eta: np.ndarray, pt: np.ndarray) -> dict:
+    """Absolute nominal and total stat+syst up/down SFs for each muon step."""
+    return _total_variations(muon_scale_factor_components(csets, year, eta, pt))
+
+
+def lepton_component_weights(weights: Weights, errors: dict) -> dict:
+    """Replace one SF by its component shift, without dividing by its nominal.
+
+    Components are alternatives to the total nuisance, not additional independent
+    nuisances to count on top of it. Bin correlations remain a downstream choice.
+    """
+    result = {}
+    for name, components in errors.items():
+        nominal = weights.partial_weight(include=[name])
+        other = weights.partial_weight(exclude=[name])
+        for component, error in components.items():
+            for direction, sign in (("Up", 1), ("Down", -1)):
+                result[f"weight_{name}_{component}{direction}"] = other * (nominal + sign * error)
+    return result
 
 
 # -----------------------------------------------------------------------------
@@ -334,7 +377,7 @@ def add_lepton_weights(
     use_trigger_electron: np.ndarray,
     trigger_muon,
     use_trigger_muon: np.ndarray,
-) -> None:
+) -> dict:
     """
     Add the trigger lepton's reco / ID / isolation / trigger SFs to `weights`.
 
@@ -358,7 +401,8 @@ def add_lepton_weights(
 
     None of these are norm-preserving: they correct an efficiency, so they are
     deliberately absent from ``hh_vars.norm_preserving_weights`` and do move
-    the yield.
+    the yield. Return the masked absolute MUO stat/syst errors for constructing
+    component alternatives after all event factors have been added.
     """
     if year not in LEPTON_SF_SOURCES:
         if year not in _unsupported_year_warned:
@@ -368,7 +412,7 @@ def add_lepton_weights(
                 "are left uncorrected. Add the campaign to LEPTON_SF_SOURCES / "
                 "LEPTON_SF_KEYS in vcb/processors/lepton_sf.py to enable them."
             )
-        return
+        return {}
 
     csets = get_lepton_correctionsets(year)
 
@@ -377,6 +421,10 @@ def add_lepton_weights(
 
     # Defaults are arbitrary in-range values; they only ever feed evaluations
     # whose results the masks discard.
+    muon_components = muon_scale_factor_components(
+        csets, year, _flat(trigger_muon.eta, use_muon, 0.0),
+        _flat(trigger_muon.pt, use_muon, 40.0),
+    )
     scale_factors = {
         **electron_scale_factors(
             csets,
@@ -384,12 +432,7 @@ def add_lepton_weights(
             _flat(electron_supercluster_eta(trigger_electron), use_electron, 0.0),
             _flat(trigger_electron.pt, use_electron, 40.0),
         ),
-        **muon_scale_factors(
-            csets,
-            year,
-            _flat(trigger_muon.eta, use_muon, 0.0),
-            _flat(trigger_muon.pt, use_muon, 40.0),
-        ),
+        **_total_variations(muon_components),
     }
 
     for name, (nominal, up, down) in scale_factors.items():
@@ -400,3 +443,5 @@ def add_lepton_weights(
             np.where(mask, up, 1.0),
             np.where(mask, down, 1.0),
         )
+    return {name: {"stat": np.where(use_muon, stat, 0.), "syst": np.where(use_muon, syst, 0.)}
+            for name, (_, stat, syst) in muon_components.items()}

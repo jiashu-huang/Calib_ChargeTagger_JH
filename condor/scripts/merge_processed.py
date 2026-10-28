@@ -9,6 +9,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from vcb.processors.pdf_weights import validate_pdf_merge
+from vcb.processors.weight_prescription import validate_weight_merge
+
 
 def make_abs(path: str | Path) -> Path:
     """Return an absolute path without resolving symlinks."""
@@ -74,6 +77,9 @@ def main() -> None:
     input_roots = sorted(path for path in roots_dir.glob(args.root_glob) if path.is_file())
     if not input_roots:
         raise FileNotFoundError(f"No ROOT files found in {roots_dir} with glob {args.root_glob}")
+
+    validate_pdf_merge(input_roots)
+    validate_weight_merge(input_roots)
 
     if output_root.exists() and not args.force:
         raise FileExistsError(f"Output ROOT already exists: {output_root}")

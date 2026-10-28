@@ -1,0 +1,164 @@
+{
+  "date": "2026-10-27",
+  "scope": "isolated BRUX realignment copy; no live-source changes or production submissions",
+  "weight_prescription_version": 3,
+  "physics_prescription_changed": false,
+  "tests": {
+    "passed": 364,
+    "subtests_passed": 22,
+    "dependency_deprecation_warnings": 3,
+    "ruff": "pass"
+  },
+  "nominal_integration": {
+    "input_events": 208780,
+    "selected_events": 59712,
+    "columns": 809,
+    "all_three_baselines_byte_identical": true,
+    "baseline_sha256": {
+      "test-output-schema.csv": "1692bfb0d4f29e3e5864a8bbfb320228fa335723de1e85b5aa1667c602676404",
+      "test-output-0th-event.txt": "8b66ab57af3252a3d2cb7f8f2f31d13244f23cb71af16b8b97a05bdcc04a1dae",
+      "test-jet-tagger-roundtrip.txt": "45e9bb0b20b31bea4d29839c4dfb4bf7bb4ba8f987d54e207482c2e62903b605"
+    },
+    "jet_tagger_comparisons": 5435070,
+    "roundtrip": "PASS"
+  },
+  "real_sample_pipelines": {
+    "ttbb": {
+      "batch_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/batch_validation.log",
+        "passed": 137,
+        "failed": 0
+      },
+      "merge": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/merge.log"
+      },
+      "normalize": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/normalize.log"
+      },
+      "merged_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/merged_validation.log",
+        "passed": 65,
+        "failed": 0
+      },
+      "verified_rerun": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/verified_rerun.log",
+        "root_byte_identical": true
+      },
+      "force_normalize": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/force_normalize.log"
+      },
+      "forced_merged_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-ttbb-campaign/metadata/forced_merged_validation.log",
+        "passed": 65,
+        "failed": 0
+      },
+      "values": {
+        "selected_events": 2709,
+        "columns_including_finalWeight": 941,
+        "old_event_fields_bitwise_unchanged": true,
+        "norm_and_metadata_bitwise_unchanged": true,
+        "finalWeight_exact_quotient": true,
+        "signed_denominator": 161374.37241849824,
+        "normalized_weight_sum": 0.25246424485206165
+      }
+    },
+    "signal": {
+      "batch_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/batch_validation.log",
+        "passed": 99,
+        "failed": 0
+      },
+      "merge": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/merge.log"
+      },
+      "normalize": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/normalize.log"
+      },
+      "merged_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/merged_validation.log",
+        "passed": 65,
+        "failed": 0
+      },
+      "verified_rerun": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/verified_rerun.log",
+        "root_byte_identical": true
+      },
+      "force_normalize": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/force_normalize.log"
+      },
+      "forced_merged_validation": {
+        "returncode": 0,
+        "log": "outputs/norm-integrity-signal-campaign/metadata/forced_merged_validation.log",
+        "passed": 65,
+        "failed": 0
+      },
+      "values": {
+        "selected_events": 59712,
+        "columns_including_finalWeight": 943,
+        "old_event_fields_bitwise_unchanged": true,
+        "norm_and_metadata_bitwise_unchanged": true,
+        "finalWeight_exact_quotient": true,
+        "signed_denominator": 69827567.89948435,
+        "normalized_weight_sum": 10138.786024504927
+      }
+    }
+  },
+  "legacy_version_2_validation": {
+    "passed": 25,
+    "failed": 0
+  },
+  "arithmetic_cases": [
+    "Signed and zero event weights, with and without exact cancellations",
+    "Entirely zero and rejected-only outputs; no invented sample scale",
+    "Weighted selection fractions below zero, equal to one and greater than one",
+    "Signed finite nonzero denominators",
+    "Zero, NaN and infinite denominators rejected",
+    "Late scale changes after entry 1000 and in later files rejected",
+    "Mixed scales formerly hidden by four-decimal rounding rejected",
+    "Nonzero weight at zero weight_noxsec rejected",
+    "Nonfinite quotient from finite inputs rejected",
+    "Stale or corrupted finalWeight and missing provenance rejected",
+    "Failed preflight leaves existing ROOT files and summary unchanged",
+    "Verified rerun leaves ROOT bytes unchanged",
+    "Forced normalization recomputes from weight and preserves Norm",
+    "Partially normalized campaigns rejected",
+    "Finite nonnegative pileup inputs retain the payload flow convention"
+  ],
+  "tolerances": {
+    "sample_scale_rtol": 1e-10,
+    "sample_scale_atol": 0,
+    "event_finalWeight": "Exact array equality with weight / global denominator",
+    "aggregate_identity_rtol": 1e-09,
+    "aggregate_identity_atol": "1e-12 * sum(abs(finalWeight))"
+  },
+  "source_sha256": {
+    "src/vcb/normalization.py": "c804659414b0ffebaf0b08e1f0d873e3fa148c11ea77864b28809d06d97e82f9",
+    "condor/scripts/normalize.py": "739eca484378132133897abb1083e1e11a317d97aae0dac0aa8e47e92845eb03",
+    "condor/scripts/validate_processed.py": "e8b08003e973a0a56e5ed4ca6a29ada7d92080660c8473d1bc317ad4716ca1c0",
+    "tests/test_normalization.py": "b389e6d89a3e57f99a9213492da688843f1409f1636e7936238cc40078fa0757",
+    "tests/test_validate_processed.py": "0d3881dd44483b8ebeb7d9a7a3e3fc613837a43a6bd17d708be803d147c7f9b7"
+  },
+  "original_checkout_verification": {
+    "files_compared_to_saved_sha256": 106,
+    "changed_files": []
+  },
+  "limits": [
+    "Checks establish arithmetic, not physical cross sections or sample overlap",
+    "The TTBB multiplicative factor of 1 remains the existing placeholder",
+    "Preflight does not provide a multi-file transaction against filesystem failure or interruption",
+    "High-pT muons, upstream jet-charge identity and collision-data closure remain open"
+  ]
+}

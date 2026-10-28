@@ -7,8 +7,10 @@ import argparse
 import json
 import os
 import re
+import shlex
 import subprocess
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 
 BATCH_RE = re.compile(r"^batch_(\d+)$")
@@ -248,6 +250,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skimmer", default="vcbSkimmer", help="Skimmer module to run.")
     parser.add_argument(
+        "--truth-label-manifest", type=Path,
+        help="Complete generator truth-label manifest passed to every worker.",
+    )
+    parser.add_argument(
         "--kinematic-variation", default="nominal",
         help="One 2024 MC pass, e.g. jerUp or jes_RelativeBalDown. Use a separate campaign per pass.",
     )
@@ -368,6 +374,14 @@ def main() -> None:
 
     variation = Variation(args.kinematic_variation)
     variation.validate_sample(args.year)
+    truth_manifest = None
+    truth_manifest_hash = None
+    if args.truth_label_manifest:
+        from vcb.processors.truth_labels import read_truth_manifest
+
+        truth_manifest = args.truth_label_manifest.resolve()
+        read_truth_manifest(truth_manifest)
+        truth_manifest_hash = sha256(truth_manifest.read_bytes()).hexdigest()
 
     if (
         args.batch_start is not None
@@ -450,6 +464,7 @@ def main() -> None:
                 "FILES_NAME": args.files_name,
                 "SKIMMER": args.skimmer,
                 "KINEMATIC_VARIATION": variation.name,
+                "TRUTH_LABEL_MANIFEST": shlex.quote(str(truth_manifest) if truth_manifest else ""),
                 "CHUNKSIZE": str(args.chunksize),
                 "MAXCHUNKS": str(args.maxchunks),
                 "BATCH_SIZE": str(args.batch_size),
@@ -520,6 +535,8 @@ def main() -> None:
         "skimmer": args.skimmer,
         "kinematic_variation": variation.name,
         "kinematic_variation_id": variation.identifier,
+        "truth_label_manifest": str(truth_manifest) if truth_manifest else None,
+        "truth_label_manifest_sha256": truth_manifest_hash,
         "chunksize": args.chunksize,
         "maxchunks": args.maxchunks,
         "batch_size": args.batch_size,

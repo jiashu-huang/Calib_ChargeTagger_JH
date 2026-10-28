@@ -144,6 +144,11 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   bundled byte-identically in
   [src/vcb/corrections/](../src/vcb/corrections/) (pinned to the EGM
   `2025-12-15` and MUO `2026-06-18` snapshots) with a cvmfs fallback.
+  As of 2026-10-27, the MUO fallback is dated and its decompressed SHA-256 is
+  checked. The total ID/ISO/HLT error is formed from the explicit `stat` and
+  `syst` fields, because the released IsoMu24 `systup/down` omits `stat`.
+  Separate component weights are retained under `--save-systematics`; see
+  [the readiness record](cms-readiness-2026-10-27.md).
   **jsonpog-integration is unusable here**: its 2024 snapshot ships no lepton
   trigger SFs for either POG, and a single-lepton analysis cannot go without
   them. Provenance and working-point rationale in
@@ -268,6 +273,15 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
 
 ## 6. AK4 jet ID  (done)
 
+**2026-10-27 check:** both working points agree with the dated July 2026 CAT
+payload, now bundled for offline regression. The public
+[CMS-DP-2024-028](https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsDP24028)
+supports an analysis-dependent Tight-with-cleaning exception. This is a
+documented basis for our choice, not evidence that every lepton-fake jet is
+removed. The 2024 veto map is also bundled and checked by SHA-256, with no
+numeric change from its former source. Provenance is in the
+[payload README](../src/boostedhh/corrections/README.md).
+
 - **Get:** the Run-3 AK4 PUPPI jet ID, which rejects calorimeter-noise and
   beam-halo fakes. Mandatory for every Run-3 analysis.
 - **Why it needed doing at all:** our NanoAOD has **no `Jet_jetId` branch**, by
@@ -376,6 +390,13 @@ could produce nothing at all.)
 
 ## 8. Top-pT reweighting  (done)
 
+**2026-10-27 follow-up:** weight prescription version 3 now retains all-input
+normalization for every saved top-pT factor and its joint PU/shower/scale/PDF
+alternatives. It also records top-pair validity and literal input counts.
+Nominal weights remain unchanged. The stored factors include dedicated TTBB
+as optional diagnostics; adoption is an analysis-specific choice. See the
+[normalization contract and validation](top-pt-normalization-2026-10-27.md).
+
 - **Get:** the TOP PAG correction for the top quark pT spectrum, which is
   softer in data than POWHEG+Pythia8 predicts because the generator stops at
   NLO in QCD — plus a way to use it at 13.6 TeV, since the published fits are
@@ -390,8 +411,8 @@ could produce nothing at all.)
 - **Updated (2026-08-12), after TOP-PAG replied:** added
   `topPtWeight_NNLONLO_13p6TeV`, the 13 TeV NNLO-NLO fit times the 13→13.6 TeV
   extrapolation `0.991 + 0.000075·pT`, from **AN-25-050 (v11) §4.7 eq. 3** —
-  the analysis note for **TOP-25-018**. **This is the column to use on Summer24
-  samples**; the other three are 13 TeV. The extrapolation is fitted to the
+  the analysis note for **TOP-25-018**. This is the stored Run 3 extrapolation;
+  the other three are 13 TeV. The extrapolation is fitted to the
   ratio of the generator-level top pT spectrum between the two beam energies
   and applied multiplicatively on top of eq. 2; the procedure comes from the
   13.6 TeV tW measurement (TOP-23-008, JHEP 01 (2025) 107, arXiv:2409.06444).

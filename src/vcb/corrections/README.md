@@ -205,6 +205,11 @@ snapshot.
 - retrieved: **2026-08-04**
 - size: 751485 bytes
 - md5: `25da71350bced1317b0c9b2e0f074824`
+- decompressed SHA-256: `99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47`
+
+The loader now uses the dated `2026-06-18/muon_Z.json.gz` fallback and checks
+this SHA-256 for either source. A changed payload cannot silently alter the
+following uncertainty prescription.
 
 **Which corrections and why**, matching
 [`objects.good_muons`](../processors/objects.py) (`tightId`,
@@ -219,6 +224,15 @@ snapshot.
 The denominators chain correctly: the isolation SF is conditional on the tight
 ID already being applied, and the trigger SF on both, so the product is the
 efficiency ratio for the full selection.
+
+**Uncertainty categories, checked 2026-10-27.** The payload description calls
+`systup/down` combined statistical/systematic alternatives. This holds for
+the selected ID and isolation corrections, but IsoMu24 actually returns
+nominal ± `syst`, omitting `stat`. The processor evaluates `nominal`, `stat`
+and `syst` explicitly and forms the total with `hypot(stat, syst)` for all
+three steps. It also saves separate stat/syst event-weight alternatives.
+The released `syst` aggregate is used as supplied; its subcomponents are not
+independently summed. See [weight prescription version 2](../../../docs/cms-readiness-2026-10-27.md).
 
 No muon **reco** SF is applied — this campaign publishes none (`muon_Z` has no
 `Reco`/`Tracking` correction), tracking efficiency being ~1 above 10 GeV.

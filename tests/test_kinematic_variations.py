@@ -104,7 +104,7 @@ def _electrons_near_plateau():
         "mvaIso_WP90": np.ones(n, bool),
     }.items()}, with_name="PtEtaPhiMCandidate", behavior=candidate.behavior)
     trig = ak.with_field(electrons, ak.ones_like(electrons.pt, dtype=int) * 11, "id")
-    trig = ak.with_field(trig, ak.ones_like(trig.pt, dtype=int) * 2, "filterBits")
+    trig = ak.with_field(trig, ak.ones_like(trig.pt, dtype=int) * (1 << 18), "filterBits")
     events = ak.Array({"run": np.full(n, 382000), "luminosityBlock": np.ones(n, int),
                        "event": np.arange(n) + 1000,
                        "HLT": {"Ele30_WPTight_Gsf": np.ones(n, bool)}})

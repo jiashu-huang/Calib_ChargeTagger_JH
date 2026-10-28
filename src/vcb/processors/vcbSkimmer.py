@@ -106,6 +106,7 @@ applies selections, computes weights, and writes a skimmed Parquet table.
 
 from __future__ import annotations  # Allow forward references in type hints.
 
+import json
 import logging  # Standard library logging for structured runtime messages.
 import pathlib  # Path utilities used to build package-relative paths.
 import time  # Simple wall-clock timing for debug prints.
@@ -138,11 +139,23 @@ from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 from . import GenSelection, objects  # Local gen selection and object definitions.
 from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
 from .kinematic_variations import resolve_variation
-from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
+from .lepton_sf import add_lepton_weights, lepton_component_weights
+from .lepton_veto import extra_lepton_fields
+from .met_variations import unclustered_met_fields
 from .muon_ss import PT_VARIATIONS as MUON_PT_VARIATIONS
 from .muon_ss import VARIATION_IDS as MUON_VARIATION_IDS
 from .muon_ss import apply_muon_scale_smearing
-from .top_pt import top_pt_weights  # ttbar top-pT reweighting SFs (standalone columns).
+from .pdf_weights import member_weights, read_pdf_layout
+from .skim_metadata import save_chunk_metadata, write_root_metadata
+from .top_pt import is_ttbar, top_pt_normalization, top_pt_weights_and_validity
+from .truth_labels import extra_b_labels, read_truth_manifest
+from .weight_prescription import (
+    WEIGHT_PRESCRIPTION_VERSION,
+    read_weight_prescription,
+    require_supported_sample,
+    uses_scale_weights,
+    validate_scale_members,
+)
 
 # -----------------------------------------------------------------------------
 # End Imports
@@ -240,6 +253,8 @@ class vcbSkimmer(SkimmerABC):
     Skims nanoaod files, saving selected branches and events passing preselection cuts
     (and triggers for data).
     """
+
+    write_root_metadata = staticmethod(write_root_metadata)
 
     # skim_vars maps NanoAOD input fields to the specific output column names the skimmer will save.
     # Naming convention:
@@ -399,6 +414,7 @@ class vcbSkimmer(SkimmerABC):
         prescale_factor: int = None,
         muon_pt_variation: str = "nominal",
         kinematic_variation: str = "nominal",
+        truth_label_manifest: str | None = None,
     ):
         # Initialize the base Processor/Skimmer state first.
         super().__init__()
@@ -420,6 +436,7 @@ class vcbSkimmer(SkimmerABC):
         self._prescale_factor = prescale_factor
         self._variation = resolve_variation(kinematic_variation, muon_pt_variation)
         self._muon_pt_variation = self._variation.muon
+        self._truth_labels = read_truth_manifest(truth_label_manifest) if truth_label_manifest else None
 
         # Log the configuration for user visibility.
         logger.info(
@@ -454,6 +471,7 @@ class vcbSkimmer(SkimmerABC):
 
         # isData is defined by the absence of genWeight.
         isData = not hasattr(events, "genWeight")
+        require_supported_sample(year, isData)
         self._variation.validate_sample(year, isData)
 
         # gen-weights
@@ -705,6 +723,10 @@ class vcbSkimmer(SkimmerABC):
                     events, jets, electrons, muons, selection_args, P4
                 )
                 genVars = {**genVars, **vars_dict}
+        if genVars:
+            genVars.update(extra_b_labels(events, self._truth_labels))
+        elif self._truth_labels is not None:
+            raise ValueError("Truth-label manifest requires a supported semileptonic ttbar dataset")
 
         # used for normalization to cross section below
         #
@@ -875,6 +897,8 @@ class vcbSkimmer(SkimmerABC):
 
         # MET
         metVars = {f"MET{key}": met[var].to_numpy() for (var, key) in self.skim_vars["MET"].items()}
+        if year == "2024" and not isData:
+            metVars.update(unclustered_met_fields(events[MET_COLLECTION], met))
 
         # Event variables
         eventVars = {
@@ -885,6 +909,9 @@ class vcbSkimmer(SkimmerABC):
         eventVars["ht"] = ht.to_numpy()
         eventVars["nElectrons"] = ak.num(electrons).to_numpy()
         eventVars["nMuons"] = ak.num(muons).to_numpy()
+        eventVars.update(extra_lepton_fields(
+            corrected_electrons, corrected_muons, cleaning_electrons, cleaning_muons, isData
+        ))
         eventVars["MuonMomentumVariation"] = np.full(
             len(events), MUON_VARIATION_IDS[self._muon_pt_variation], dtype=np.int32
         )
@@ -1002,7 +1029,8 @@ class vcbSkimmer(SkimmerABC):
         # Event Weights (per-event)
         # -----------------------------------------------------------------------------
         # Data events: weight = 1. MC events: genweight * corrections * normalization.
-        totals_dict = {"nevents": n_events}  # Track totals for reporting/normalization.
+        # Legacy nevents is sum(genWeight) for MC, not a literal event count.
+        totals_dict = {"nevents": n_events, "n_input_events": len(events)}
 
         if isData:
             # Data has no MC corrections; assign unit weight per event.
@@ -1037,13 +1065,29 @@ class vcbSkimmer(SkimmerABC):
 
         dataframe = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-        self.dump_table(dataframe, fname)
+        # Empty selections still carry all-input denominators and a typed schema.
+        self.dump_table(dataframe, fname, save_empty=True)
+        pdf_layout = (
+            read_pdf_layout(events.metadata["filename"])
+            if self._systematics and not isData and is_ttbar(dataset) else None
+        )
+        weight_prescription = (
+            read_weight_prescription(events.metadata["filename"], uses_scale_weights(dataset), is_ttbar(dataset))
+            if year == "2024" and not isData else None
+        )
+        save_chunk_metadata(fname, year, dataset, totals_dict, pdf_layout, weight_prescription)
 
         logger.info(f"Cutflow:\n{cutflow}")
 
         print("Return ", f"{time.time() - start:.2f}")
         print("Columns:", list(dataframe.columns))
-        return {year: {dataset: {"totals": totals_dict, "cutflow": cutflow}}}
+        result = {"totals": totals_dict, "cutflow": cutflow}
+        if pdf_layout is not None:
+            # Sets merge without adding IDs or strings during Coffea accumulation.
+            result["pdf_layouts"] = {json.dumps(pdf_layout, sort_keys=True)}
+        if weight_prescription is not None:
+            result["weight_prescriptions"] = {json.dumps(weight_prescription, sort_keys=True)}
+        return {year: {dataset: result}}
 
     def postprocess(self, accumulator):
         return accumulator
@@ -1074,6 +1118,10 @@ class vcbSkimmer(SkimmerABC):
         # -------------------------------------------------------------------------
         # 1) Create a Coffea Weights container that can combine multiple factors.
         weights = Weights(len(events), storeIndividual=True)
+        prescription = (
+            read_weight_prescription(events.metadata["filename"], uses_scale_weights(dataset), is_ttbar(dataset))
+            if year == "2024" else None
+        )
 
         # 2) Seed the event weight with the generator weight from NanoAOD.
         weights.add("genweight", gen_weights)
@@ -1087,6 +1135,7 @@ class vcbSkimmer(SkimmerABC):
         # Lepton reco / ID / isolation / trigger SFs for the event's trigger
         # lepton. Not norm-preserving: these correct efficiencies, so they move
         # the yield rather than just reshaping it.
+        lepton_errors = {}
         if use_trigger_electron is None or use_trigger_muon is None:
             # Say so rather than dropping ~5% of the event weight in silence.
             logger.warning(
@@ -1094,7 +1143,7 @@ class vcbSkimmer(SkimmerABC):
                 "are NOT applied and MC lepton efficiencies stay uncorrected."
             )
         else:
-            add_lepton_weights(
+            lepton_errors = add_lepton_weights(
                 weights,
                 year,
                 trigger_electron,
@@ -1120,9 +1169,16 @@ class vcbSkimmer(SkimmerABC):
         # 7) Also compute the normalization-preserving partial weight and its total.
         weight_np = weights.partial_weight(include=norm_preserving_weights)
         totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
+        top_factors, top_valid = top_pt_weights_and_validity(events, dataset)
+        top_for_norm = {key: value[gen_selected] for key, value in top_factors.items()}
+        totals_dict.update(top_pt_normalization(top_for_norm, weight_np[gen_selected]))
+        if top_valid is not None:
+            totals_dict["n_top_pt_valid"] = int(np.sum(top_valid[gen_selected]))
+            totals_dict["n_top_pt_invalid"] = int(np.sum(~top_valid[gen_selected]))
 
         # 8) If requested, compute per-event systematic variations.
         if self._systematics:
+            weights_dict.update(lepton_component_weights(weights, lepton_errors))
             for systematic in list(weights.variations):
                 weights_dict[f"weight_{systematic}"] = weights.weight(modifier=systematic)
 
@@ -1138,6 +1194,9 @@ class vcbSkimmer(SkimmerABC):
 
                     # need to save total # events for each variation for normalization in post-processing
                     totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
+                    totals_dict.update(top_pt_normalization(
+                        top_for_norm, var_weight[gen_selected], systematic,
+                    ))
 
         # 9) Debugging aid: store each individual weight factor separately.
         for key in weights._weights:
@@ -1146,7 +1205,9 @@ class vcbSkimmer(SkimmerABC):
         # 10) Add theory variations (scale/PDF) for supported datasets.
         ###################### alpha_S and PDF variations ######################
 
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith(("TTTo", "TTto")):
+        if uses_scale_weights(dataset):
+            if prescription is not None:
+                validate_scale_members(events.LHEScaleWeight, prescription)
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
@@ -1155,6 +1216,9 @@ class vcbSkimmer(SkimmerABC):
                 totals_dict["np_scale_weights"] = np.sum(
                     (scale_weights * weight_np[:, np.newaxis])[gen_selected], axis=0
                 )
+                totals_dict.update(top_pt_normalization(
+                    top_for_norm, weight_np[gen_selected], "scale_weights", scale_weights[gen_selected],
+                ))
 
         if "HHTobbbb" in dataset or "HHto4B" in dataset:
             pdf_weights = get_pdf_weights(events)
@@ -1173,15 +1237,31 @@ class vcbSkimmer(SkimmerABC):
 
         # 12) Also store the unnormalized nominal weight for post-processing checks.
         weights_dict["weight_noxsec"] = weights.weight()
+        if prescription is not None:
+            weights_dict["WeightPrescriptionVersion"] = np.full(
+                len(events), WEIGHT_PRESCRIPTION_VERSION, dtype=np.uint8,
+            )
+
+        # Raw ratios remain recoverable even when the nominal event weight is zero.
+        # They must be added after the cross-section/luminosity multiplication.
+        if self._systematics and is_ttbar(dataset):
+            layout = read_pdf_layout(events.metadata["filename"])
+            ratios, member_sums = member_weights(events.LHEPdfWeight, layout, weight_np)
+            weights_dict["PDFWeight"] = ratios
+            totals_dict["np_pdf_weights"] = member_sums
+            totals_dict.update(top_pt_normalization(
+                top_for_norm, weight_np[gen_selected], "pdf_weights", ratios[gen_selected],
+            ))
 
         # 13) Top-pT reweighting factors for ttbar MC, as standalone columns.
         #
         # Deliberately *after* the sigma*L loop in step 11, and deliberately not
         # in the `Weights` container: these stay raw per-event scale factors, so
         # they reach neither `weight` nor `finalWeight` nor `np_nominal`.
-        # Applying them is a downstream choice, and the recommended systematic
-        # is on/off rather than up/down. They are Run 2 parameterisations on Run
-        # 3 samples -- src/vcb/processors/top_pt.py carries the full caveat.
-        weights_dict.update(top_pt_weights(events, dataset))
+        # Optional all-input denominators above preserve that downstream choice.
+        # The validity flag distinguishes a real unity result from an invalid pair.
+        weights_dict.update(top_factors)
+        if top_valid is not None:
+            weights_dict["TopPtWeightValid"] = top_valid
 
         return weights_dict, totals_dict

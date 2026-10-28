@@ -26,7 +26,7 @@ angles in radians, and impact parameters in cm.
    ECAL gap, 1.444 <= |supercluster eta| < 1.566; use `superclusterEta`, or
    `eta + deltaEtaSC` if that field is absent.
 3. Mark an electron as trigger-matched when `HLT_Ele30_WPTight_Gsf` fired,
-   pT >= 32, and a trigger electron with filter bit 1 (mask 2) lies within
+   pT >= 32, and a trigger electron with filter bit 18 (mask 262144) lies within
    delta-R < 0.2.
 4. Choose the highest-pT matched electron as the event's trigger lepton only
    if no eligible trigger muon exists. This chosen lepton defines the jet
@@ -120,6 +120,24 @@ selection, candidate choice, jet cleaning, matching and SF evaluation above.
 The varied columns in a nominal skim alone do not recover entering events.
 This does not implement the separate high-pT GE/TuneP or resolution treatment.
 
+## Additional loose leptons
+
+Additional loose leptons are recorded separately from the three good-lepton
+slots. `nExtraLooseElectrons`, `nExtraLooseMuons`, `PassExtraLeptonVeto` and
+`ExtraLeptonVetoVersion` define a downstream veto. The counts exclude the
+chosen trigger lepton by NanoAOD index and are measured before truncation.
+They use active corrected pT > 15 GeV, |track eta| < 2.4, electron WP90,
+or muon Tight ID with PF relative isolation < 0.25. No extra impact-parameter,
+ECAL-gap or jet-overlap cut is imposed on these veto candidates.
+The three highest-pT candidates of each flavour are stored as
+`ExtraLoose{Electron,Muon}{Pt,Eta,Phi,Charge,Isolation,NanoIdx,JetIdx,GenPartFlav}{i}`.
+`JetIdx` refers to the input NanoAOD Jet collection, not the skim's jet slots.
+`GenPartFlav` keeps NanoAOD's flavour-specific origin code and is diagnostic
+only; it is padding for data. These fields never change either event truth label.
+An isolated muon from a b hadron can fail this veto, so it is **not applied**
+by the skimmer. The counts and flag remain exact even if more than three
+extra leptons of one flavour exist; stored kinematics are then truncated.
+
 ## Jets
 
 1. Start with the complete input AK4 PUPPI `Jet` collection. Recover raw pT
@@ -134,7 +152,8 @@ This does not implement the separate high-pT GE/TuneP or resolution treatment.
    Update pT, mass, and `rawFactor`; retain eta and phi. Nominal JER is applied
    even when systematic variations are disabled.
 3. Save each jet's original input index and attach the two jet charges from
-   the corresponding `JetQk` entry. Carry through the input flavour and charge
+   the same-index `JetQk` entry, under the documented production-specific
+   ordering assumption ([limitations](tests.md)). Carry through the input flavour and charge
    tagger scores without recalculating them. Use the complete corrected
    collection for the MET calculation described below.
 4. Evaluate the jet-veto map on the uncleaned jets with corrected pT > 15,
@@ -205,12 +224,17 @@ This does not implement the separate high-pT GE/TuneP or resolution treatment.
    `BadPFMuonFilter`, `BadPFMuonDzFilter`, `eeBadScFilter`,
    `ecalBadCalibFilter`, and `hfNoisyHitsFilter`. A missing flag raises an error.
 6. Save the corrected MET pT and phi. There is no MET magnitude cut in this
-   processor. The raw MET, auxiliary jet collection, individual quality flags,
-   and a separate set of MET uncertainty columns are not written. Each JES/JER
-   pass's `METPt`/`METPhi` already carry its correlated shift.
+   processor. The raw MET, auxiliary jet collection and individual quality flags
+   are not written. Each JES/JER pass's `METPt`/`METPhi` already carry its
+   correlated shift. Unclustered-energy alternatives are retained separately.
 
 **Output fields**
 
 - Reconstructed MET: `METPt`, `METPhi`.
+- Unclustered MET: `MET{Pt,Phi}Unclustered{Up,Down}` and
+  `METUnclusteredDelta{X,Y}{Up,Down}`. Each delta is the input NanoAOD varied
+  vector minus its nominal vector. Add it to this pass's rebuilt MET vector;
+  the saved varied pt/phi already perform that addition. Missing 2024 MC inputs
+  raise an error. These fields are written even without `--save-systematics`.
 - Associated W-decay neutrino truth: `GenWNeutrino{Pt,Eta,Phi,Mass}`.
   This is the direct W daughter, not the vector sum of all invisible particles.

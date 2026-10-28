@@ -33,18 +33,29 @@ W → cb, Q1 is b and Q2 is c. The four `Gen*JetIdx` labels identify distinct
 saved jet slots, with `-1` for an unmatched parton. Field names and padding
 conventions are in the [object synopsis](docs/object-synopsis.md).
 
+Two event labels are also saved: `GenWDecay` (TT2Q/TTCB) and
+`GenNExtraBQuarks` (additional b/anti-b count), each with a validity flag.
+The unrestricted quark count requires complete generator truth; see
+[event truth labels](docs/event-truth-labels.md) for the sidecar preparation
+and `--truth-label-manifest` option. NanoAOD-only runs mark that count unknown.
+
 ## Current scope
 
 - The supported production target is 2024 MC with AK4 PUPPI jets. Nominal
   electron smearing, muon scale/resolution corrections in 26–200 GeV, JEC/JER,
   pileup weights, and trigger-lepton efficiency scale factors are applied.
-  High-pT muon treatment, the 2024 data JEC and AK8 paths remain incomplete.
+  High-pT muon treatment and AK8 remain incomplete. The incomplete 2024
+  collision-data path is explicitly rejected. See the
+  [CMS readiness record](docs/cms-readiness-2026-10-27.md) for remaining work.
 - `--muon-pt-variation all` writes nominal plus four complete muon momentum
   variation passes, including events entering under a shift. See the
   [CLI instructions](docs/cli.md#muon-momentum-passes). Existing skims need
   reprocessing to include muon momentum corrections and selection migration.
 - `--save-systematics` writes PU, shower, and lepton-SF weight alternatives.
-  ttbar PDF-weight output is not implemented. The six
+  Muon efficiency totals include statistical and systematic errors; twelve
+  additional branches preserve those components as alternative nuisance models.
+  It also retains unmodified ttbar PDF/alpha-S member ratios, their identities,
+  and all-input normalization sums. The six
   renormalization/factorization-scale alternatives are saved independently of
   this flag when available in the input.
 - `--kinematic-variation jets` writes nominal plus all 27 JES up/down pairs
@@ -53,7 +64,9 @@ conventions are in the [object synopsis](docs/object-synopsis.md).
   [CLI instructions](docs/cli.md#kinematic-variation-passes). Each pass is
   normalized separately using the same all-input denominator.
 - Four top-pT factors are saved separately. They are not applied to `weight`
-  or `finalWeight`; the
+  or `finalWeight`. All-input normalization sums, joint generator-weight
+  alternatives and a top-pair validity flag are preserved; see the
+  [top-pT follow-up](docs/top-pt-normalization-2026-10-27.md). The
   [event synopsis](docs/event-synopsis.md#other-weight-terms-and-saved-alternatives)
   describes their use and normalization.
 
@@ -61,6 +74,12 @@ Type-1 MET uses the jet direction after muon subtraction and includes the
 auxiliary `CorrT1METJet` collection after nominal JEC/JER. These auxiliary jets
 contribute to MET only. Existing August 2026 skims predate both updates and
 need reprocessing to include them.
+
+The skim records the additional-loose-lepton veto without applying it. Extra
+lepton counts, kinematics, isolation and MC origin support downstream studies
+of signal losses from heavy-flavour decays. Unclustered-MET shifts are saved
+relative to the rebuilt MET. See the [October realignment record](docs/skim-realignment-2026-10-27.md)
+for definitions, PDF layouts and validation.
 
 The 2026-09-07 audit checked the headers and required branches of all 465
 signal and 11,014 inclusive-sample input files; every file passed. Fresh
@@ -130,8 +149,10 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir /path/to/processed-nano/production_tag
 ```
 
-The validator automatically recognizes nominal output (741 branches) or output
-with all 18 supported weight variations (759 branches), and allows `finalWeight`
+The validator automatically recognizes the nominal baseline or output
+with the 18 total weight variations, 12 muon component alternatives in weight
+prescription versions 2 and 3, and the metadata-defined PDF members,
+and allows `finalWeight`
 after normalization. Every file must match the mode detected from the first
 file; missing branches, unknown extras, and incomplete variation sets fail.
 Use `--schema-mode systematics` or `--schema-mode nominal` to require a specific
@@ -180,14 +201,22 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 
 | Document | Contents |
 | --- | --- |
+| [CMS readiness](docs/cms-readiness-2026-10-27.md) | Current 2024 MC coverage, verified uncertainty handling, payload pins, validation and remaining limits |
+| [Top-pT normalization](docs/top-pt-normalization-2026-10-27.md) | Version-3 all-input and joint normalization sums, validity flags and downstream formulas |
+| [Normalization integrity](docs/normalization-integrity-2026-10-27.md) | Signed and zero weights, complete preflight checks, verified reruns and stale-output detection |
 | [Event synopsis](docs/event-synopsis.md) | Event selection, all weight terms, and second-pass normalization |
 | [Object synopsis](docs/object-synopsis.md) | Object processing and output fields |
+| [Event truth labels](docs/event-truth-labels.md) | TT2Q/TTCB, extra-b-quark count, validity masks, and complete-truth sidecars |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
 | [2024 inputs](docs/2024-inputs.md) | Calibration and cross-section sources |
 | [2024 muon momentum](docs/muon-momentum-2024-plan.md) | Implemented correction, uncertainty model, coverage and high-pT limits |
 | [2024 jet/MET/electron variations](docs/jet-met-electron-variations-2024-plan.md) | Implemented full passes, [27-source JES mapping](docs/jes-2024-full-source-manifest.json), source references and validation |
+| [October skim realignment](docs/skim-realignment-2026-10-27.md) | Extra-lepton records, trigger match, unclustered MET, PDF preservation and validation |
+| [October weight realignment](docs/weight-realignment-2026-10-27.md) | Uncapped PU and signed scale weights, checked shower definitions and campaign compatibility |
+| [2024 ttbar PDF/alpha-S](docs/pdf-alphas-2024-plan.md) | Analysis-note comparison, member normalization and remaining fit choices |
+| [2024 MC audit cross-check](docs/audit-crosscheck-2026-09-23.md) | Independent re-verification of the [2024 MC audit](docs/audit-2024-mc-2026-09-11.md), corrections to it, and new findings against CMS and AN-25-214 conventions |
 | [Tests](docs/tests.md) | Unit tests, integration fixture, and baselines |
 | [Processor walkthrough](docs/processor.md) | Longer implementation notes; use the synopses for the current processing sequence |
 | [Normalization design](docs/normalization.md) | Design history of the second pass |
