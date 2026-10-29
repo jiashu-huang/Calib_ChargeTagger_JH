@@ -12,6 +12,7 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 | File | What it does |
 |---|---|
+| [tests/test_event_truth_labels.py](../tests/test_event_truth_labels.py) | W modes and unknowns; primary top/W b exclusions; shower-copy removal; extra b radiation within top decays; malformed ancestry; independent validity; source UUID, checksum, event-order and chunk-join checks. |
 | [tests/test_muon_ss.py](../tests/test_muon_ss.py) | Pinned MUO nominal and C++ resolution reference values; Crystal Ball core/tails and tracker-layer edges; statistical/systematic errors; data/MC and domain handling; empty/missing inputs and payload integrity; chunk/order reproducibility; an entering event through the real trigger selection; separate CLI passes. |
 | [tests/test_validate_processed.py](../tests/test_validate_processed.py) | Uses small ROOT files to check nominal/systematic schema detection before and after normalization, batch and merged targets, explicit modes, mixed campaigns, missing or unexpected columns, and exact custom schemas. Missing or invalid schema files must fail. |
 | [tests/test_type1_met.py](../tests/test_type1_met.py) | Checks MET against explicit jet-minus-muon vectors, including phi wrapping. Covers auxiliary `CorrT1METJet` threshold crossings after JEC/JER, the EM-fraction cut, empty collections, hybrid gen matching, and smearing reproducibility across chunk sizes. |

@@ -140,12 +140,33 @@ Normalize and merge each campaign separately. Never mix nominal and shifted
 copies in a normalization denominator or a merged event sample. Weight-only
 `--save-systematics` can be enabled independently in every campaign.
 
+#### B0 training-input profile
+
+Pass `--input-profile b0` to prepare the 2024 semileptonic ttbar samples for the
+first SPANet baseline. The worker forwards this choice and the campaign records
+it. The default is `calibration`. Keep the profiles in separate campaigns;
+their selections and output schemas differ. The [B0 guide](../docs/b0-input-profile.md)
+defines the ten-jet selection, observable allowlist, missing-feature masks and
+source identity. This prepares skims; dataset splits and HDF5 construction are
+separate steps.
+
+#### Event truth labels
+
+For the exact extra-b-quark label, pass `--truth-label-manifest /path/manifest.json`
+to `submit_batches.py`. The worker forwards it to the processor; the campaign
+records its path and checksum. Build it from the paired native generator-truth
+files as described in [event truth labels](../docs/event-truth-labels.md).
+Each worker checks the recorded manifest checksum before processing. A manifest
+changed after campaign creation is an error, including when its replacement
+would otherwise be valid. Create a new campaign to use a revised manifest.
+Without a manifest, the count is unknown and the W-decay label is still written.
+
 #### Systematic variations
 
 `--save-systematics` is **off by default** and worth turning on for any real
 production. It adds 18 `weight_*Up/Down` columns — pile-up, ISR/FSR parton
 shower, and the six lepton scale factors — plus their `np_*` denominators in
-the totals pickle (759 branches instead of 741).
+the totals pickle (765 branches instead of 747).
 
 The reason to decide *before* submitting rather than after: the raw `PSWeight`
 array is not written to the skim, so **ISR/FSR variations cannot be rebuilt
@@ -184,9 +205,9 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
 
 The default `--schema-mode auto` detects nominal or systematic output from
 the first ROOT file and requires that mode for every file checked. Nominal
-output must match the committed `tests/outfile/test-output-schema.csv` (741
+output must match the committed `tests/outfile/test-output-schema.csv` (747
 branches); systematic output must also contain all 18 supported up/down weight
-branches (759 total). `finalWeight` is allowed in either mode. Missing columns,
+branches (765 total). `finalWeight` is allowed in either mode. Missing columns,
 unknown extras, incomplete variation sets, and mixed modes fail validation.
 
 Use `--schema-mode systematics` for a campaign run with `--save-systematics`

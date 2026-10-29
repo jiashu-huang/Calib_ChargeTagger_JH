@@ -32,6 +32,7 @@ LepArray = ElectronArray | MuonArray
 # Cone for the gen-parton -> reco-jet assignment. The parton *order* also matters
 # (it is the tie-break) and is fixed by `match_partons` in gen_selection_Vcb.
 MATCH_DR = 0.4
+NUM_JET_SLOTS = 10
 W_TO_QUARK_PAIR_TAGS = {
     "GenWtoUD": (PDGID.d, PDGID.u),
     "GenWtoUS": (PDGID.u, PDGID.s),
@@ -139,6 +140,18 @@ def _w_flavor_tag_arrays(q1_pdgid: ak.Array, q2_pdgid: ak.Array):
         branch: ((q_lo == lo) & (q_hi == hi)).to_numpy()
         for branch, (lo, hi) in W_TO_QUARK_PAIR_TAGS.items()
     }
+
+
+def _event_w_decay_labels(q1_pdgid, q2_pdgid, semileptonic):
+    """TT2Q=0, TTCB=1, unknown=-1; independent of reco matching and b radiation."""
+    tags = _w_flavor_tag_arrays(q1_pdgid, q2_pdgid)
+    physical = ak.to_numpy(ak.fill_none(semileptonic & (q1_pdgid * q2_pdgid < 0), False))
+    tt2q = physical & (tags["GenWtoUD"] | tags["GenWtoUS"]
+                      | tags["GenWtoCD"] | tags["GenWtoCS"])
+    ttcb = physical & tags["GenWtoBC"]
+    label = np.full(len(q1_pdgid), -1, dtype=np.int32)
+    label[tt2q], label[ttcb] = 0, 1
+    return {"GenWDecay": label, "GenWDecayValid": tt2q | ttcb}
 
 
 def _supplement_zero_quark_masses(quark_masses: ak.Array, quark_pdg_ids: ak.Array):
@@ -468,11 +481,20 @@ def gen_selection_Vcb(
         "GenQ2PdgId": _single_value_to_numpy(qs_3.pdgId, dtype=np.int32),
     }
 
+    semileptonic = (
+        (ak.num(tops, axis=1) == 2)
+        & (ak.sum(tops.pdgId == TOP_PDGID, axis=1) == 1)
+        & (ak.sum(tops.pdgId == -TOP_PDGID, axis=1) == 1)
+        & (ak.sum(hadronic_w_mask, axis=1) == 1)
+        & (ak.sum(leptonic_w_mask, axis=1) == 1)
+    )
+    GenEventLabels = _event_w_decay_labels(qs_2.pdgId, qs_3.pdgId, semileptonic)
+
     # Must equal `vcbSkimmer.process`'s num_ak4_jets: the assignment may only point
     # at jets that are actually written, so a smaller value here would silently drop
     # matches and a larger one would emit indices past the end of the saved slots.
     # See _greedy_jet_parton_assignment on why matching past them loses labels.
-    num_jets = 10
+    num_jets = NUM_JET_SLOTS
 
     # One mapping defines both the assignment order (which is the tie-break) and the
     # branch names, so the two cannot drift: swapping these entries renames the
@@ -526,4 +548,5 @@ def gen_selection_Vcb(
         **GenTopBVars,
         **GenWbcVars,
         **GenQVars,
+        **GenEventLabels,
     }

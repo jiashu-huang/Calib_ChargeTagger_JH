@@ -117,7 +117,7 @@ QK_FIELDS = ("QkCharge05", "QkCharge10")
 QK_SENTINEL_MAX = -900.0
 
 
-def attach_jet_charge(jets: JetArray, events) -> JetArray:
+def attach_jet_charge(jets: JetArray, events, *, allow_missing: bool = False) -> JetArray:
     """
     Copy the `JetQk` charge columns onto the matching `Jet` records.
 
@@ -146,8 +146,16 @@ def attach_jet_charge(jets: JetArray, events) -> JetArray:
     The right upstream fix is to point the producer's `src` at
     `finalJetsPuppi`, which would make the alignment exact by construction and
     shrink the branch; until then this is the only match available.
+
+    B0 may set ``allow_missing`` to retain a missing charge measurement as NaN
+    with a false downstream feature mask. A present but shorter JetQk collection
+    remains an error because its jet identities cannot be trusted.
     """
     if "JetQk" not in events.fields:
+        if allow_missing:
+            for field in QK_FIELDS:
+                jets = ak.with_field(jets, ak.full_like(jets.pt, np.nan), field)
+            return jets
         raise KeyError(
             "No `JetQk` collection in this NanoAOD -- the jet charge branches "
             "require the CMSSW_15_CHARGE fork. Available: "
@@ -165,6 +173,9 @@ def attach_jet_charge(jets: JetArray, events) -> JetArray:
     for field in QK_FIELDS:
         # Keep the first n_jets entries of each event -- the extra JetQk rows
         # are the sub-threshold jets that never made it into the Jet table.
+        if allow_missing and field not in events.JetQk.fields:
+            jets = ak.with_field(jets, ak.full_like(jets.pt, np.nan), field)
+            continue
         column = events.JetQk[field]
         jets = ak.with_field(jets, column[ak.local_index(column) < n_jets], field)
     return jets

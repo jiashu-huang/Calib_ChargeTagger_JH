@@ -627,6 +627,12 @@ only one, so no ambiguity arises. The full branch list is in
 unit tests for the helpers are in
 [`tests/test_vcb_gen_truth.py`](../tests/test_vcb_gen_truth.py).
 
+The two event labels, `GenWDecay` and `GenNExtraBQuarks`, have independent
+validity flags and impose no matching cut. The extra-quark count requires a
+complete generator-truth sidecar; ordinary NanoAOD leaves it unknown.
+Definitions, status codes and preparation are in
+[event truth labels](event-truth-labels.md).
+
 ### `GenQ1` is down-type, `GenQ2` is up-type
 
 The two hadronic-W daughters are stored by **type**, not by the order the

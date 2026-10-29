@@ -47,6 +47,12 @@ git submodule and is not pip-installed from upstream.
   muon subtraction. Missing mandatory 2024 payloads raise; raw NanoAOD records
   are preserved for independent passes, including typed empty collections.
 - `xsecs.py` — added `xsecs["TTtoLNuCB"]`.
+  On 2026-10-28, added the user-approved provisional 2024
+  `TTBB-TTtoLNu2Q` rate, 16.011655167690346 pb, from the complete sample's
+  signed mean generator weight under AN-25-214 v5 section 2.2.4. The source,
+  AN comparison and overlap convention are recorded in
+  [B0 preparation](../../docs/b0-input-readiness-2026-10-28.md). This rate is
+  specific to the recorded Summer24 MiniAODv6 v2 sample.
 - **Pileup overhaul (2026-07-24)** — `add_pileup_weight` rewritten:
   - takes `Pileup_nTrueInt` (the Poisson mean the LUM weights are derived in);
     upstream fed it `Pileup_nPU`, the sampled count, which mis-weights events

@@ -11,7 +11,7 @@ Flags come from four places, in this order:
 | [`run_utils.parse_common_run_args`](../src/boostedhh/run_utils.py#L78) | `--starti --endi --executor --files --files-name --batch-size --yaml --file-tag` |
 | [`run_utils.parse_common_hh_args`](../src/boostedhh/run_utils.py#L107) | `--year --samples --subsamples --maxchunks --chunksize --save-systematics --save-root` |
 | [`vcb_utils.parse_common_run_args`](../src/vcb/vcb_utils.py#L47) | `--processor --region --nano-version --prescale-factor` |
-| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --kinematic-variation --muon-pt-variation --naming-tag --outdir --root-only --output-root-location` |
+| [`vcb/run.py`](../src/vcb/run.py) | `--skimmer --input-profile --kinematic-variation --muon-pt-variation --truth-label-manifest --truth-label-manifest-sha256 --naming-tag --outdir --root-only --output-root-location` |
 
 Boolean flags are mutually exclusive pairs: `add_bool_arg` generates a `--no-<name>`
 alongside each of `--save-root` and `--save-systematics`. `--root-only` is a plain
@@ -61,8 +61,11 @@ grouped on the way out.
 | Flag | Default | Effect |
 |---|---|---|
 | `--skimmer` | `vcbSkimmer` | Module under `src/vcb/processors/` to run. Accepts `vcbSkimmer`, `vcbSkimmer.py`, or a path. |
+| `--input-profile` | `calibration` | `b0` prepares 2024 semileptonic ttbar MC with central jets above 25 GeV, at least four jets, a ten-slot cap, observable features, validity and supervision masks, and source identity. See [B0 input profile](b0-input-profile.md). |
 | `--muon-pt-variation` | `nominal` | Active 2024 MC momentum pass. `all` runs nominal plus four total scale/resolution shifts from the original NanoAOD, each in its own subdirectory; see below. |
 | `--kinematic-variation` | `nominal` | One 2024 MC object shift or a group (`all`, `jets`, `jes`, `jer`, `electron`, `muon`). Each pass reruns the complete skim; see below. |
+| `--truth-label-manifest` | none | Complete generator extra-b counts keyed by NanoAOD UUID. Without it, counts are unknown; with it, missing sources or identity mismatches fail. See [event truth labels](event-truth-labels.md). |
+| `--truth-label-manifest-sha256` | computed from manifest when supplied | Require the exact manifest bytes recorded by this SHA-256 digest. Requires `--truth-label-manifest`; local runs pin it before loading, and Condor pins it at campaign creation. |
 | `--processor` | `skimmer` | Only choice is `skimmer`. |
 | `--executor` | `iterative` | Only `dask` vs. not-`dask` is honoured — see *Inert*. |
 | `--region` | `signal` | Only choice is `signal`; indexes a one-entry HLT dict. |

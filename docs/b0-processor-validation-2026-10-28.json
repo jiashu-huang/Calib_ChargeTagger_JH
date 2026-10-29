@@ -1,0 +1,548 @@
+{
+  "schema_version": 1,
+  "release_id": "b0-processor-20261028-v1",
+  "git_branch": "codex/b0-input-preparation",
+  "git_base": "30745a5",
+  "recorded_utc": "2026-10-29T00:03:01.534387+00:00",
+  "scope": "Validated 2024 B0 processor release and bounded three-source pilots; full C1, C2 dataset and training are not complete.",
+  "checks": {
+    "tests": 289,
+    "subtests": 22,
+    "dependency_warnings": 3,
+    "lint_passed": true,
+    "calibration_regression": {
+      "passed": true,
+      "comparison_to": "pre-B0 live snapshot",
+      "schema_identical": true,
+      "first_event_identical": true,
+      "roundtrip_only_difference": "Fixture symlink resolved to its absolute source path; portable tracked report preserved.",
+      "selected_events": 59713,
+      "branches": 747,
+      "tagger_comparisons": 5435189,
+      "tagger_differences": 0,
+      "unexplained_missing_jets": 0
+    }
+  },
+  "pilot_reports": {
+    "ttcb": {
+      "result": {
+        "passed": true,
+        "input": "/isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/batch_000/7c88774e-ad11-4513-aca4-d9f4b6146707_CMSSW_15_CHARGE_NanoAOD.root",
+        "skim": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb/nano_skim_ttcb-b0_batch_0.root",
+        "input_events": 33580,
+        "selected_events": 4703,
+        "branches": 1154,
+        "input_signed_genweight_sum": 11227035.47241211,
+        "input_uuid": "e6e788ac-69d6-11f1-84e5-03e114acbeef",
+        "schema_sha256": "34aab2c36cee75ee814af80068e2aadc7d8e9225e8cbcac9a0f14ec06715d607",
+        "sidecar_checked": true,
+        "fully_matched": 1705,
+        "unmatched_with_W_label": 2998,
+        "unmatched_with_quark_count": 2998,
+        "W_labels": {
+          "1": 4703
+        },
+        "extra_b_counts": {
+          "0": 4370,
+          "2": 316,
+          "4": 16,
+          "6": 1
+        },
+        "W_lepton_flavors": {
+          "11": 1954,
+          "13": 2473,
+          "15": 276
+        },
+        "valid_zero_Qk_from_sentinel": {
+          "Qk05": 0,
+          "Qk10": 0
+        },
+        "missing_features": {
+          "log1p_pt": 0,
+          "log1p_mass": 0,
+          "eta": 0,
+          "sin_phi": 0,
+          "cos_phi": 0,
+          "PNetB": 0,
+          "ParTPosvsNeg": 16,
+          "UParTB": 0,
+          "UParTCvL": 0,
+          "UParTCvB": 0,
+          "ParTPositive": 16,
+          "ParTNegative": 16,
+          "ParTZero": 16,
+          "Qk05": 0,
+          "Qk10": 0,
+          "lepton_charge_times_Qk05": 0,
+          "lepton_charge_times_Qk10": 0,
+          "lepton_charge_times_ParTPositiveMinusNegative": 16
+        },
+        "overflow_events": 1,
+        "matching": {
+          "source": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb/nano_skim_ttcb-b0_batch_0.root",
+          "source_sha256": "27a198799cbc66f0d07189348b2a37b2655d2c308ba937f7a6054e32dce7f722",
+          "scope": "unweighted selected pilot; current processor's ten saved jets",
+          "role_order": [
+            "HadB",
+            "LepB",
+            "HadQ1",
+            "HadQ2"
+          ],
+          "cap": 10,
+          "delta_r_strict_max": 0.4,
+          "selected_events": 4703,
+          "invalid_indices": 0,
+          "duplicate_jet_events": 0,
+          "invalid_geometric_matches": 0,
+          "saved_vs_production_replay_events": 0,
+          "saved_vs_independent_greedy_events": 0,
+          "greedy_fully_matched": 1705,
+          "greedy_fully_matched_fraction": 0.3625345524133532,
+          "greedy_matched_by_role": {
+            "HadB": 3946,
+            "LepB": 3996,
+            "HadQ1": 3273,
+            "HadQ2": 3783
+          },
+          "global_cardinality_then_distance_fully_matched": 1705,
+          "global_fully_matched_fraction": 0.3625345524133532,
+          "global_full_matching_gain_percentage_points": 0.0,
+          "global_assignment_different_events": 1,
+          "greedy_full_global_not_full": 0,
+          "global_full_greedy_not_full": 0,
+          "full_C1_audit_complete": false,
+          "passed": true
+        }
+      },
+      "native_truth": {
+        "schema_version": 1,
+        "source": "Pythia8 MiniAOD prunedGenParticles; all b quarks retained",
+        "producer_sha256": "56c010e2efb065082ec99b23e7a52a1f1bb8f273973d12c77903c7ebf26c7907",
+        "definition_sha256": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+        "files": [
+          {
+            "nano_file": "/isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/batch_000/7c88774e-ad11-4513-aca4-d9f4b6146707_CMSSW_15_CHARGE_NanoAOD.root",
+            "native_truth": "/isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/MiniAOD/7c88774e-ad11-4513-aca4-d9f4b6146707.root",
+            "nano_uuid": "e6e788ac-69d6-11f1-84e5-03e114acbeef",
+            "entries": 33580,
+            "labels": "e6e788ac-69d6-11f1-84e5-03e114acbeef.npz",
+            "sha256": "6a6fe05e3717fb04434e3f3c76053d9dcb2cf1bfd3c7d31f1d0d2bc22a65a5b7",
+            "pair_validation": "unique within-file event identity alignment and ordered retained GenPart content (8-bit precision)",
+            "native_entries_reordered": 27,
+            "counts": {
+              "-1": 2,
+              "0": 31436,
+              "2": 2068,
+              "4": 71,
+              "6": 3
+            },
+            "statuses": {
+              "0": 33578,
+              "3": 2
+            }
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb-validation.json",
+          "sha256": "ef9b9f7a943d1dcc11cb06dbccc52a440632dc1f9751bcb7df4664824f5ea699"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb-roundtrip.txt",
+          "sha256": "68e7ec7526994f4cf9318ce18ffb667fb1f153ce8ab6de566321b17ac99d625d"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb-truth/manifest.json",
+          "sha256": "18923fbed35adff646930998448dfc55db49c9aedb78c89c3fb331fcbcfbf369"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb-truth/e6e788ac-69d6-11f1-84e5-03e114acbeef.npz",
+          "sha256": "6a6fe05e3717fb04434e3f3c76053d9dcb2cf1bfd3c7d31f1d0d2bc22a65a5b7"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttcb/outfiles/ttcb-b0.kinematics.json",
+          "sha256": "c5ecd2c7d9dfc3e64f47cdc8ab02cc4f572c1af9181eb6baac7ed706bfd2fc8a"
+        }
+      ]
+    },
+    "tt2q": {
+      "result": {
+        "passed": true,
+        "input": "/isilon/export/home/jhuan166/Vcb/MC/TTtoLNu2Q_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/batch_0000/09f4682a-07fd-4bc8-bac3-d3cf85fd3810_CMSSW_15_CHARGE_NanoAOD.root",
+        "skim": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q/nano_skim_tt2q-b0_batch_0.root",
+        "input_events": 27269,
+        "selected_events": 4050,
+        "branches": 1154,
+        "input_signed_genweight_sum": 9111391.471801758,
+        "input_uuid": "d91b3ae0-6aab-11f1-aeab-03e114acbeef",
+        "schema_sha256": "34aab2c36cee75ee814af80068e2aadc7d8e9225e8cbcac9a0f14ec06715d607",
+        "sidecar_checked": true,
+        "fully_matched": 1595,
+        "unmatched_with_W_label": 2455,
+        "unmatched_with_quark_count": 2455,
+        "W_labels": {
+          "0": 4050
+        },
+        "extra_b_counts": {
+          "0": 3756,
+          "2": 278,
+          "4": 15,
+          "6": 1
+        },
+        "W_lepton_flavors": {
+          "11": 1578,
+          "13": 2230,
+          "15": 242
+        },
+        "valid_zero_Qk_from_sentinel": {
+          "Qk05": 3,
+          "Qk10": 3
+        },
+        "missing_features": {
+          "log1p_pt": 0,
+          "log1p_mass": 0,
+          "eta": 0,
+          "sin_phi": 0,
+          "cos_phi": 0,
+          "PNetB": 0,
+          "ParTPosvsNeg": 14,
+          "UParTB": 0,
+          "UParTCvL": 0,
+          "UParTCvB": 0,
+          "ParTPositive": 14,
+          "ParTNegative": 14,
+          "ParTZero": 14,
+          "Qk05": 0,
+          "Qk10": 0,
+          "lepton_charge_times_Qk05": 0,
+          "lepton_charge_times_Qk10": 0,
+          "lepton_charge_times_ParTPositiveMinusNegative": 14
+        },
+        "overflow_events": 0,
+        "matching": {
+          "source": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q/nano_skim_tt2q-b0_batch_0.root",
+          "source_sha256": "6234a1527dc996fc99a839d7027ffd9bd6ea72c5beb30e7714d71dd5d81c250f",
+          "scope": "unweighted selected pilot; current processor's ten saved jets",
+          "role_order": [
+            "HadB",
+            "LepB",
+            "HadQ1",
+            "HadQ2"
+          ],
+          "cap": 10,
+          "delta_r_strict_max": 0.4,
+          "selected_events": 4050,
+          "invalid_indices": 0,
+          "duplicate_jet_events": 0,
+          "invalid_geometric_matches": 0,
+          "saved_vs_production_replay_events": 0,
+          "saved_vs_independent_greedy_events": 0,
+          "greedy_fully_matched": 1595,
+          "greedy_fully_matched_fraction": 0.39382716049382716,
+          "greedy_matched_by_role": {
+            "HadB": 3403,
+            "LepB": 3421,
+            "HadQ1": 3024,
+            "HadQ2": 3263
+          },
+          "global_cardinality_then_distance_fully_matched": 1595,
+          "global_fully_matched_fraction": 0.39382716049382716,
+          "global_full_matching_gain_percentage_points": 0.0,
+          "global_assignment_different_events": 1,
+          "greedy_full_global_not_full": 0,
+          "global_full_greedy_not_full": 0,
+          "full_C1_audit_complete": false,
+          "passed": true
+        }
+      },
+      "native_truth": {
+        "schema_version": 1,
+        "source": "Pythia8 MiniAOD prunedGenParticles; all b quarks retained",
+        "producer_sha256": "56c010e2efb065082ec99b23e7a52a1f1bb8f273973d12c77903c7ebf26c7907",
+        "definition_sha256": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+        "files": [
+          {
+            "nano_file": "/isilon/export/home/jhuan166/Vcb/MC/TTtoLNu2Q_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/batch_0000/09f4682a-07fd-4bc8-bac3-d3cf85fd3810_CMSSW_15_CHARGE_NanoAOD.root",
+            "native_truth": "root://cms-xrd-global.cern.ch//store/mc/RunIII2024Summer24MiniAODv6/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/MINIAODSIM/150X_mcRun3_2024_realistic_v2-v2/2540000/09f4682a-07fd-4bc8-bac3-d3cf85fd3810.root",
+            "nano_uuid": "d91b3ae0-6aab-11f1-aeab-03e114acbeef",
+            "entries": 27269,
+            "labels": "d91b3ae0-6aab-11f1-aeab-03e114acbeef.npz",
+            "sha256": "807263f4ed2e2c8aade43a875c0cd0032e3b23130d5db13e2596e6fa64aa3c7b",
+            "pair_validation": "unique within-file event identity alignment and ordered retained GenPart content (8-bit precision)",
+            "native_entries_reordered": 35,
+            "counts": {
+              "-1": 2,
+              "0": 25489,
+              "2": 1708,
+              "4": 66,
+              "6": 4
+            },
+            "statuses": {
+              "0": 27267,
+              "3": 2
+            }
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q-validation.json",
+          "sha256": "ac2ef78df755132855866c3c2f22b05bb7579804b9600962fed8ca3c8aeb9e46"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q-roundtrip.txt",
+          "sha256": "5b4a0a3a203c8e898cbeb22bdfaba0c954c105ca8552e0cd1a6d9317a76e6171"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q-truth/manifest.json",
+          "sha256": "968741795ff2a04b3901d118935d4448b5f0ac8df48f84b0917ab81900495ba0"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q-truth/d91b3ae0-6aab-11f1-aeab-03e114acbeef.npz",
+          "sha256": "807263f4ed2e2c8aade43a875c0cd0032e3b23130d5db13e2596e6fa64aa3c7b"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/tt2q/outfiles/tt2q-b0.kinematics.json",
+          "sha256": "2bc171144d2f71f4fe169e391010b7b8416eeb3236a38fee1e24b33d7dac4f30"
+        }
+      ]
+    },
+    "ttbb": {
+      "result": {
+        "passed": true,
+        "input": "/isilon/export/home/jhuan166/Vcb/cmssw-charge-run/pilots/ttbb_fixweights_20261017/jobs/000/output/80fe8d91-4bd9-435e-b5de-1035180db4d6_CMSSW_15_CHARGE_NanoAOD.root",
+        "skim": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-final/nano_skim_ttbb-b0_batch_0.root",
+        "input_events": 10000,
+        "selected_events": 1748,
+        "branches": 1148,
+        "input_signed_genweight_sum": 161097.70359802246,
+        "input_uuid": "78e7e312-ca7d-11f1-9f23-07e114acbeef",
+        "schema_sha256": "34aab2c36cee75ee814af80068e2aadc7d8e9225e8cbcac9a0f14ec06715d607",
+        "sidecar_checked": true,
+        "fully_matched": 613,
+        "unmatched_with_W_label": 1135,
+        "unmatched_with_quark_count": 1135,
+        "W_labels": {
+          "0": 1748
+        },
+        "extra_b_counts": {
+          "2": 1641,
+          "4": 102,
+          "6": 5
+        },
+        "W_lepton_flavors": {
+          "11": 704,
+          "13": 939,
+          "15": 105
+        },
+        "valid_zero_Qk_from_sentinel": {
+          "Qk05": 2,
+          "Qk10": 2
+        },
+        "missing_features": {
+          "log1p_pt": 0,
+          "log1p_mass": 0,
+          "eta": 0,
+          "sin_phi": 0,
+          "cos_phi": 0,
+          "PNetB": 0,
+          "ParTPosvsNeg": 9,
+          "UParTB": 0,
+          "UParTCvL": 0,
+          "UParTCvB": 0,
+          "ParTPositive": 9,
+          "ParTNegative": 9,
+          "ParTZero": 9,
+          "Qk05": 0,
+          "Qk10": 0,
+          "lepton_charge_times_Qk05": 0,
+          "lepton_charge_times_Qk10": 0,
+          "lepton_charge_times_ParTPositiveMinusNegative": 9
+        },
+        "overflow_events": 2,
+        "matching": {
+          "source": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-final/nano_skim_ttbb-b0_batch_0.root",
+          "source_sha256": "f72ae043572e75b38b350c36389597c0465efaa6cb3ac1d2559879a31f291c49",
+          "scope": "unweighted selected pilot; current processor's ten saved jets",
+          "role_order": [
+            "HadB",
+            "LepB",
+            "HadQ1",
+            "HadQ2"
+          ],
+          "cap": 10,
+          "delta_r_strict_max": 0.4,
+          "selected_events": 1748,
+          "invalid_indices": 0,
+          "duplicate_jet_events": 0,
+          "invalid_geometric_matches": 0,
+          "saved_vs_production_replay_events": 0,
+          "saved_vs_independent_greedy_events": 0,
+          "greedy_fully_matched": 613,
+          "greedy_fully_matched_fraction": 0.35068649885583525,
+          "greedy_matched_by_role": {
+            "HadB": 1440,
+            "LepB": 1428,
+            "HadQ1": 1271,
+            "HadQ2": 1399
+          },
+          "global_cardinality_then_distance_fully_matched": 614,
+          "global_fully_matched_fraction": 0.3512585812356979,
+          "global_full_matching_gain_percentage_points": 0.05720823798626706,
+          "global_assignment_different_events": 1,
+          "greedy_full_global_not_full": 0,
+          "global_full_greedy_not_full": 1,
+          "full_C1_audit_complete": false,
+          "passed": true
+        }
+      },
+      "native_truth": {
+        "schema_version": 1,
+        "source": "Pythia8 MiniAOD prunedGenParticles; all b quarks retained",
+        "producer_sha256": "56c010e2efb065082ec99b23e7a52a1f1bb8f273973d12c77903c7ebf26c7907",
+        "definition_sha256": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+        "files": [
+          {
+            "nano_file": "/isilon/export/home/jhuan166/Vcb/cmssw-charge-run/pilots/ttbb_fixweights_20261017/jobs/000/output/80fe8d91-4bd9-435e-b5de-1035180db4d6_CMSSW_15_CHARGE_NanoAOD.root",
+            "native_truth": "/isilon/export/home/jhuan166/Vcb/MC/TTBB-TTtoLNu2Q_Summer24MiniAODv6/productions/charge_Run3_2024_150X_v1/cmssw/validation/pilot000_GenTruth_numEvent10000.root",
+            "nano_uuid": "78e7e312-ca7d-11f1-9f23-07e114acbeef",
+            "entries": 10000,
+            "labels": "78e7e312-ca7d-11f1-9f23-07e114acbeef.npz",
+            "sha256": "4090e86725c5b16ad15cdcecaf13732dcac3c047c8461a597e3c81bdc59065b2",
+            "pair_validation": "unique within-file event identity alignment and ordered retained GenPart content (8-bit precision)",
+            "native_entries_reordered": 0,
+            "counts": {
+              "-1": 1,
+              "2": 9450,
+              "4": 526,
+              "6": 23
+            },
+            "statuses": {
+              "0": 9999,
+              "3": 1
+            }
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-final-validation.json",
+          "sha256": "1d2ee275e704332a126690e2bdf0d52e6ebd90679caed5b70e06275e8692e924"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-final-roundtrip.txt",
+          "sha256": "ec6a0924165df1ccdf8cf5ae695ed2066f5bbd06cf2b71def39d5785d3a6c98f"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-truth/manifest.json",
+          "sha256": "1738d23d1beac232e9aeebc7b4bf1a4779c23dbbfef30e90b309d6783ae5c637"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-truth/78e7e312-ca7d-11f1-9f23-07e114acbeef.npz",
+          "sha256": "4090e86725c5b16ad15cdcecaf13732dcac3c047c8461a597e3c81bdc59065b2"
+        },
+        {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ttbb-final/outfiles/ttbb-b0.kinematics.json",
+          "sha256": "65c0b91615a0b28fded1369ef0876ae93c5d4b1e9fe058d8eeef16a7b99903a8"
+        }
+      ]
+    }
+  },
+  "source_sha256": {
+    "condor/scripts/build_truth_labels.py": "56c010e2efb065082ec99b23e7a52a1f1bb8f273973d12c77903c7ebf26c7907",
+    "condor/scripts/merge_processed.py": "3433b401dc42e93f01764acf0834e60b5a7f25f6ca3e809e5de1161f84f5b430",
+    "condor/scripts/normalize.py": "a6b862db99b848d496e4d6198d6ed79bcdb880e582cdc6a959ea8347f77e2690",
+    "condor/scripts/validate_processed.py": "1068fc4f2ab238f51afed22342b7d544e81311d90c1c0f2df1c01d524704e067",
+    "condor/submit_batches.py": "91acff078a56bf42b1b5c85da289e35d3e642309f9038e6cd039c2c4148fa402",
+    "condor/templates/calib_batch_exec.sh": "78ab66f227a6f7d1ad3a3249864aadb7d6b223882013cb8118d81bc3d432c334",
+    "diagnostics/check_jet_tagger_roundtrip.py": "4a566fc9886cb54f767ee8cd7a72cbcb58691cfeb751ab8dbe179352389dfdd5",
+    "diagnostics/check_kinematic_passes.py": "7b99e52ce728d4aff82a712a5d7c9a729eb258dd1257f86622f95c958ebb884e",
+    "diagnostics/dump_matching_input_event.py": "817bf9238ee3fea4452fa3b347f93b9882e5f6d014716a1f1ebe6666b22b7d85",
+    "diagnostics/plot_genlv_mass.py": "720b3d2d9b74f3ebd19ed59380941df7120ee47bb1328da517bea4882b37692e",
+    "diagnostics/plot_genqq_mass.py": "44a5b9c8419392dbdb5e6124305bc419b9e8575bd922332ceaee8e56e4961dd9",
+    "diagnostics/plot_genqqb_mass.py": "bc8a2b5daf340403717cdf02d94dce97c7f57a13c9e7cb0ffb4cd87c46c255c1",
+    "diagnostics/plot_genwlepton_pt_flavor.py": "29bd2d935335459a8fdd75fe3a6b447b7b1504567bb06be2cd04e6c9a3ebdcb9",
+    "diagnostics/plot_genwleptonpt_isomu24_ratio.py": "6abf7a3ef516af3678400f45942f2dcabc119db7c862d0e007071d3e258cd6dc",
+    "diagnostics/plot_jet_pt.py": "d3682cbd9d24ce47edb9b124b236eb816f49b3b72aee0dd010feb6ba6437d62f",
+    "diagnostics/plot_lepton_pt.py": "645b4b5cd91921f1787d51880084fc025db24af60d48a0dfe34b340dd84be04d",
+    "diagnostics/plot_trigger_lepton_pt_flavor.py": "7dce175316c2b433e7bf64ce6d3fba746b41114e3171b222d6ed772ef7d9f82b",
+    "diagnostics/validate_b0_inputs.py": "f49ad3df7dd35543617688ca6da8dd8f310ae6df3846a5c46f17cbee98fbcec4",
+    "diagnostics/validate_ttbb_matching.py": "1e6482fcc50568ccab73aaf6a2ed48f44c7db533c3abbd54c333eab583b15912",
+    "src/boostedhh/__init__.py": "708ceeb0ddda59e6a6805d869934ab54b0e3fca8c26d1f255d20f6904fcc9a5c",
+    "src/boostedhh/corrections/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/boostedhh/corrections/build_jec.py": "864b3896ecf0a4113d59a4f2742e684d0478420a1cfdf90251267591bc0a2c38",
+    "src/boostedhh/hh_vars.py": "2e83fa1b9c7ef0574eae915fe1eadfeea078eb033316912aa8d92d732dd34ca6",
+    "src/boostedhh/processors/SkimmerABC.py": "3f59ef8226f123e894690733a7d02638c4f0e666993339dec6053513dbbf6969",
+    "src/boostedhh/processors/__init__.py": "5f6fef1086f019975eaa1b1d5c0fd6302f90a7a1bca2f3c7eeeadc5cca5207be",
+    "src/boostedhh/processors/corrections.py": "69d2fbd87df3c9c33c2b5872acf126d443c128f3f345da8f921d60c4dd61bb17",
+    "src/boostedhh/processors/utils.py": "fff558c0c99cda321b54cf4c5f61983fb472c1dd80cedce626557bc375f746f0",
+    "src/boostedhh/run_utils.py": "7f9dcd431eac12a2ef1c12dbfea9f87ae2a2d31e22e34ae8fc84cdaf81e95859",
+    "src/boostedhh/utils.py": "99b6c716eca897170f988d69fc999b540f62d5dad5b28405c7d32f012bad2ff0",
+    "src/boostedhh/xsecs.py": "4fd4ff4d16af3e1e4d9daf418d2a5ae2b9d1c0b2f09ee497b84a621bccc300d3",
+    "src/vcb/HLTs.py": "592098a0c7c195a3b75271741676a53e1644e845198148baf8305a6f620dd3e5",
+    "src/vcb/__init__.py": "4c14439e0d57702adde90c9143951472fa1c97a7e64d59117538dc60c681482f",
+    "src/vcb/processors/GenSelection.py": "dcbed46af9ee4a68b1e40a0088ec3f4b072e73156d228846386821bf4cb122e2",
+    "src/vcb/processors/__init__.py": "05328b9dffd2311419a27e58a2dbee641f3e3f409cc9a86f175b549f1feaceb0",
+    "src/vcb/processors/b0_inputs.py": "37f5cf204349cc0d59f1823856ed57aa77a5fb22043cf535a836cb1e1841af6b",
+    "src/vcb/processors/electron_ss.py": "06f55301d554dff1f5ffeece7ecf21adb9a2d7c47fc323b8ad06568fc566da66",
+    "src/vcb/processors/kinematic_variations.py": "1f35b13e8381da808066dd143158fe0f2444e4c89fe8df198f09a2bb0d351000",
+    "src/vcb/processors/lepton_sf.py": "a8d73a1fb31ae21ab7d3e0434af99ab42e2e172e18134aef56ba412a72c06775",
+    "src/vcb/processors/muon_ss.py": "c91369678456b7df5d723eb0c6dbd0fc0a4d7a509c8bad6a9c0cc41829c6361c",
+    "src/vcb/processors/objects.py": "9a49f3d632ce4623733381a521f9571f45fea16c1d6ff527399957d3291eb333",
+    "src/vcb/processors/top_pt.py": "dde82e6dc3ab610d78147308a5859d770a76ce35e99ed1d002b9e0ded3385d21",
+    "src/vcb/processors/truth_labels.py": "f4c22f378158300c34946fac29ac45a263af14c468e51afdc62fdb536be3099d",
+    "src/vcb/processors/vcbSkimmer.py": "e54d7ba943905d55bc0e5a42792bfbe4a8626cfed7008bbe58a17a5498a51132",
+    "src/vcb/run.py": "8a94168921a2b363db87b7704158132fd0b6f76808dc0b4790d72d17e173d132",
+    "src/vcb/truth.py": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+    "src/vcb/vcb_utils.py": "ae611f31b05bc121afeafeeb415203a251196e8ec79c97fa482304abf193ef6a",
+    "tests/test_b0_inputs.py": "852519e63c48e27b8bf7d5bcbacd308029b2c2f5b3a56aec19d518526d70d40a",
+    "tests/test_electron_ss.py": "fed8a2deb0b7865d83c8917a4e3fe263ab4c7ff34d1e0d212ff092b67feef8cd",
+    "tests/test_event_truth_labels.py": "57ccf484b62e95c5a56e9a42e52981117eb320d9a1b29a07c0ef575216c98ce9",
+    "tests/test_kinematic_variations.py": "88040b8a33764b7732841414f88736f150f3cc6aec8c751c8c7a297169c6ce23",
+    "tests/test_lepton_sf.py": "cc4193c2b2cd7574fb2f49b534bd98bb4c880f3c75e78ff8ee5fe774e4c33639",
+    "tests/test_met_filters.py": "1b4f51b8940420e1e6e6276184c0c342b8bab19ac8cab2deeaf0b9a4c8fdb9e3",
+    "tests/test_muon_ss.py": "14377c1f74cc8b4eca7906c834f6f70af088cbac5a3319ea76d8bd412f25fa7b",
+    "tests/test_objects.py": "6b681c3647df8be5ef2f55fbecb3320c3013c17f390bc7c4678863aa0f9d73b0",
+    "tests/test_package.py": "9c8b5829ac26965cbef8533681f6cd7ede9f0adbe3777905da6219c60b071da7",
+    "tests/test_run.py": "4b9d95f22e56abd2a73cdf93e3da4be37ead11bd4e0bab2228f92ba0a7ed68ba",
+    "tests/test_top_pt.py": "9d1d4d0d44cc4de8ba2c9904a4297f556124988d05f1b3b5ca7217d349fea4c4",
+    "tests/test_type1_met.py": "b94c5ff216e533e93860214eee07592bf58e1b6fe92c802269909b33877f6498",
+    "tests/test_validate_processed.py": "d720a26e21a3188b48921023b616575c297f4d3c4472f8ada8d5ed7b665bc5d7",
+    "tests/test_vcb_gen_truth.py": "d9600bc88680757a5ac22dad8c926824e5f1e0131753bae2dabbc13780a8af5f"
+  },
+  "artifacts": [
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/all-tests-final.log",
+      "sha256": "e2c3d59bb1f939e80731a4d2ab207491cf109057023b2732dc414d239322ce35"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/ruff-final.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/default-integration.log",
+      "sha256": "20bc4a53a48ac451aa2f97b29e8295af50be6e09ddfe3c828f1aa5e95b5ba687"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/default-roundtrip-final.txt",
+      "sha256": "79b202785eba39ce11e040e5ef2470c1df90a7a774652db7a0d91faf44c3dabe"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/calibration-regression.json",
+      "sha256": "0e5316310cd07de13a072665c9d513ed345d67dd26afa31faed059c5a8a8bb95"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/outputs/b0-readiness/base-snapshot.json",
+      "sha256": "c7f132ba76b941af97a7043388af38d47296f82946a35975f936578fe9ef4ebc"
+    }
+  ],
+  "full_C1_complete": false,
+  "C2_dataset_frozen": false,
+  "training_submitted": false,
+  "live_queue_before_install": {
+    "observed_utc": "2026-10-29T00:00:31Z",
+    "query": "condor_q jhuan166 -nobatch",
+    "user_jobs": 0
+  }
+}

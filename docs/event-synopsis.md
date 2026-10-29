@@ -22,6 +22,8 @@ cuts, ordering, matching, and output fields are in
    matching. These routines label events without imposing a generator-level
    veto. The normalization mask, `gen_selected`, is therefore true for every
    input event in the chunk, before the following event selections.
+   The [two event truth labels](event-truth-labels.md) have separate validity
+   masks; neither requires full reconstruction matching.
 5. **Trigger veto — `single_lep_trigger`:** reject events unless
    `HLT_IsoMu24 OR HLT_Ele30_WPTight_Gsf` fired. Both paths may fire.
 6. **Event-quality veto — `met_filters`:** reject events failing any of the

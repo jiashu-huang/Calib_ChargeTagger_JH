@@ -33,6 +33,12 @@ W → cb, Q1 is b and Q2 is c. The four `Gen*JetIdx` labels identify distinct
 saved jet slots, with `-1` for an unmatched parton. Field names and padding
 conventions are in the [object synopsis](docs/object-synopsis.md).
 
+Two event labels are also saved: `GenWDecay` (TT2Q/TTCB) and
+`GenNExtraBQuarks` (additional b/anti-b count), each with a validity flag.
+The unrestricted quark count requires complete generator truth; see
+[event truth labels](docs/event-truth-labels.md) for the sidecar preparation
+and `--truth-label-manifest` option. NanoAOD-only runs mark that count unknown.
+
 ## Current scope
 
 - The supported production target is 2024 MC with AK4 PUPPI jets. Nominal
@@ -130,8 +136,8 @@ micromamba run -n ttbar python condor/scripts/validate_processed.py \
   --processed-dir /path/to/processed-nano/production_tag
 ```
 
-The validator automatically recognizes nominal output (741 branches) or output
-with all 18 supported weight variations (759 branches), and allows `finalWeight`
+The validator automatically recognizes nominal output (747 branches) or output
+with all 18 supported weight variations (765 branches), and allows `finalWeight`
 after normalization. Every file must match the mode detected from the first
 file; missing branches, unknown extras, and incomplete variation sets fail.
 Use `--schema-mode systematics` or `--schema-mode nominal` to require a specific
@@ -182,6 +188,9 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | --- | --- |
 | [Event synopsis](docs/event-synopsis.md) | Event selection, all weight terms, and second-pass normalization |
 | [Object synopsis](docs/object-synopsis.md) | Object processing and output fields |
+| [Event truth labels](docs/event-truth-labels.md) | TT2Q/TTCB, extra-b-quark count, validity masks, and complete-truth sidecars |
+| [B0 input preparation](docs/b0-input-readiness-2026-10-28.md) | Processor freeze scope, ten-jet cap, retained W-lepton flag, TTBB matching pilot and provisional normalization sources |
+| [B0 input profile](docs/b0-input-profile.md) | Central-jet selection before the ten-slot cap, feature masks, zero-charge decoding, matching and source identity |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |

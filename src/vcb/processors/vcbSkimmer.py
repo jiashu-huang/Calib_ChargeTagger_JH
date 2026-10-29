@@ -135,7 +135,7 @@ from boostedhh.processors.utils import (
 )
 from vcb.HLTs import HLTs  # Trigger lists grouped by year/region.
 
-from . import GenSelection, objects  # Local gen selection and object definitions.
+from . import GenSelection, b0_inputs, objects  # Local gen selection and object definitions.
 from .electron_ss import apply_electron_scale_smearing  # 2024 EGM electron energy scale/smearing.
 from .kinematic_variations import resolve_variation
 from .lepton_sf import add_lepton_weights  # 2024 lepton reco/ID/iso/trigger SFs.
@@ -143,6 +143,7 @@ from .muon_ss import PT_VARIATIONS as MUON_PT_VARIATIONS
 from .muon_ss import VARIATION_IDS as MUON_VARIATION_IDS
 from .muon_ss import apply_muon_scale_smearing
 from .top_pt import top_pt_weights  # ttbar top-pT reweighting SFs (standalone columns).
+from .truth_labels import extra_b_labels, read_truth_manifest
 
 # -----------------------------------------------------------------------------
 # End Imports
@@ -399,6 +400,9 @@ class vcbSkimmer(SkimmerABC):
         prescale_factor: int = None,
         muon_pt_variation: str = "nominal",
         kinematic_variation: str = "nominal",
+        truth_label_manifest: str | None = None,
+        truth_label_manifest_sha256: str | None = None,
+        input_profile: str = "calibration",
     ):
         # Initialize the base Processor/Skimmer state first.
         super().__init__()
@@ -413,6 +417,9 @@ class vcbSkimmer(SkimmerABC):
         # Persist configuration flags for later processing steps.
         self._systematics = save_systematics
         self._nano_version = nano_version
+        if input_profile not in ("calibration", "b0"):
+            raise ValueError(f"Unsupported input profile: {input_profile}")
+        self._input_profile = input_profile
         self._region = region
         # Coffea accumulator to collect outputs from process().
         self._accumulator = processor.dict_accumulator({})
@@ -420,6 +427,12 @@ class vcbSkimmer(SkimmerABC):
         self._prescale_factor = prescale_factor
         self._variation = resolve_variation(kinematic_variation, muon_pt_variation)
         self._muon_pt_variation = self._variation.muon
+        if truth_label_manifest_sha256 is not None and not truth_label_manifest:
+            raise ValueError("A truth manifest checksum requires a truth-label manifest")
+        self._truth_labels = (
+            read_truth_manifest(truth_label_manifest, expected_sha256=truth_label_manifest_sha256)
+            if truth_label_manifest else None
+        )
 
         # Log the configuration for user visibility.
         logger.info(
@@ -454,6 +467,8 @@ class vcbSkimmer(SkimmerABC):
 
         # isData is defined by the absence of genWeight.
         isData = not hasattr(events, "genWeight")
+        if self._input_profile == "b0" and (year != "2024" or isData):
+            raise ValueError("The B0 input profile is validated for 2024 MC only")
         self._variation.validate_sample(year, isData)
 
         # gen-weights
@@ -590,7 +605,7 @@ class vcbSkimmer(SkimmerABC):
         # jets around them too. `GenSelection.num_jets` pads the gen-match flags
         # and must stay equal to this, or slots 8-9 carry jets whose truth flags
         # were silently truncated.
-        num_ak4_jets = 10
+        num_ak4_jets = GenSelection.NUM_JET_SLOTS
         jets, _jec_shifted_jetvars = JEC_loader.get_jec_jets(
             events,
             events.Jet,
@@ -646,7 +661,9 @@ class vcbSkimmer(SkimmerABC):
         # superset of. JEC changes pt/mass values but neither the order nor the
         # count, so doing it here rather than pre-JEC is equivalent and keeps
         # the raw-NanoAOD dependency in one place.
-        jets = objects.attach_jet_charge(jets, events)
+        jets = objects.attach_jet_charge(
+            jets, events, allow_missing=self._input_profile == "b0"
+        )
 
         # The jet-veto map is evaluated on the *uncleaned* collection (see
         # `objects.jetveto_candidate_jets`), so keep a handle on it before
@@ -686,7 +703,10 @@ class vcbSkimmer(SkimmerABC):
         # (`Gen*JetIdx`): sorting after that call would leave slot k's kinematics and
         # slot k's gen match describing different jets, with nothing anywhere to
         # catch it.
-        jets = jets[ak.argsort(jets.pt, axis=1, ascending=False)]
+        if self._input_profile == "b0":
+            jets = b0_inputs.select_jets(jets)
+        else:
+            jets = jets[ak.argsort(jets.pt, axis=1, ascending=False)]
 
         ht = ak.sum(jets.pt, axis=1)
         print("* ak4:\t", f"{time.time() - start:.2f}")
@@ -705,6 +725,12 @@ class vcbSkimmer(SkimmerABC):
                     events, jets, electrons, muons, selection_args, P4
                 )
                 genVars = {**genVars, **vars_dict}
+        if genVars:
+            genVars.update(extra_b_labels(events, self._truth_labels))
+        elif self._truth_labels is not None:
+            raise ValueError("Truth-label manifest requires a supported semileptonic ttbar dataset")
+        if self._input_profile == "b0" and not genVars:
+            raise ValueError("B0 requires a supported semileptonic ttbar MC dataset")
 
         # used for normalization to cross section below
         #
@@ -859,6 +885,14 @@ class vcbSkimmer(SkimmerABC):
                 "genJetIdxSaved": "GenJetIdx",
             }
 
+        if self._input_profile == "b0":
+            # Missing measurements receive validity=false in the B0 features.
+            # Core kinematics and jet identities remain required.
+            for field in jet_skimvars:
+                optional = field.startswith(("btag", "ParT", "Qk", "Pflav", "FlavSplit"))
+                if field not in jets.fields and optional:
+                    jets = ak.with_field(jets, ak.full_like(jets.pt, np.nan), field)
+
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_ak4_jets, axis=1)
             for (var, key) in jet_skimvars.items()
@@ -943,6 +977,9 @@ class vcbSkimmer(SkimmerABC):
             **genJetVars,
             **metVars,
         }
+        if self._input_profile == "b0":
+            skimmed_events.update(b0_inputs.build_columns(jets, triggerLeptonVars, metVars, genVars))
+            skimmed_events.update(b0_inputs.source_columns(events.metadata, len(events)))
 
         print("Vars", f"{time.time() - start:.2f}")
 
@@ -992,6 +1029,10 @@ class vcbSkimmer(SkimmerABC):
         # build W -> l nu from), a silent 1.0 lepton SF, and jets that were never
         # cleaned against the lepton. See docs/processor.md section 6.
         add_selection("trigger_lepton", use_trigger_electron | use_trigger_muon, *selection_args)
+        if self._input_profile == "b0":
+            # Keep the all-input normalization denominator above this event cut.
+            # Missing features and incomplete truth do not reject events.
+            add_selection("b0_min_jets", ak.num(jets) >= b0_inputs.MIN_JETS, *selection_args)
         if self._prescale_factor:
             cut_prescale = events.event % self._prescale_factor == 0
             add_selection("prescale", cut_prescale, *selection_args)

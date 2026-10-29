@@ -271,6 +271,9 @@ GenLepWEta,Float_t
 GenLepWMass,Float_t
 GenLepWPhi,Float_t
 GenLepWPt,Float_t
+GenNExtraBQuarks,Int_t
+GenNExtraBQuarksStatus,Int_t
+GenNExtraBQuarksValid,Bool_t
 GenQ1Eta,Float_t
 GenQ1Mass,Float_t
 GenQ1PdgId,Int_t
@@ -289,6 +292,9 @@ GenTopPhi0,Float_t
 GenTopPhi1,Float_t
 GenTopPt0,Float_t
 GenTopPt1,Float_t
+GenTruthLabelVersion,Int_t
+GenWDecay,Int_t
+GenWDecayValid,Bool_t
 GenWLeptonCharge,Int_t
 GenWLeptonEta,Float_t
 GenWLeptonFlavor,UInt_t
