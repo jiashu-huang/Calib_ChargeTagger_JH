@@ -35,6 +35,10 @@ CODE_FILES = (
     "condor/scripts/build_truth_labels.py", "condor/scripts/c1_inventory.py",
     "src/vcb/truth.py", "src/vcb/__init__.py",
 )
+NATIVE_REDIRECTORS = (
+    "root://cms-xrd-global.cern.ch/", "root://cmsxrootd.fnal.gov/",
+    "root://xrootd-cms.infn.it/",
+)
 
 
 def now():
@@ -136,6 +140,7 @@ def run_pair(campaign, record, config):
         if destination.exists():
             return validate_pair(destination, record, config)
         started = time.monotonic()
+        prior_attempts = len(list((campaign / "attempts").glob(record["id"] + ".*")))
         attempt = Path(tempfile.mkdtemp(prefix=record["id"] + ".", dir=campaign / "attempts"))
         log = attempt / "build.log"
         write_json(attempt / "source.json", record)
@@ -144,6 +149,9 @@ def run_pair(campaign, record, config):
                     prefix="vcb_c1_", dir=os.environ.get("_CONDOR_SCRATCH_DIR", "/tmp")) as temp:
                 scratch = Path(temp)
                 nano, native = record["nano_file"], record["native_truth"]
+                if record["native_kind"] == "remote MiniAOD":
+                    redirectors = config["native_redirectors"]
+                    native = redirectors[prior_attempts % len(redirectors)] + record["source_lfn"]
                 if record["native_kind"] == "EOS complete GenTruth":
                     nano = stage_eos(nano, scratch / "nano.root", record["nano_bytes"],
                                      record["nano_adler32"], log)
@@ -160,6 +168,7 @@ def run_pair(campaign, record, config):
             validate_pair(labels, record, config)
             manifest = json.loads((labels / "manifest.json").read_text())
             row = manifest["files"][0]
+            actual_read_paths = {key: row[key] for key in ("nano_file", "native_truth")}
             row.update(nano_file=record["nano_file"], native_truth=record["native_truth"],
                        source_lfn=record["source_lfn"], sample=record["sample"],
                        dataset=record["dataset"], inventory_sha256=config["inventory_sha256"])
@@ -169,6 +178,7 @@ def run_pair(campaign, record, config):
                 "wall_seconds": time.monotonic() - started, "host": socket.gethostname(),
                 "attempt": str(attempt), "manifest_sha256": sha(labels / "manifest.json"),
                 "inventory_sha256": config["inventory_sha256"],
+                "actual_read_paths": actual_read_paths,
                 "eos_catalog_checksums_checked": record["native_kind"] == "EOS complete GenTruth",
             })
             validate_pair(labels, record, config)
@@ -281,6 +291,7 @@ def prepare(campaign, args):
               "cmssw": str(args.cmssw.resolve()), "proxy": str(args.proxy.resolve()),
               "files_per_job": args.files_per_job, "max_jobs": args.max_jobs,
               "pair_timeout_seconds": args.pair_timeout, "batch_sha256": {}}
+    config["native_redirectors"] = list(NATIVE_REDIRECTORS)
     # Gate the campaign on one real worker job per source. Each remaining job
     # handles up to five pairs; the first three jobs are also production outputs.
     groups = {}

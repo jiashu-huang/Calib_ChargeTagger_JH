@@ -68,6 +68,11 @@ verified completed pairs. A CMS proxy with at least three hours remaining is
 required at worker start. Expiration requires renewal, never an interactive
 passphrase prompt in a batch job.
 
+For failed remote MiniAOD reads, subsequent attempts use the CMS global,
+Fermilab and INFN redirectors in turn. The original MiniAOD LFN remains fixed;
+every attempt must pass the same identity/content checks. The successful read
+path is retained in the pair completion record.
+
 ## Meaning of the labels
 
 The sidecar stores the exact unrestricted count and its validity status. Primary

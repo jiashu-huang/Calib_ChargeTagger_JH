@@ -29,7 +29,8 @@ def example(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(name)
         pins[name] = campaign.sha(target)
-    config = {"code_sha256": pins, "inventory_sha256": "pending"}
+    config = {"code_sha256": pins, "inventory_sha256": "pending",
+              "native_redirectors": list(campaign.NATIVE_REDIRECTORS)}
     values = {"run": np.array([1, 1, 1]), "luminosityBlock": np.array([2, 2, 2]),
               "event": np.array([100, 101, 102]), "count": np.array([0, 2, -1]),
               "status": np.array([0, 0, 3]), "nano_uuid": np.array("source-uuid"),
@@ -130,7 +131,10 @@ def test_failed_builder_never_publishes_a_pair(example, monkeypatch):
     (root / "attempts").mkdir()
     config["pair_timeout_seconds"] = 1
 
+    reads = []
+
     def fail_after_partial_output(argv, _log, **_kwargs):
+        reads.append(argv[4])
         output = Path(argv[-1])
         output.mkdir()
         (output / "labels.npz").write_bytes(b"partial")
@@ -141,6 +145,10 @@ def test_failed_builder_never_publishes_a_pair(example, monkeypatch):
         campaign.run_pair(root, record, config)
     assert not (root / "pairs/TTCB/TTCB_new").exists()
     assert len(list((root / "attempts").glob("*/failure.json"))) == 1
+    with pytest.raises(RuntimeError, match="interrupted"):
+        campaign.run_pair(root, record, config)
+    assert reads == [redirector + record["source_lfn"]
+                     for redirector in config["native_redirectors"][:2]]
 
 
 def test_pinned_inventory_and_worker_code_are_enforced(example):
