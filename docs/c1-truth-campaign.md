@@ -5,15 +5,25 @@ extra-b-quark truth sidecars. B0 skim production, selection/matching audits,
 training-file conversion and training are later steps. All work here runs on
 BRUX. The frozen B0 processor and its truth definition are unchanged.
 
+The [October 28 launch record](c1-truth-campaign-2026-10-28.json) pins the
+inventory, code snapshot, validation evidence and Condor submission. Task 1
+completed with **13,737 files and 548,403,125 raw events**. Task 2 was submitted
+as DAG **7642817**, with 2,751 worker batches and an automatic final certification
+job. The launch record is not a completion certificate; the runtime campaign's
+`completion.json` is the final gate.
+
 ## Inputs and coverage
 
 The canonical conversion is `charge_Run3_2024_150X_v1`:
 
-| Source | NanoAOD files | Complete generator record |
-| --- | ---: | --- |
-| TTtoLNuCB | 465 | Original 2024 MiniAODs; three already local, the rest through CMS XRootD |
-| TTtoLNu2Q | 11,014 | Original 2024 MiniAODs through CMS XRootD |
-| TTBB-TTtoLNu2Q | 2,258 | Paired complete GenTruth files in the verified EOS production of October 24 |
+| Source | NanoAOD files | Raw events | Complete generator record |
+| --- | ---: | ---: | --- |
+| TTtoLNuCB | 465 | 19,823,340 | Original 2024 MiniAODs; three already local, the rest through CMS XRootD |
+| TTtoLNu2Q | 11,014 | 484,256,657 | Original 2024 MiniAODs through CMS XRootD |
+| TTBB-TTtoLNu2Q | 2,258 | 44,323,128 | Paired complete GenTruth files in the verified EOS production of October 24 |
+
+These are counts before event selection and matching, not the usable
+reconstruction-training populations.
 
 The original conversion input lists define the first two populations. The
 completed TTBB catalog and its bound production manifest define the third.
@@ -24,9 +34,14 @@ not define the new campaign population.
 `condor/scripts/c1_inventory.py` checks every NanoAOD header, required basic
 branches, UUID, event count and Runs weight sums. It rejects missing declared
 files, duplicated sources/UUIDs, invalid headers and partial TTBB ranges. It
-records branch schemas, source locations and local file sizes/timestamps or EOS
+records branch names, titles and ROOT classes, source locations and local file sizes/timestamps or EOS
 catalog checksums. A Runs/Events count difference is reported explicitly.
 The complete truth builder subsequently requires complete native event coverage.
+
+All three sources have the same 2,019 branch names. Their recorded branch
+metadata differ only in the `LHEPdfWeight` documentation: TTBB identifies LHA
+IDs `325500–325600`, while TTCB/TT2Q identify `325300–325402`. These PDF metadata
+remain separate by source. The complete feature/type audit remains later C1 work.
 
 ROOT's compiled header reader is the production reader. Independent Uproot
 measurements check its UUID, counts and weight sums. The ROOT and Uproot readers
