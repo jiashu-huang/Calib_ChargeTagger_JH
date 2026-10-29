@@ -197,6 +197,7 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [Event truth labels](docs/event-truth-labels.md) | TT2Q/TTCB, extra-b-quark count, validity masks, and complete-truth sidecars |
 | [B0 input preparation](docs/b0-input-readiness-2026-10-28.md) | Processor freeze scope, ten-jet cap, retained W-lepton flag, TTBB matching pilot and provisional normalization sources |
 | [B0 input profile](docs/b0-input-profile.md) | [Processing flowchart](docs/b0-input-profile.md#processing-flow), central-jet selection before the ten-slot cap, feature masks, zero-charge decoding, matching and source identity |
+| [C1 truth campaign](docs/c1-truth-campaign.md) | 2024 source inventory, complete native truth, resumable Condor jobs and coverage checkpoints before B0 skim production |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
