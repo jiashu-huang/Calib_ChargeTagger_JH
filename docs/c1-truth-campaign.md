@@ -12,6 +12,12 @@ as DAG **7642817**, with 2,751 worker batches and an automatic final certificati
 job. The launch record is not a completion certificate; the runtime campaign's
 `completion.json` is the final gate.
 
+All three initial Condor workers passed on October 28, covering **110,196
+events**, and bulk processing was released with a 40-job limit. The TTBB
+sidecar agrees exactly with the independent direct-remote pilot. Initial TT2Q
+and TTBB connection failures recovered through the configured retries; their
+completed sidecars passed the normal checks.
+
 ## Inputs and coverage
 
 The canonical conversion is `charge_Run3_2024_150X_v1`:

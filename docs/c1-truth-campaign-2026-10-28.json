@@ -188,5 +188,26 @@
     "C1 task 3: run the common B0 processor on all three sources",
     "C1 task 4: audit selected/full-matched counts, truth validity, feature masks and jet truncation",
     "C2: common training inputs and protected source-lineage splits"
+  ],
+  "worker_gate": {
+    "state": "passed",
+    "events_verified": 110196,
+    "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-truth-20261028/worker-gate-validation.json",
+    "sha256": "4d9276952888247de271845333bd8f32b1178a74402a1671cab04989c6148886",
+    "ttbb_direct_and_staged_payloads_identical": true
+  },
+  "status_after_worker_gate": {
+    "checked_on_brux_utc": "2026-10-29T02:10:21.781596+00:00",
+    "task1_inventory": "complete",
+    "task2_complete_truth_sidecars": "bulk production running",
+    "full_truth_campaign_complete": false,
+    "C1_complete": false,
+    "b0_skims_started": false,
+    "training_started": false
+  },
+  "operational_findings": [
+    "The first TT2Q remote read timed out; automatic retry through Fermilab succeeded.",
+    "The first TTBB EOS connection timed out; retry completed with catalog size/Adler-32 checks.",
+    "The TTBB payload is identical to the independent direct-remote pilot; neither retry changed truth semantics."
   ]
 }
