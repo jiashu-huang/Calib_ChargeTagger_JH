@@ -22,8 +22,9 @@ Start with these two guides:
    obtain `finalWeight`.
 4. Apply analysis selections and prepare training inputs downstream.
 
-The ROOT `Events` tree has fixed slots for up to three electrons, three muons,
-10 reconstructed jets, and 25 generator jets, plus a chosen trigger lepton,
+In the default `calibration` profile, the ROOT `Events` tree has fixed slots
+for up to three electrons, three muons, 10 reconstructed jets, and 25 generator
+jets, plus a chosen trigger lepton,
 MET, and event quantities. The processor keeps analysis jets above 15 GeV;
 the later 20 GeV cut belongs downstream. It imposes no minimum jet count,
 b-tag count, or MET magnitude.
@@ -38,6 +39,11 @@ Two event labels are also saved: `GenWDecay` (TT2Q/TTCB) and
 The unrestricted quark count requires complete generator truth; see
 [event truth labels](docs/event-truth-labels.md) for the sidecar preparation
 and `--truth-label-manifest` option. NanoAOD-only runs mark that count unknown.
+
+For joint reconstruction/classification inputs, use `--input-profile b0`.
+The [B0 processing flowchart](docs/b0-input-profile.md#processing-flow) shows
+how 2024 TT2Q, TTCB and TTBB NanoAODs become features, truth labels and matching
+targets, with central-jet selection before the ten-jet cap.
 
 ## Current scope
 
@@ -190,7 +196,7 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [Object synopsis](docs/object-synopsis.md) | Object processing and output fields |
 | [Event truth labels](docs/event-truth-labels.md) | TT2Q/TTCB, extra-b-quark count, validity masks, and complete-truth sidecars |
 | [B0 input preparation](docs/b0-input-readiness-2026-10-28.md) | Processor freeze scope, ten-jet cap, retained W-lepton flag, TTBB matching pilot and provisional normalization sources |
-| [B0 input profile](docs/b0-input-profile.md) | Central-jet selection before the ten-slot cap, feature masks, zero-charge decoding, matching and source identity |
+| [B0 input profile](docs/b0-input-profile.md) | [Processing flowchart](docs/b0-input-profile.md#processing-flow), central-jet selection before the ten-slot cap, feature masks, zero-charge decoding, matching and source identity |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |

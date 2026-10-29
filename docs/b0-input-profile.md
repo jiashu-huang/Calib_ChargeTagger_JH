@@ -5,6 +5,46 @@ reconstruction/classification baseline. The default `calibration` profile keeps
 the existing skim selection and columns. Both profiles use the same corrections,
 trigger lepton, event-quality filters, jet ID, cleaning and event weights.
 
+## Processing flow
+
+B0 accepts 2024 `TTtoLNu2Q`, `TTtoLNuCB` and `TTBB-TTtoLNu2Q` NanoAODs.
+The MiniAOD-to-NanoAOD conversion is performed upstream by CMSSW_CHARGE.
+The chart shows the logical processing steps; normalization totals cover all
+input events, including those rejected by the selection.
+
+```mermaid
+flowchart TD
+    A["2024 CMSSW_CHARGE NanoAOD<br/>TT2Q, TTCB or TTBB"]
+    T["Paired MiniAOD generator truth<br/>Prepare verified extra-b counts"]
+
+    subgraph P["Calib_ChargeTagger_JH — B0 mode"]
+        B["Apply object corrections<br/>Trigger, lepton and event-quality selection"]
+        C["Select jets: pT > 25 GeV, |eta| < 2.4<br/>Require at least 4"]
+        D["Keep up to 10 jets<br/>Record multiplicity and overflow"]
+        E["Prepare observable features<br/>Jet tags, charge, lepton and MET<br/>Attach validity masks"]
+        F["Build independent truth labels<br/>TT2Q or TTCB<br/>Exact extra-b-quark count"]
+        G["Match top-decay partons to jets<br/>Greedy matching, delta-R < 0.4"]
+        H["Write ROOT skim<br/>Features, labels, matching masks,<br/>weights and source-event identity"]
+
+        B --> C --> D
+        D --> E
+        D --> F
+        D --> G
+        E --> H
+        F --> H
+        G --> H
+    end
+
+    A --> B
+    T --> F
+    H -.-> I["Next: full-sample audit and dataset construction<br/>Then SPANet training"]
+```
+
+Full matching enables reconstruction supervision. Other selected events remain
+available for classification wherever their truth labels are valid. Without
+the paired complete-generator truth, the extra-b count is marked unknown;
+it is never assumed to be zero. The dashed arrow identifies downstream work.
+
 ## Selection and matching
 
 After correction, ID and lepton cleaning, B0 selects jets with strict
