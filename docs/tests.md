@@ -12,6 +12,9 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 | File | What it does |
 |---|---|
+| [tests/test_ttbb_campaign.py](../tests/test_ttbb_campaign.py) | Frozen source, schema/metadata/report checksums, rejection of legacy campaigns and clipped ratios, exact integrated-reference comparisons, incomplete-report failures, input checksums, coverage and retry behavior. |
+| [tests/test_matching_report.py](../tests/test_matching_report.py) | Geometric versus B0-eligible counts, analytic W/top masses, unordered W pair, invalid indices/geometry, duplicate files, empty populations, chunking and plot artifacts. |
+| [tests/test_ttbar_scale_weights.py](../tests/test_ttbar_scale_weights.py) | Supported ttbar/TTBB routing, signed all-input scale sums and preservation of raw PDF members with systematics enabled. |
 | [tests/test_normalization.py](../tests/test_normalization.py) | Complete signed-weight preflight, late scale mismatches, nonfinite denominators and quotients, unchanged ROOT files after failed checks, empty/zero-weight outputs, verified reruns and actual forced ROOT rewriting. |
 | [tests/test_skim_preservation.py](../tests/test_skim_preservation.py) | Extra-lepton identity, heavy-flavour origin, isolation, threshold migration and truncation; unclustered-MET vector rebasing; signed/zero PDF ratios, actual signal/TTBB layouts, incompatible mappings, per-chunk sums including empty selections, and zero/one-event ROOT shapes. |
 | [tests/test_event_truth_labels.py](../tests/test_event_truth_labels.py) | W modes and unknowns; primary top/W b exclusions; shower-copy removal; extra b radiation within top decays; malformed ancestry; independent validity; source UUID, checksum, event-order and chunk-join checks. |

@@ -111,9 +111,10 @@ the revised rejected-event totals, unclipped ratios or missing PDF members.
 The completed NanoAOD conversion and certified C1 truth payloads can be reused
 with their identity and checksum checks.
 
-The separate frozen-TTBB production helper and optional matching-report module
-are not part of either merged parent. Review and integrate them against this
-combined schema before the next full campaign. The November 3 C1 repair
+At this checkpoint the separate frozen-TTBB production helper and optional
+matching-report module were outside both merged parents. Their subsequent
+integration is recorded in [TTBB helper integration](ttbb-helper-integration-2026-11-03.md).
+The November 3 C1 repair
 validator and recovery notes are also uncommitted work in the original C1
 checkout; this merge preserves them there without silently adding them.
 

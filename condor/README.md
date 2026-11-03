@@ -8,6 +8,12 @@ The skimmer never writes `finalWeight` — its denominator sums over every batch
 which no single job can know. It is appended afterwards, in place, by
 `scripts/normalize.py`.
 
+For the certified 2024 TTBB sample on EOS, use the separate
+[TTBB B0 production workflow](../docs/ttbb-b0-production.md). It stages and
+checks EOS inputs, freezes its own source snapshot, requires a validated pilot,
+and schedules normalization and matching reports after complete coverage.
+The local `batch_*` submitter described below does not accept EOS URLs.
+
 Run the submitter from the `ttbar` environment (activate it or prefix the
 commands below with `micromamba run -n ttbar`). The worker's environment
 selection remains controlled independently by `--mamba-env`.
