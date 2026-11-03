@@ -1,5 +1,8 @@
 # TTBB production and matching-report integration
 
+**Passed:** software validation and the complete Condor pilot. The frozen
+processor/helper commit is `47c4169`. Full production has not been submitted.
+
 This follow-up merges the separate TTBB production/report work at `d580296`
 into `codex/cms-c1-integration-20261103`, whose prior checkpoint is `8bf0156`.
 The processor, object corrections, truth definitions and normalization library
@@ -61,9 +64,37 @@ relatively, with zero absolute tolerance, for these twelve products only.
 Tests require exact PDF values and reject larger component differences. The
 processor itself is unchanged; the failed campaign is preserved.
 
-A new frozen campaign will run the corrected check and complete the Condor
-pilot. Its result will be recorded here after execution. The full production
-DAG will not be submitted as part of this integration task.
+## Passed Condor pilot
+
+Job **7651194.0** ran the newly frozen `47c4169` source on one complete EOS
+input and exited with code 0. The campaign is stored at
+`/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-ttbb-cms-c1-pilot-20261103-r2`.
+
+| Check | Result |
+|---|---|
+| Input coverage | 22,176 events; certified source size, checksum and UUID verified |
+| Selection | 4,055 events; 1,347 columns before `finalWeight` |
+| Reference comparison | All columns agree; only the twelve component products use the documented rounding tolerance |
+| Normalization | All 49 fields agree exactly with the reference and pass input-based arithmetic checks |
+| Output validation | 149 passed, zero failed |
+| Normalization rerun | ROOT bytes unchanged |
+| Fully matched | 1,438 |
+| Hadronic-top matched, inclusive | 1,794 |
+| Hadronic-top only | 356 |
+| W-pair matched | 2,243 |
+| Report artifacts | Text, JSON and both W/top plot selections in PNG and PDF |
+
+All matching counts and mass-histogram bins agree exactly with the independent
+integrated reference report. Frozen source, configuration, schema, metadata,
+normalized ROOT and report hashes were rechecked after completion. The final
+software suite passes 445 tests plus 22 subtests; lint passes. Only the pilot
+was submitted, and no full `production.dag` was generated.
+
+The [machine-readable record](ttbb-helper-integration-2026-11-03-validation.json)
+contains the source hashes, both pilot attempts, Condor exit status, input and
+output identities, arithmetic checks, population counts, report paths and logs.
+The next production step is an explicit launch using this passed frozen
+campaign; the original EOS NanoAODs and certified C1 truth remain reusable.
 
 See [TTBB production](ttbb-b0-production.md) for the execution and retry
 contract, and [matching reports](matching-report.md) for population definitions.

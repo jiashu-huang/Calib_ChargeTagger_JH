@@ -238,6 +238,7 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [B0 matched-jet mass check](docs/b0-mass-sanity-2026-11-03.md) | Bounded TT2Q/TTBB W and top mass comparison before full skim production |
 | [Optional matching report](docs/matching-report.md) | Full and hadronic-top matching counts, text/JSON summaries, and matched-jet W/top mass plots |
 | [TTBB B0 production](docs/ttbb-b0-production.md) | Frozen EOS-input campaign, CMS version-3 weight validation, Condor pilot, and automatic normalization/reporting |
+| [TTBB helper integration](docs/ttbb-helper-integration-2026-11-03.md) | Passed Condor pilot, matching counts and plots, source freeze and validation evidence |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |
