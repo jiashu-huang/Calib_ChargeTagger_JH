@@ -27,6 +27,7 @@ from pathlib import Path
 import numpy as np
 import uproot
 
+from vcb.processors.lepton_sf import MUON_COMPONENT_WEIGHT_BRANCHES
 from vcb.processors.pdf_weights import read_saved_layout
 from vcb.processors.weight_prescription import read_saved_prescription
 
@@ -34,6 +35,9 @@ REPO = Path(__file__).resolve().parents[2]
 DATASET = "TTBB-TTtoLNu2Q"
 DEFAULT_ENV = Path("/isilon/export/home/jhuan166/micromamba/envs/ttbar")
 DEFAULT_MAMBA = Path("/isilon/export/home/jhuan166/.local/bin/micromamba")
+# Coffea multiplies partial-weight factors through a Python set. Across processes,
+# their order can change a few float64 rounding bits in the 12 MUO alternatives.
+COMPONENT_ROUNDOFF_RTOL = 16 * np.finfo(np.float64).eps
 
 
 def now():
@@ -230,17 +234,30 @@ def compare_reference(skim, config):
         before.pop("finalWeight", None)
         if set(after) != set(before):
             raise ValueError("Unexpected branch change in TTBB pilot")
+        maximum_roundoff = 0.
         for name in before:
             if old["Events"][name].typename != new["Events"][name].typename:
                 raise ValueError(f"Pilot/reference branch type differs: {name}")
-            np.testing.assert_array_equal(before[name], after[name], err_msg=name)
+            if name in MUON_COMPONENT_WEIGHT_BRANCHES:
+                np.testing.assert_allclose(before[name], after[name], rtol=COMPONENT_ROUNDOFF_RTOL,
+                                           atol=0., equal_nan=False, err_msg=name)
+                scale = np.maximum(np.abs(before[name]), np.abs(after[name]))
+                relative = np.divide(np.abs(before[name] - after[name]), scale,
+                                     out=np.zeros_like(scale), where=scale != 0)
+                maximum_roundoff = max(maximum_roundoff, float(np.max(relative, initial=0.)))
+            else:
+                np.testing.assert_array_equal(before[name], after[name], err_msg=name)
         if set(old["Norm"].keys()) != set(new["Norm"].keys()):
             raise ValueError("Pilot/reference normalization fields differ")
         for name, branch in old["Norm"].items():
             np.testing.assert_array_equal(branch.array(library="np"),
                                           new["Norm"][name].array(library="np"), err_msg=name)
-    return {"unchanged_branches": len(before), "new_branches": 0,
-            "all_values_and_normalization_unchanged": True, "weight_prescription_version": 3}
+    return {"compared_branches": len(before), "new_branches": 0,
+            "all_columns_agree": True, "normalization_values_identical": True,
+            "component_roundoff_relative_tolerance": COMPONENT_ROUNDOFF_RTOL,
+            "component_roundoff_absolute_tolerance": 0.,
+            "maximum_component_relative_difference": maximum_roundoff,
+            "weight_prescription_version": 3}
 
 
 def run_one(campaign, config, record, *, pilot=False):

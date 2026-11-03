@@ -51,9 +51,19 @@ every event in each matched population:
 | TTCB | 4,703 | 1,705 | 2,063 | 358 |
 | TTBB | 4,055 | 1,438 | 1,794 | 356 |
 
-The frozen Condor pilot is pending at this source-freeze checkpoint. Its
-result will be recorded here after execution. The full production DAG will
-not be submitted as part of this integration task.
+The first frozen Condor pilot, job 7651193.0 at `002ee54`, reached the reference
+comparison but failed its bitwise check on the twelve muon component weights.
+A complete column audit found no other event-column differences and identical
+normalization fields. The largest relative discrepancy was 5.16e-16. Coffea's
+`Weights.partial_weight` iterates a Python set, so multiplication order can
+change between processes. The reference check now allows 16 float64 epsilons
+relatively, with zero absolute tolerance, for these twelve products only.
+Tests require exact PDF values and reject larger component differences. The
+processor itself is unchanged; the failed campaign is preserved.
+
+A new frozen campaign will run the corrected check and complete the Condor
+pilot. Its result will be recorded here after execution. The full production
+DAG will not be submitted as part of this integration task.
 
 See [TTBB production](ttbb-b0-production.md) for the execution and retry
 contract, and [matching reports](matching-report.md) for population definitions.

@@ -96,7 +96,8 @@ def test_old_campaign_is_rejected_before_using_legacy_assumptions(tmp_path):
 
 def test_reference_accepts_only_equal_integrated_values_and_metadata(monkeypatch, tmp_path):
     old, new = tmp_path / "reference.root", tmp_path / "pilot.root"
-    fields = {"event": np.array([1, 2]), "PDFWeight0": np.array([1., -2.])}
+    fields = {"event": np.array([1, 2]), "PDFWeight0": np.array([1., -2.]),
+              "weight_muon_id_statDown": np.array([1.e8, -2.e8])}
 
     def write(path, columns):
         with uproot.recreate(path) as out:
@@ -108,8 +109,16 @@ def test_reference_accepts_only_equal_integrated_values_and_metadata(monkeypatch
     monkeypatch.setattr(campaign, "read_saved_prescription", lambda _handle: {"version": 3})
     monkeypatch.setattr(campaign, "read_saved_layout", lambda _handle: {"lha_ids": [325500]})
     config = {"pilot_reference": str(old), "pilot_reference_sha256": campaign.sha(old)}
-    assert campaign.compare_reference(new, config)["unchanged_branches"] == 2
-    write(new, {**fields, "PDFWeight0": np.array([1., 0.])})
+    assert campaign.compare_reference(new, config)["compared_branches"] == 3
+    rounded = {**fields, "weight_muon_id_statDown": np.nextafter(fields["weight_muon_id_statDown"], np.inf)}
+    write(new, rounded)
+    result = campaign.compare_reference(new, config)
+    assert 0 < result["maximum_component_relative_difference"] < campaign.COMPONENT_ROUNDOFF_RTOL
+    # The allowance is restricted to the component-weight products.
+    write(new, {**fields, "PDFWeight0": np.nextafter(fields["PDFWeight0"], np.inf)})
+    with pytest.raises(AssertionError):
+        campaign.compare_reference(new, config)
+    write(new, {**fields, "weight_muon_id_statDown": fields["weight_muon_id_statDown"] * (1 + 1e-10)})
     with pytest.raises(AssertionError):
         campaign.compare_reference(new, config)
     monkeypatch.setattr(campaign, "read_saved_prescription", lambda _handle: {"version": 2})

@@ -59,7 +59,12 @@ and runs the frozen processor. It then checks:
 1. Complete input coverage and original UUID/entry identity.
 2. B0 features, truth sidecars, distinct greedy matching and raw jet taggers.
 3. All output columns and `Norm` values against the integrated reference,
-   with identical weight prescription and PDF metadata.
+   with identical weight prescription and PDF metadata. All values must match
+   exactly except the twelve muon component alternatives: Coffea multiplies
+   their factors in set order, which can change between processes. Those
+   products allow at most 16 float64 epsilons relatively (about 3.6e-15),
+   with zero absolute tolerance. PDF values, identities, features, assignments,
+   other weights and all normalization fields still require exact equality.
 4. Selected weights and all-input sums against the original NanoAOD. The
    checker evaluates the pileup payload directly, preserves the input precision
    during scale division, and uses all input events, including rejected ones.
