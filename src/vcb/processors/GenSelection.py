@@ -32,6 +32,7 @@ LepArray = ElectronArray | MuonArray
 # Cone for the gen-parton -> reco-jet assignment. The parton *order* also matters
 # (it is the tie-break) and is fixed by `match_partons` in gen_selection_Vcb.
 MATCH_DR = 0.4
+NUM_JET_SLOTS = 10
 W_TO_QUARK_PAIR_TAGS = {
     "GenWtoUD": (PDGID.d, PDGID.u),
     "GenWtoUS": (PDGID.u, PDGID.s),
@@ -493,7 +494,7 @@ def gen_selection_Vcb(
     # at jets that are actually written, so a smaller value here would silently drop
     # matches and a larger one would emit indices past the end of the saved slots.
     # See _greedy_jet_parton_assignment on why matching past them loses labels.
-    num_jets = 10
+    num_jets = NUM_JET_SLOTS
 
     # One mapping defines both the assignment order (which is the tie-break) and the
     # branch names, so the two cannot drift: swapping these entries renames the

@@ -72,7 +72,17 @@ MiniAOD or retained complete truth to obtain usable counts.
 In a CMSSW runtime, build a small label file for each corresponding NanoAOD and
 native truth input. This reads existing files; it does not rerun reconstruction.
 Use a new output directory. Repeat `--pair` to build one manifest for several
-input files. Each pair must cover exactly the same events in the same order.
+input files. Each pair must cover exactly the same events with unique identities
+within the pair. MiniAOD and NanoAOD may differ in event order: the builder aligns
+them within that pair and writes labels in NanoAOD entry order. Duplicate or
+missing identities are errors. The builder also checks that every retained NanoAOD generator particle appears
+in order in the native record, with matching PDG ID, status, copy/hard-process
+flags and pt/eta/phi within NanoAOD's 8-bit mantissa precision. This rejects
+unrelated MC with reused event numbers. It allows particles removed by NanoAOD
+pruning, including soft b quarks. Missing generator branches or a content
+mismatch abort the pair before a label file is written. Keep the original
+conversion provenance: this content check cannot distinguish native records
+that differ only in information absent from NanoAOD.
 
 ```bash
 python3 condor/scripts/build_truth_labels.py \
@@ -96,12 +106,19 @@ establish TTBB normalization or inclusive/dedicated sample stitching.
 
 `condor/submit_batches.py` accepts the same `--truth-label-manifest` option,
 forwards it to each worker, and records the manifest path and checksum in
-`campaign.json`. The manifest must cover all input files in that campaign.
+`campaign.json`. Workers require that exact checksum before loading labels;
+editing or replacing the manifest after campaign creation aborts the affected
+job. The checksum is checked against the same bytes that are parsed, avoiding
+a separate check/read race. Local runs can request the same check with
+`--truth-label-manifest-sha256 <digest>`. The manifest must cover all input files
+in that campaign.
 
 The manifest binds each label file to the NanoAOD UUID and records its checksum,
 source paths, entry count, definition hash and count/status distributions. The
 processor checks the UUID, checksum, entry range and every `(run, lumi, event)`
-triple before attaching labels. A missing source in an explicitly supplied
+triple before attaching labels. Label arrays are decoded from the bytes whose
+checksum was verified, so replacing a file during loading cannot substitute
+unverified counts. A missing source in an explicitly supplied
 manifest, reordered events or changed label file is an error. It does not join
 independent MC files using event numbers alone. Kinematic passes use the same
 truth labels for each source event, even when reconstructed selections change.
@@ -110,6 +127,12 @@ These are truth targets, not network input features. Consumers must apply each
 label's own validity mask. Existing skims need reprocessing to acquire the new
 branches. C1 still needs per-source coverage and multiplicity audits before
 these labels are admitted to a training dataset.
+
+The [B0 input profile](b0-input-profile.md) adds a common central-jet selection,
+feature masks and source-entry metadata. It preserves both truth definitions,
+independent classification masks and the direct-W lepton flavor. The builder's
+within-file alignment handles the observed event-order differences in the
+2024 TTCB and inclusive TT2Q pilot files; retained-particle checks remain required.
 
 ## Validation on BRUX, 2026-10-27
 
@@ -136,3 +159,34 @@ and five with six. The ambiguous native event does not pass the skim selection.
 
 The validation record is [event-truth-labels-validation.json](event-truth-labels-validation.json).
 No production campaign or network training was launched by this change.
+
+## Integrity review on BRUX, 2026-10-28
+
+The review added generator-content checks when pairing inputs, enforced the
+manifest checksum recorded by Condor, and made sidecar decoding use the exact
+bytes already verified. The two label definitions and version remain unchanged.
+
+All 278 unit tests (plus 22 subtests) and lint pass. The full 208,780-event
+fixture writes the same 59,713 events: every value in all 747 branches matches
+the prior output. Schema and first-event baselines are unchanged. The jet-tagger
+round-trip passes; its only report difference is the absolute fixture path used
+by the isolated checkout.
+
+The retained-particle check passes on all 10,000 native TTBB pilot events.
+The rebuilt count sidecar is byte-for-byte identical to the previous sidecar.
+The processor accepts the pinned manifest and writes 2,709 events with the same
+native counts. A deliberate particle-content mismatch with unchanged event
+numbers fails before any labels are written. An incorrect manifest checksum
+fails before processing. A regression test also replaces a sidecar between
+verification and decoding: only the verified counts may be returned.
+
+The machine-readable record is
+[event-truth-labels-review-validation.json](event-truth-labels-review-validation.json).
+The review was originally performed in an isolated copy because the restricted
+runtime could not query the scheduler. On 2026-10-28, an unrestricted BRUX queue
+query returned no jobs, and the reviewed patch was integrated into the live
+checkout. All seven code/test hashes match the recorded validation. Fresh tests
+again pass (278 tests plus 22 subtests), and lint passes. The remaining
+TT2Q/TTCB native-coverage and normalization work is unchanged by this review.
+See [B0 input preparation](b0-input-readiness-2026-10-28.md) for the requested
+processor checkpoint and its remaining gates.

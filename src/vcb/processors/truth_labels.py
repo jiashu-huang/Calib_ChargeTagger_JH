@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 import awkward as ak
@@ -22,10 +23,13 @@ def unknown_count_labels(size):
     }
 
 
-def read_truth_manifest(path):
+def read_truth_manifest(path, *, expected_sha256=None):
     """Resolve one immutable manifest when constructing the processor."""
     path = Path(path).resolve()
-    manifest = json.loads(path.read_text())
+    contents = path.read_bytes()
+    if expected_sha256 is not None and sha256(contents).hexdigest() != expected_sha256:
+        raise ValueError(f"Truth-label manifest checksum mismatch: {path}")
+    manifest = json.loads(contents)
     if manifest.get("schema_version") != TRUTH_LABEL_VERSION:
         raise ValueError("Unsupported truth-label manifest version")
     records = {}
@@ -42,9 +46,10 @@ def read_truth_manifest(path):
 @lru_cache(maxsize=8)
 def _load_counts(path, digest, uuid):
     path = Path(path)
-    if sha256(path.read_bytes()).hexdigest() != digest:
+    contents = path.read_bytes()
+    if sha256(contents).hexdigest() != digest:
         raise ValueError(f"Truth-label checksum mismatch: {path}")
-    with np.load(path, allow_pickle=False) as data:
+    with np.load(BytesIO(contents), allow_pickle=False) as data:
         values = {key: data[key] for key in data.files}
     if (values["schema_version"].item() != TRUTH_LABEL_VERSION
             or values["nano_uuid"].item() != uuid):

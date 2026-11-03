@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-28",
+  "host_scope": "BRUX",
+  "truth_label_version": 1,
+  "implementation": "isolated review copy; live checkout unchanged",
+  "fixes": [
+    "Check retained generator particles when pairing native truth with NanoAOD",
+    "Enforce the manifest SHA-256 recorded at campaign creation",
+    "Decode sidecar arrays from the checksum-verified bytes"
+  ],
+  "validation": {
+    "ruff": "passed: src/vcb tests condor",
+    "pytest": {
+      "passed": 278,
+      "subtests_passed": 22,
+      "dependency_deprecation_warnings": 3
+    },
+    "signal_fixture": {
+      "input_events": 208780,
+      "events": 59713,
+      "branches": 747,
+      "changed_branches": [],
+      "jet_tagger_roundtrip": "PASS"
+    },
+    "baselines_unchanged": {
+      "test-output-schema.csv": true,
+      "test-output-0th-event.txt": true
+    },
+    "roundtrip_report_difference": "Only the fixture input path is absolute in the isolated copy",
+    "native_pilot": {
+      "input_events": 10000,
+      "retained_particle_check": "PASS for every event",
+      "sidecar_identical_to_20261027": true,
+      "nano_file": "/isilon/export/home/jhuan166/Vcb/cmssw-charge-run/pilots/ttbb_fixweights_20261017/jobs/000/output/80fe8d91-4bd9-435e-b5de-1035180db4d6_CMSSW_15_CHARGE_NanoAOD.root",
+      "native_truth": "/isilon/export/home/jhuan166/Vcb/MC/TTBB-TTtoLNu2Q_Summer24MiniAODv6/productions/charge_Run3_2024_150X_v1/cmssw/validation/pilot000_GenTruth_numEvent10000.root",
+      "nano_uuid": "78e7e312-ca7d-11f1-9f23-07e114acbeef",
+      "entries": 10000,
+      "labels": "78e7e312-ca7d-11f1-9f23-07e114acbeef.npz",
+      "sha256": "4090e86725c5b16ad15cdcecaf13732dcac3c047c8461a597e3c81bdc59065b2",
+      "pair_validation": "event identity and ordered retained GenPart content (8-bit precision)",
+      "counts": {
+        "-1": 1,
+        "2": 9450,
+        "4": 526,
+        "6": 23
+      },
+      "statuses": {
+        "0": 9999,
+        "3": 1
+      }
+    },
+    "ttbb_processor": {
+      "selected_events": 2709,
+      "counts": {
+        "2": 2566,
+        "4": 138,
+        "6": 5
+      },
+      "all_labels_match_native": true,
+      "verified_byte_loader_all_branches_unchanged": true
+    },
+    "failure_cases": {
+      "same_event_identity_different_generator_content": "Rejected at entry 0 before writing labels",
+      "incorrect_manifest_checksum": "CLI rejected before processing or output creation",
+      "sidecar_replaced_after_checksum": "Regression test returns the verified original counts"
+    }
+  },
+  "code_sha256": {
+    "condor/scripts/build_truth_labels.py": "0fd4660de282bf8136a1c483dfadef1bc9a6b215d2c7807c8e0b3ff2b24c18d3",
+    "src/vcb/processors/truth_labels.py": "f4c22f378158300c34946fac29ac45a263af14c468e51afdc62fdb536be3099d",
+    "src/vcb/processors/vcbSkimmer.py": "9934f416ef41ecbd0d4638433d68ecb0da84e9bb665d0615790e252b8841cd7a",
+    "src/vcb/run.py": "098331e8866bbaf68022c614ace184bc0943b923647e8955bf60dcdabbd96e30",
+    "condor/submit_batches.py": "add8b2109671ecd96e3afb1ca2b704cbfd198d3d01879abd5fa2e6aa38564cd8",
+    "condor/templates/calib_batch_exec.sh": "06b016567b2207e320e6da6e45a55bda33928cc05a4d677f73c12d038e958373",
+    "tests/test_event_truth_labels.py": "5e60fdfb248d1f7b1a8503e3fe4dce02d2e327c6178063a4fad320f7967218ff"
+  },
+  "scope_limits": [
+    "No production or training jobs submitted.",
+    "Scheduler unavailable in sandbox; changes isolated from the live checkout.",
+    "Content checks cannot distinguish records differing only in information absent from NanoAOD; conversion provenance remains necessary.",
+    "Native TT2Q/TTCB coverage and TTBB normalization remain outside this review."
+  ],
+  "integration": {
+    "verified_utc": "2026-10-28T19:58:33.356430+00:00",
+    "destination": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH",
+    "scheduler_check": "Unrestricted condor_q jhuan166 returned exit 0 with no jobs before applying the patch.",
+    "baseline_sha256_match": true,
+    "review_patch_applied": true,
+    "validated_code_hashes_match": true,
+    "fresh_pytest": {
+      "passed": 278,
+      "subtests_passed": 22,
+      "dependency_deprecation_warnings": 3
+    },
+    "fresh_ruff": "passed",
+    "full_fixture_validation": "Earlier isolated full-fixture and TTBB-pilot validation applies to the same seven code/test hashes; not rerun during integration.",
+    "production_or_training_submitted": false,
+    "review_checkout_note": "The review checkout contains subsequent CMS-HF draft changes; integration used the captured review-fixes.patch and its recorded hashes, not a copy of the current review directory."
+  }
+}

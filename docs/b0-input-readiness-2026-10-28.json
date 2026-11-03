@@ -1,0 +1,364 @@
+{
+  "schema_version": 3,
+  "recorded_utc": "2026-10-28T19:58:33.356430+00:00",
+  "host_scope": "BRUX",
+  "requested_checkpoint": "processor ready to prepare B0 training inputs",
+  "processor_frozen": true,
+  "C1_complete": false,
+  "jet_cap": {
+    "current_processor": 10,
+    "final_choice": 10,
+    "study_required": [],
+    "reason": "User selected ten jets on 2026-10-28. C1 still measures truncation and common-selection matching; a comparison with twelve is not a freeze prerequisite.",
+    "historical_draft_candidate": 12
+  },
+  "leptonic_w": {
+    "branch": "GenWLeptonFlavor",
+    "type": "UInt_t",
+    "encoding": {
+      "electron": 11,
+      "muon": 13,
+      "tau": 15,
+      "unavailable": 0
+    },
+    "direct_W_daughter": true,
+    "retain_selected_tau_fed_events": true,
+    "model_input": false,
+    "new_classification_head": false,
+    "existing_signal_fixture": {
+      "selected_events": 59713,
+      "flavor_counts": {
+        "11": 23971,
+        "13": 32406,
+        "15": 3336
+      },
+      "tau_trigger_flavors": {
+        "11": 1149,
+        "13": 2187
+      }
+    }
+  },
+  "matching": {
+    "algorithm": "greedy globally nearest feasible pair; remove both objects",
+    "max_delta_r": 0.4,
+    "strict_cut": true,
+    "full_match_required_for_assignment": true,
+    "classification_full_match_required": false,
+    "cms_reference": "https://github.com/cms-sw/cmssw/blob/CMSSW_15_1_0_patch4/TopQuarkAnalysis/TopTools/python/TtSemiLepJetPartonMatch_cfi.py",
+    "cms_implementation": "https://github.com/cms-sw/cmssw/blob/CMSSW_15_1_0_patch4/TopQuarkAnalysis/TopTools/src/JetPartonMatching.cc",
+    "CMS_parameters_identical_to_ours": false,
+    "TTBB_comparison_complete": true,
+    "comparison_scope": "Bounded 10,000-input-event pilot, 2,709 selected events, current ten saved slots; not the full common-input C1 audit.",
+    "pilot_report": {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/matching.json",
+      "sha256": "72d458eab7e2e9cd8074db5e6780b689aedc3b5ddf850a2cbf3bbcb21ba94ff6"
+    },
+    "pilot_results": {
+      "source": "/isilon/export/home/jhuan166/Vcb/reviews/calib-truth-labels-20261028/validation/ttbb-verified-bytes/nano_skim_80fe8d91-4bd9-435e-b5de-1035180d_batch_0.root",
+      "source_sha256": "2fb1f680b6c7163e231d8356c0786ac26d89d46c4cb438c10b439d0cdd8b86d7",
+      "scope": "unweighted selected TTBB pilot; current processor's ten saved jets",
+      "role_order": [
+        "HadB",
+        "LepB",
+        "HadQ1",
+        "HadQ2"
+      ],
+      "cap": 10,
+      "delta_r_strict_max": 0.4,
+      "selected_events": 2709,
+      "invalid_indices": 0,
+      "duplicate_jet_events": 0,
+      "invalid_geometric_matches": 0,
+      "saved_vs_production_replay_events": 0,
+      "saved_vs_independent_greedy_events": 0,
+      "greedy_fully_matched": 1144,
+      "greedy_fully_matched_fraction": 0.42229605020302696,
+      "greedy_matched_by_role": {
+        "HadB": 2292,
+        "LepB": 2273,
+        "HadQ1": 2045,
+        "HadQ2": 2269
+      },
+      "global_cardinality_then_distance_fully_matched": 1146,
+      "global_fully_matched_fraction": 0.4230343300110742,
+      "global_full_matching_gain_percentage_points": 0.07382798080472486,
+      "global_assignment_different_events": 2,
+      "greedy_full_global_not_full": 0,
+      "global_full_greedy_not_full": 2,
+      "full_C1_audit_complete": false,
+      "passed": true
+    },
+    "algorithm_changed": false
+  },
+  "references": [
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf",
+      "sha256": "4e6575a46b4d9589881cb6bb5f937ab4d0b8da50afd4418c44ef9b53baee1c31"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/References/AN-25-050.pdf",
+      "sha256": "62c9b9d5245c34bb394b2440a57b14aeb47b8427a21b2f41e6646eca9513d0f7"
+    }
+  ],
+  "ttbb": {
+    "dataset": "/TTBB-TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24MiniAODv6-150X_mcRun3_2024_realistic_v2-v2/MINIAODSIM",
+    "AN_25_214_v5": {
+      "table": 2,
+      "printed_page": 8,
+      "pdf_page": 10,
+      "semileptonic_ttbb_pb": 15.84,
+      "normalization_source": "average genWeight",
+      "semileptonic_DPS_pb": 2.896,
+      "stitch_sections": [
+        "2.2.3",
+        "2.2.4"
+      ],
+      "gen_jet_pt_min_GeV": 20,
+      "gen_jet_abs_eta_max": 2.4,
+      "ttbar_flavor_category_rate_parameters": "independent, floating; table values are pre-fit normalizations",
+      "DPS_normalization_uncertainty_fraction": 0.5,
+      "normalization_quote": "the pre-fit normalization of the tt+\u22651b events is taken as the average of the GENWEIGHT branch",
+      "quote_section": "2.2.4",
+      "quote_printed_page": 10,
+      "quote_pdf_page": 12,
+      "quote_line_numbers": [
+        244,
+        245
+      ]
+    },
+    "complete_production": {
+      "path": "/isilon/export/home/jhuan166/Vcb/cmssw-charge-run/productions/ttbb_eos_20261024/completion.json",
+      "sha256": "2ea9ac7597b290e154973090ae469c3fb6549ca7e27144d7778077f92811b0aa",
+      "catalog_sha256": "003ca48f85400c6f41294e0fc6a27822113d08e5732f78688e7ad3e17b6c09b8",
+      "files": 2258,
+      "events": 44323128,
+      "sumw": 709686641.4894006,
+      "sumw2": 13023813917.290155,
+      "mean_signed_genWeight": 16.011655167690346,
+      "candidate_cross_section_pb_if_AN_mean_weight_prescription": 16.011655167690346,
+      "relative_difference_from_AN_table": 0.01083681614206733,
+      "cross_section_approved": true,
+      "approval_scope": "Provisional effective semileptonic normalization for this exact 2024 dataset under the AN mean-genWeight prescription.",
+      "adopted_cross_section_pb": 16.011655167690346,
+      "processor_xsec_key": "TTBB-TTtoLNu2Q",
+      "additional_W_branching_factor": false
+    },
+    "single_source_metadata_check": {
+      "native_truth_path": "/isilon/export/home/jhuan166/Vcb/MC/TTBB-TTtoLNu2Q_Summer24MiniAODv6/productions/charge_Run3_2024_150X_v1/cmssw/validation/pilot000_GenTruth_numEvent10000.root",
+      "miniAOD_lfn": "/store/mc/RunIII2024Summer24MiniAODv6/TTBB-TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/MINIAODSIM/150X_mcRun3_2024_realistic_v2-v2/120000/80fe8d91-4bd9-435e-b5de-1035180db4d6.root",
+      "events_requested": 10000,
+      "events_in_covered_lumi_metadata": 10080,
+      "GenRunInfo_internalXSec_pb": 15.559389230769257,
+      "GenRunInfo_filterEfficiency": 1.0,
+      "LHE_IDWTUP": -4,
+      "LHE_XSECUP_pb": [
+        36.521710149591506
+      ],
+      "LHE_XERRUP_pb": [
+        0.13541251493765025
+      ],
+      "GenXSecAnalyzer_after_filter_pb_printed": 36.52,
+      "GenXSecAnalyzer_error_pb_printed": 0.06771,
+      "GenXSecAnalyzer_filter_efficiency": 1.0,
+      "original_miniAOD_and_compact_truth_rate_agree": true,
+      "effective_decay_normalization_resolved": false
+    },
+    "combination": {
+      "physics_yields": "complementary CMS additional-b-jet source selections, plus explicit normalization and DPS decision",
+      "quark_count_is_not_stitch_category": true,
+      "training_source_balance_is_not_physics_normalization": true,
+      "CMS_HIG_19_011_reference": "https://arxiv.org/html/2407.10896v2#S7",
+      "physics_yields_published": false,
+      "status": "AN source partition provisionally approved; complementary source selections must be implemented and verified before adding physical yields.",
+      "source_partition_implemented": false,
+      "combined_physics_yields_validated": false,
+      "DPS_scope_decision_pending": true
+    }
+  },
+  "integration": {
+    "verified_utc": "2026-10-28T19:58:33.356430+00:00",
+    "destination": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH",
+    "scheduler_check": "Unrestricted condor_q jhuan166 returned exit 0 with no jobs before applying the patch.",
+    "baseline_sha256_match": true,
+    "review_patch_applied": true,
+    "validated_code_hashes_match": true,
+    "fresh_pytest": {
+      "passed": 278,
+      "subtests_passed": 22,
+      "dependency_deprecation_warnings": 3
+    },
+    "fresh_ruff": "passed",
+    "full_fixture_validation": "Earlier isolated full-fixture and TTBB-pilot validation applies to the same seven code/test hashes; not rerun during integration.",
+    "production_or_training_submitted": false,
+    "review_checkout_note": "The review checkout contains subsequent CMS-HF draft changes; integration used the captured review-fixes.patch and its recorded hashes, not a copy of the current review directory."
+  },
+  "validation_artifacts": [
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/genxsec-compact-truth.log",
+      "sha256": "075a4b8961f7103ccc2c24c6dbf66bf23259e3694d0f79fb9212491158fda44e"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/genxsec-compact-truth.py",
+      "sha256": "7aa3d67105e16f5b4f69f00098e8a7f6f175cc63b3d7872b84d8e2568c3ed170"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/genxsec-original-miniaod.log",
+      "sha256": "65fe62789ff4edc1707555e3f006cc9a8fdcac9a3b154789e197a7680e960609"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/genxsec-original-miniaod.py",
+      "sha256": "5d7e3a13c301cfaaed8d5619b31f62a5b7bdaa4f96b1469256c8d46f26af5ec1"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/pytest.log",
+      "sha256": "177aa5e105d9a4b8146d1dc442fc5ad94bbe23d7f020fce809331c91bc11479a"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-readiness-20261028/ruff.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/matching.json",
+      "sha256": "72d458eab7e2e9cd8074db5e6780b689aedc3b5ddf850a2cbf3bbcb21ba94ff6"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/normalization-check.json",
+      "sha256": "0107978834aa2d275f8a254880e2ccad3a8f8bcc4ad43be18c9a8177f32dceb1"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/baselines-check.json",
+      "sha256": "1f1bcb0f4d7662888bfbcf5164ab0612a8ef39f3b9ef3aa2586f1b51730b3d9f"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/truth-tests.log",
+      "sha256": "69d9410d904740b37caa962d8cda58e9afd6d426949252697891c3d1bb4f5b81"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/signal-integration.log",
+      "sha256": "5e74927d00f2d0013ad0d72842d19646f23a0d3058463208ceaccbde723535cb"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/ttbb-integration.log",
+      "sha256": "58f76e8233e587da500b15aae26421995c7c32376f20b4e89260ee9c4dafdf84"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/ruff.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/october-notes-verification.json",
+      "sha256": "3704e41795adbb99d2adf0604f90efc9e584dcbef6a706c077ae1593ac0d6b82"
+    }
+  ],
+  "questions_for_Greg_date": "2026-10-29",
+  "questions_for_Greg": [
+    "For the later physics release, confirm the provisionally approved sample mean-weight normalization and whether to follow the AN independent floating ttbar category rates.",
+    "Include the separate 2024 semileptonic DPS sample in first physics validation, or defer it until the full analysis release?"
+  ],
+  "production_or_training_submitted": false,
+  "updated_utc": "2026-10-29T00:03:01.534387+00:00",
+  "user_decision": {
+    "date": "2026-10-28",
+    "max_jets": 10,
+    "retain_GenWLeptonFlavor": true,
+    "retain_greedy_strict_DeltaR_0p4": true,
+    "TTBB_mean_weight_normalization_approved_provisionally": true,
+    "October_notes_updated": true
+  },
+  "validation_current_decision": {
+    "verified_utc": "2026-10-28T23:17:59.303367+00:00",
+    "host": "BRUX",
+    "focused_gen_truth_tests_passed": 19,
+    "dependency_deprecation_warnings": 3,
+    "ruff": "passed",
+    "signal_integration": {
+      "exit_code": 0,
+      "input_events": 208780,
+      "selected_events": 59713,
+      "branches": 747,
+      "jet_tagger_comparisons": 5435189,
+      "jet_tagger_differences": 0,
+      "roundtrip_verdict": "PASS",
+      "all_three_tracked_reports_unchanged": true,
+      "baseline_report": {
+        "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/baselines-check.json",
+        "sha256": "1f1bcb0f4d7662888bfbcf5164ab0612a8ef39f3b9ef3aa2586f1b51730b3d9f"
+      }
+    },
+    "TTBB_integration": {
+      "passed": true,
+      "selected_events": 2709,
+      "branches": 741,
+      "provisional_xsec_pb": 16.011655167690346,
+      "lumi_pb_inverse": 109820.0,
+      "normalization_factor": 1758399.9705157538,
+      "changed_branches": [
+        "single_weight_FSRPartonShower",
+        "single_weight_ISRPartonShower",
+        "single_weight_electron_id",
+        "single_weight_electron_reco",
+        "single_weight_electron_trigger",
+        "single_weight_genweight",
+        "single_weight_muon_id",
+        "single_weight_muon_iso",
+        "single_weight_muon_trigger",
+        "single_weight_pileup",
+        "weight"
+      ],
+      "other_branches_unchanged": true,
+      "Norm_tree_unchanged": true,
+      "truth_labels_and_matching_unchanged": true
+    },
+    "TTBB_matcher_pilot_passed": true,
+    "code_files": [
+      {
+        "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/src/boostedhh/xsecs.py",
+        "sha256": "4fd4ff4d16af3e1e4d9daf418d2a5ae2b9d1c0b2f09ee497b84a621bccc300d3"
+      },
+      {
+        "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/diagnostics/validate_ttbb_matching.py",
+        "sha256": "b0b8f6b71f92aae4604f2b2cdc9d66b632cd1941a754336568d5e4814c1408fd"
+      }
+    ],
+    "common_input_audit_complete": false,
+    "production_or_training_submitted": false
+  },
+  "october_notes": {
+    "document_id": "1NwUY5wwjr5CxWxebIAsU3Z-z0Ks8qU-ugVzSVnjCENQ",
+    "document_url": "https://docs.google.com/document/d/1NwUY5wwjr5CxWxebIAsU3Z-z0Ks8qU-ugVzSVnjCENQ",
+    "tab_id": "t.0",
+    "revision_id_after": "AHj4eMRgF0uobeEUb_HHb6OVcp9DFXNHVCE7cIGulQtPYL3aFHScTTyS-hQ88A0ejWQGjWoHeZmsHQx6N4OM-T3dS40WCs4jFACs8ar-mkA",
+    "insertion_index": 42936,
+    "inserted_utf16_units": 3580,
+    "exact_append_verified": true,
+    "existing_content_preserved": true,
+    "local_verification": {
+      "path": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/b0-decisions-20261028/october-notes-verification.json",
+      "sha256": "3704e41795adbb99d2adf0604f90efc9e584dcbef6a706c077ae1593ac0d6b82"
+    }
+  },
+  "processor_ready": true,
+  "processor_release": {
+    "id": "b0-processor-20261028-v1",
+    "branch": "codex/b0-input-preparation",
+    "input_profile": "b0",
+    "schema_sha256": "34aab2c36cee75ee814af80068e2aadc7d8e9225e8cbcac9a0f14ec06715d607",
+    "validation": {
+      "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-b0-inputs-20261028/docs/b0-processor-validation-2026-10-28.json",
+      "sha256": "56537424fb597421c33c6640178671b2bca90192183eb3613e0351b7570f8065"
+    },
+    "scope": "Validated 2024 B0 processor release and bounded three-source pilots; full C1, C2 dataset and training are not complete."
+  },
+  "Qk_decision": {
+    "approved_by_user": true,
+    "numerical_zero_sentinel": -997,
+    "decode_value": 0.0,
+    "valid": true,
+    "failure_sentinels": [
+      -999,
+      -998
+    ],
+    "preserve_raw": true,
+    "drop_jets_or_events": false
+  }
+}

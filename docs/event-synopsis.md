@@ -1,9 +1,15 @@
 # Event processing synopsis
 
-This follows the current **2024 MC** path for `TTtoLNu2Q` and `TTtoLNuCB`, from
+This follows the default `calibration` **2024 MC** path for semileptonic ttbar, from
 input NanoAOD to the skim and its second-pass `finalWeight`. Object corrections,
 cuts, ordering, matching, and output fields are in
 [object-synopsis.md](object-synopsis.md).
+
+The [B0 profile](b0-input-profile.md) uses the same corrections, trigger and
+weights, but accepts central jets above 25 GeV before the ten-slot cap and
+requires at least four accepted jets. Its extra event cut does not change the
+all-input normalization denominator. The additional B0 columns contain observable
+features, masks and source identity.
 
 2024 collision-data input is rejected before processing: the certified-lumi
 mask, run-dependent data JEC and rebuilt data MET are not implemented.

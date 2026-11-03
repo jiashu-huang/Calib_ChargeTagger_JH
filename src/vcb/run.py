@@ -38,6 +38,7 @@ from boostedhh.hh_vars import DATA_SAMPLES
 from boostedhh.processors import SkimmerABC
 from boostedhh.xsecs import xsecs
 from vcb import vcb_utils
+from vcb.processors import b0_inputs
 from vcb.processors.kinematic_variations import GROUPS, resolve_variation
 from vcb.processors.kinematic_variations import VARIATION_IDS as KINEMATIC_VARIATION_IDS
 from vcb.processors.muon_ss import TOTAL_VARIATIONS, VARIATION_IDS, validate_variation
@@ -155,7 +156,11 @@ def get_processor(
     muon_pt_variation: str = "nominal",
     kinematic_variation: str = "nominal",
     truth_label_manifest: str | None = None,
+    truth_label_manifest_sha256: str | None = None,
+    input_profile: str = "calibration",
 ):
+    if truth_label_manifest_sha256 is not None and not truth_label_manifest:
+        raise ValueError("A truth manifest checksum requires a truth-label manifest")
     # Factory for processor instances. Currently only "skimmer" is supported.
     if processor == "skimmer":
         # Resolve module + class, then import and select the skimmer class.
@@ -166,10 +171,18 @@ def get_processor(
         resolve_variation(kinematic_variation, muon_pt_variation)
         # Preserve compatibility with alternate skimmers for nominal runs.
         variation_options = {}
+        if input_profile != "calibration":
+            if "input_profile" not in inspect.signature(skimmer_cls).parameters:
+                raise ValueError(f"{skimmer_cls.__name__} does not support the B0 input profile")
+            variation_options["input_profile"] = input_profile
         if truth_label_manifest is not None:
             if "truth_label_manifest" not in inspect.signature(skimmer_cls).parameters:
                 raise ValueError(f"{skimmer_cls.__name__} does not support truth-label sidecars")
             variation_options["truth_label_manifest"] = truth_label_manifest
+        if truth_label_manifest_sha256 is not None:
+            if "truth_label_manifest_sha256" not in inspect.signature(skimmer_cls).parameters:
+                raise ValueError(f"{skimmer_cls.__name__} does not support a truth manifest checksum")
+            variation_options["truth_label_manifest_sha256"] = truth_label_manifest_sha256
         if kinematic_variation != "nominal":
             if "kinematic_variation" not in inspect.signature(skimmer_cls).parameters:
                 raise ValueError(f"{skimmer_cls.__name__} does not support kinematic variations")
@@ -232,6 +245,10 @@ def _jet_payload_metadata(year: str) -> dict:
 
 
 def _run_single(args):
+    truth_manifest = getattr(args, "truth_label_manifest", None)
+    truth_digest = getattr(args, "truth_label_manifest_sha256", None)
+    if truth_manifest is not None and truth_digest is None:
+        truth_digest = sha256(Path(truth_manifest).read_bytes()).hexdigest()
     # Build the processor with all CLI-configured options.
     p = get_processor(
         args.processor,
@@ -243,6 +260,8 @@ def _run_single(args):
         muon_pt_variation=getattr(args, "muon_pt_variation", "nominal"),
         kinematic_variation=getattr(args, "kinematic_variation", "nominal"),
         truth_label_manifest=getattr(args, "truth_label_manifest", None),
+        truth_label_manifest_sha256=truth_digest,
+        input_profile=getattr(args, "input_profile", "calibration"),
     )
 
     # Select output formats by processor type (skimmer always saves both).
@@ -368,6 +387,13 @@ def _run_single(args):
             "jet_payloads": _jet_payload_metadata(args.year),
             "year": args.year,
             "fileset": fileset,
+            "input_profile": getattr(args, "input_profile", "calibration"),
+            "truth_label_manifest": str(Path(truth_manifest).resolve()) if truth_manifest else None,
+            "truth_label_manifest_sha256": truth_digest,
+            "b0_schema": (
+                b0_inputs.schema_metadata() if getattr(args, "input_profile", "calibration") == "b0"
+                else None
+            ),
             "normalization": "Normalize this pass separately using all input events; do not sum passes.",
         }, indent=2) + "\n")
 
@@ -435,6 +461,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--truth-label-manifest", type=str,
         help="Manifest of complete generator extra-b counts, keyed by NanoAOD file UUID.",
+    )
+    parser.add_argument(
+        "--input-profile", choices=("calibration", "b0"), default="calibration",
+        help="B0: central jets above 25 GeV before the ten-slot cap, >=4 jets, features and masks.",
+    )
+    parser.add_argument(
+        "--truth-label-manifest-sha256", type=str,
+        help="Require this exact manifest checksum; Condor pins it at campaign creation.",
     )
     run_utils.parse_common_hh_args(parser)
     vcb_utils.parse_common_run_args(parser)

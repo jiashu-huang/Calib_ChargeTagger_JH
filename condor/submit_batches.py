@@ -249,6 +249,7 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--skimmer", default="vcbSkimmer", help="Skimmer module to run.")
+    parser.add_argument("--input-profile", choices=("calibration", "b0"), default="calibration")
     parser.add_argument(
         "--truth-label-manifest", type=Path,
         help="Complete generator truth-label manifest passed to every worker.",
@@ -380,8 +381,8 @@ def main() -> None:
         from vcb.processors.truth_labels import read_truth_manifest
 
         truth_manifest = args.truth_label_manifest.resolve()
-        read_truth_manifest(truth_manifest)
         truth_manifest_hash = sha256(truth_manifest.read_bytes()).hexdigest()
+        read_truth_manifest(truth_manifest, expected_sha256=truth_manifest_hash)
 
     if (
         args.batch_start is not None
@@ -463,8 +464,10 @@ def main() -> None:
                 "YEAR": args.year,
                 "FILES_NAME": args.files_name,
                 "SKIMMER": args.skimmer,
+                "INPUT_PROFILE": args.input_profile,
                 "KINEMATIC_VARIATION": variation.name,
                 "TRUTH_LABEL_MANIFEST": shlex.quote(str(truth_manifest) if truth_manifest else ""),
+                "TRUTH_LABEL_MANIFEST_SHA256": shlex.quote(truth_manifest_hash or ""),
                 "CHUNKSIZE": str(args.chunksize),
                 "MAXCHUNKS": str(args.maxchunks),
                 "BATCH_SIZE": str(args.batch_size),
@@ -533,6 +536,7 @@ def main() -> None:
         "year": args.year,
         "files_name": args.files_name,
         "skimmer": args.skimmer,
+        "input_profile": args.input_profile,
         "kinematic_variation": variation.name,
         "kinematic_variation_id": variation.identifier,
         "truth_label_manifest": str(truth_manifest) if truth_manifest else None,

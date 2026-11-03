@@ -1,5 +1,10 @@
 # Object processing synopsis
 
+The selection below describes the default `calibration` profile. For
+`--input-profile b0`, apply the [B0 jet acceptance](b0-input-profile.md#selection-and-matching)
+before the ten-slot cap; corrections and the CMS realignment trigger match are
+shared by both profiles.
+
 This describes the current **2024 MC** processing of `TTtoLNu2Q` and
 `TTtoLNuCB` in [`vcbSkimmer.py`](../src/vcb/processors/vcbSkimmer.py), including
 the current MET corrections. The output is a skimmed ROOT `Events` tree with

@@ -140,12 +140,25 @@ Normalize and merge each campaign separately. Never mix nominal and shifted
 copies in a normalization denominator or a merged event sample. Weight-only
 `--save-systematics` can be enabled independently in every campaign.
 
+#### B0 training-input profile
+
+Pass `--input-profile b0` to prepare the 2024 semileptonic ttbar samples for the
+first SPANet baseline. The worker forwards this choice and the campaign records
+it. The default is `calibration`. Keep the profiles in separate campaigns;
+their selections and output schemas differ. The [B0 guide](../docs/b0-input-profile.md)
+defines the ten-jet selection, observable allowlist, missing-feature masks and
+source identity. This prepares skims; dataset splits and HDF5 construction are
+separate steps.
+
 #### Event truth labels
 
 For the exact extra-b-quark label, pass `--truth-label-manifest /path/manifest.json`
 to `submit_batches.py`. The worker forwards it to the processor; the campaign
 records its path and checksum. Build it from the paired native generator-truth
 files as described in [event truth labels](../docs/event-truth-labels.md).
+Each worker checks the recorded manifest checksum before processing. A manifest
+changed after campaign creation is an error, including when its replacement
+would otherwise be valid. Create a new campaign to use a revised manifest.
 Without a manifest, the count is unknown and the W-decay label is still written.
 
 #### Systematic variations

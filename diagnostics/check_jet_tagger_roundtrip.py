@@ -335,7 +335,11 @@ def check_jet_tagger_roundtrip(
     year: str = DEFAULT_YEAR,
     verify_jec: bool = True,
     max_anomalies: int = 200,
+    input_profile: str = "calibration",
 ) -> dict:
+    if input_profile not in ("calibration", "b0"):
+        raise ValueError(f"Unsupported input profile: {input_profile}")
+    jet_pt_min, jet_eta_max = (25.0, 2.4) if input_profile == "b0" else (JET_PT_MIN, JET_ETA_MAX)
     output_file = Path(output_file).expanduser().resolve()
     input_files = resolve_input_files(
         input_file if isinstance(input_file, (list, tuple)) else [input_file]
@@ -622,11 +626,11 @@ def check_jet_tagger_roundtrip(
         for j in np.flatnonzero(~matched_input):
             if dr_lepton[j] <= JET_CLEANING_DR:
                 reason = "lepton_cleaned"
-            elif corrected_pt is None or corrected_pt[start + j] <= JET_PT_MIN:
+            elif corrected_pt is None or corrected_pt[start + j] <= jet_pt_min:
                 # Without the recomputed pT this is an assumption, not a result;
                 # the report says so and the verdict is downgraded accordingly.
                 reason = "pt_below_threshold"
-            elif abs(in_eta[j]) >= JET_ETA_MAX:
+            elif abs(in_eta[j]) >= jet_eta_max:
                 reason = "eta_out_of_range"
             elif not in_jet_id[j]:
                 reason = "failed_jet_id"
@@ -655,8 +659,8 @@ def check_jet_tagger_roundtrip(
         # skimmer says it applied. Only meaningful with the recomputed pT.
         if corrected_pt is not None:
             selected = (
-                (corrected_pt[start:stop] > JET_PT_MIN)
-                & (np.abs(in_eta) < JET_ETA_MAX)
+                (corrected_pt[start:stop] > jet_pt_min)
+                & (np.abs(in_eta) < jet_eta_max)
                 & (dr_lepton > JET_CLEANING_DR)
                 & in_jet_id
             )
@@ -697,6 +701,8 @@ def check_jet_tagger_roundtrip(
         max_anomalies=max_anomalies,
         has_index=has_index,
         passed=passed,
+        jet_pt_min=jet_pt_min,
+        jet_eta_max=jet_eta_max,
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report)
@@ -706,6 +712,7 @@ def check_jet_tagger_roundtrip(
         "passed": passed,
         "verify_jec": corrected_pt is not None,
         "has_index": has_index,
+        "input_profile": input_profile,
         **stats,
         "missing_counts": missing_counts,
     }
@@ -772,6 +779,10 @@ def _format_report(**ctx) -> str:
     ]
     for reason in MISSING_REASONS:
         note = REASON_NOTES[reason]
+        if reason == "pt_below_threshold":
+            note = f"corrected pT <= {ctx['jet_pt_min']} GeV"
+        elif reason == "eta_out_of_range":
+            note = f"|eta| >= {ctx['jet_eta_max']}"
         if reason == "pt_below_threshold" and not verify_jec:
             note = PT_UNVERIFIED_NOTE
         lines.append(f"    {reason:<33}: {missing_counts[reason]}   ({note})")
@@ -832,6 +843,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--tree-name", default=DEFAULT_TREE)
+    parser.add_argument("--input-profile", choices=("calibration", "b0"), default="calibration")
     parser.add_argument(
         "--year",
         default=DEFAULT_YEAR,
@@ -863,6 +875,7 @@ if __name__ == "__main__":
         year=args.year,
         verify_jec=args.verify_jec,
         max_anomalies=args.max_anomalies,
+        input_profile=args.input_profile,
     )
     print(f"Report: {result['report']}")
     print(f"Events checked: {result['events_checked']}")

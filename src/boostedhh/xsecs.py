@@ -101,6 +101,16 @@ xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
 # this xsec is a pure overall scale on the sample.
 xsecs["TTtoLNuCB"] = 923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)  # ~= 0.345 pb
 
+# Provisional 2024 Summer24 MiniAODv6 v2 semileptonic TTBB normalization,
+# approved 2026-10-28. Follow AN-25-214 v5 Sec. 2.2.4's mean-genWeight
+# prescription on our complete 44,323,128-event production. The AN's own
+# Table 2 lists 15.84 pb; our dataset gives 16.011655167690346 pb.
+# Effective semileptonic rate: do not multiply by a W branching factor again.
+# Additional-b-jet overlap removal is separate; this does not add inclusive
+# TT2Q and dedicated TTBB yields. See docs/b0-input-readiness-2026-10-28.md
+# for the exact dataset, source records and provisional-use limitations.
+xsecs["TTBB-TTtoLNu2Q"] = 709686641.4894006 / 44323128
+
 # Diboson
 xsecs["WW"] = 116.8  #  173.4 (116.8 at NNLO)
 xsecs["WZ"] = 54.3

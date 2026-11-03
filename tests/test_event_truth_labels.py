@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import shlex
 import subprocess
@@ -201,8 +202,119 @@ def test_modified_sidecar_and_duplicate_source_fail(sidecar):
         read_truth_manifest(sidecar.manifest)
 
 
+def test_sidecar_reader_uses_verified_bytes_when_file_is_replaced(sidecar, monkeypatch):
+    original_load = np.load
+    with original_load(sidecar.path, allow_pickle=False) as data:
+        replacement = {key: data[key] for key in data.files}
+    replacement["count"] = np.array([4, -1])
+    buffer = io.BytesIO()
+    np.savez(buffer, **replacement)
+
+    def replace_before_decode(source, *args, **kwargs):
+        # Simulate a file replacement between checksum verification and decode.
+        sidecar.path.write_bytes(buffer.getvalue())
+        return original_load(source, *args, **kwargs)
+
+    monkeypatch.setattr(np, "load", replace_before_decode)
+    labels = extra_b_labels(Events(), sidecar.records)
+    assert labels["GenNExtraBQuarks"].tolist() == [2, -1]
+
+
+def test_manifest_is_pinned_to_the_bytes_recorded_at_submission(sidecar):
+    digest = sha256(sidecar.manifest.read_bytes()).hexdigest()
+    assert read_truth_manifest(sidecar.manifest, expected_sha256=digest) == sidecar.records
+    # A different, otherwise well-formed manifest must not be silently accepted
+    # by workers that start later in the same campaign.
+    sidecar.data["files"][0]["entries"] = 3
+    sidecar.manifest.write_text(json.dumps(sidecar.data))
+    with pytest.raises(ValueError, match="manifest checksum mismatch"):
+        read_truth_manifest(sidecar.manifest, expected_sha256=digest)
+
+
+def test_processor_factory_forwards_manifest_pin_and_rejects_pin_without_manifest(sidecar):
+    from vcb.run import get_processor
+
+    digest = sha256(sidecar.manifest.read_bytes()).hexdigest()
+    processor = get_processor("skimmer", region="signal", nano_version="v12_private",
+                              truth_label_manifest=str(sidecar.manifest),
+                              truth_label_manifest_sha256=digest)
+    assert processor._truth_labels == sidecar.records
+    with pytest.raises(ValueError, match="manifest checksum mismatch"):
+        get_processor("skimmer", region="signal", nano_version="v12_private",
+                      truth_label_manifest=str(sidecar.manifest),
+                      truth_label_manifest_sha256="0" * 64)
+    with pytest.raises(ValueError, match=r"requires.*manifest"):
+        get_processor("skimmer", truth_label_manifest_sha256=digest)
+
+
+@pytest.fixture
+def builder():
+    script = Path(__file__).resolve().parents[1] / "condor/scripts/build_truth_labels.py"
+    spec = importlib.util.spec_from_file_location("build_truth_labels_review", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_native_pair_check_accepts_nanoaod_pruning_and_precision(builder):
+    # Native floats have more precision; NanoAOD also drops the soft extra b.
+    native = [(6, 62, HARD | LAST_COPY, 100.123, 0.12345, -2.3456),
+              (5, 71, FIRST_COPY | LAST_COPY, 3.0, 1.0, 0.5),
+              (-6, 62, HARD | LAST_COPY, 88.01, -1.234, 1.5)]
+    nano = [(6, 62, HARD | LAST_COPY, 100.0, 0.12353515625, -2.34375),
+            (-6, 62, HARD | LAST_COPY, 88.0, -1.234375, 1.5)]
+    builder.check_generator_particles(nano, native)
+
+
+@pytest.mark.parametrize(("column", "replacement"), [
+    (0, -6), (1, 23), (2, FIRST_COPY), (3, 150.0), (4, -0.2), (5, 2.0),
+])
+def test_native_pair_check_rejects_different_truth_with_reused_event_numbers(
+    builder, column, replacement,
+):
+    particle = [6, 62, HARD | LAST_COPY, 100.0, 0.2, 1.0]
+    wrong = particle.copy()
+    wrong[column] = replacement
+    with pytest.raises(ValueError, match="generator content mismatch"):
+        builder.check_generator_particles([particle], [wrong])
+
+
+def test_native_pair_check_does_not_reuse_particles_or_accept_empty_truth(builder):
+    particle = (6, 62, HARD | LAST_COPY, 100.0, 0.2, 1.0)
+    with pytest.raises(ValueError, match="generator content mismatch"):
+        builder.check_generator_particles([particle, particle], [particle])
+    with pytest.raises(ValueError, match="Empty NanoAOD generator record"):
+        builder.check_generator_particles([], [particle])
+
+
+def test_native_pair_aligns_a_permutation_with_exact_large_event_ids(builder):
+    ids = {"run": np.array([1, 1, 1], dtype=np.uint32),
+           "luminosityBlock": np.array([8, 8, 8], dtype=np.uint32),
+           "event": np.array([2**60 + 1, 2**60 + 2, 2**60 + 3], dtype=np.uint64)}
+    lookup = builder.nano_identity_index(ids)
+    seen = np.zeros(3, dtype=bool)
+    native = [(1, 8, int(ids["event"][j])) for j in (2, 0, 1)]
+    assert [builder.aligned_nano_entry(key, lookup, seen) for key in native] == [2, 0, 1]
+    assert seen.all()
+    with pytest.raises(ValueError, match="Duplicate native"):
+        builder.aligned_nano_entry(native[0], lookup, seen)
+    with pytest.raises(ValueError, match="absent from its paired NanoAOD"):
+        builder.aligned_nano_entry((1, 8, 0), lookup, seen)
+
+
+def test_native_pair_rejects_ambiguous_or_malformed_identity_columns(builder):
+    ids = {key: np.array([1, 1], dtype=np.uint64)
+           for key in ("run", "luminosityBlock", "event")}
+    with pytest.raises(ValueError, match="Duplicate NanoAOD"):
+        builder.nano_identity_index(ids)
+    ids["event"] = np.array([1.0, 2.0])
+    with pytest.raises(ValueError, match="Malformed NanoAOD"):
+        builder.nano_identity_index(ids)
+
+
+@pytest.mark.parametrize("input_profile", ["calibration", "b0"])
 def test_condor_forwards_manifest_as_one_argument_and_records_provenance(sidecar, tmp_path,
-                                                                       monkeypatch):
+                                                                       monkeypatch, input_profile):
     repo = Path(__file__).resolve().parents[1]
     script = repo / "condor/submit_batches.py"
     spec = importlib.util.spec_from_file_location("submit_truth_batches", script)
@@ -218,15 +330,24 @@ def test_condor_forwards_manifest_as_one_argument_and_records_provenance(sidecar
                         "--files-name", "TTtoLNu2Q", "--tag", "truth",
                         "--run-dir", str(tmp_path / "jobs"),
                         "--processed-dir", str(tmp_path / "processed"),
-                        "--truth-label-manifest", str(manifest)])
+                        "--truth-label-manifest", str(manifest), "--input-profile", input_profile])
     module.main()  # Generate only; never submit a job.
     campaign = json.loads((tmp_path / "jobs/campaign.json").read_text())
     assert campaign["truth_label_manifest"] == str(manifest.resolve())
     assert campaign["truth_label_manifest_sha256"] == sha256(manifest.read_bytes()).hexdigest()
+    assert campaign["input_profile"] == input_profile
     worker = next((tmp_path / "jobs").glob("*/run_batch.sh"))
     script_text = worker.read_text()
+    assert f'INPUT_PROFILE="{input_profile}"' in script_text
+    assert '--input-profile "$INPUT_PROFILE"' in script_text
     assignment = next(line for line in script_text.splitlines()
                       if line.startswith("TRUTH_LABEL_MANIFEST="))
     assert shlex.split(assignment)[0] == f"TRUTH_LABEL_MANIFEST={manifest.resolve()}"
     assert '"${TRUTH_LABEL_ARGS[@]}"' in script_text
+    pin_assignment = next(line for line in script_text.splitlines()
+                          if line.startswith("TRUTH_LABEL_MANIFEST_SHA256="))
+    assert shlex.split(pin_assignment)[0] == (
+        f"TRUTH_LABEL_MANIFEST_SHA256={campaign['truth_label_manifest_sha256']}"
+    )
+    assert '--truth-label-manifest-sha256 "$TRUTH_LABEL_MANIFEST_SHA256"' in script_text
     subprocess.run(["bash", "-n", str(worker)], check=True)
