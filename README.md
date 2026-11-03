@@ -170,6 +170,23 @@ see the [Condor guide](condor/README.md). Workers use the live checkout, so
 keep the source fixed while a production is running. `campaign.json` records
 the commit, branch, and working-tree status at submission.
 
+## Optional matching report
+
+Count fully matched events and events with a fully matched hadronic top,
+then plot the hadronic W and top masses from the saved reconstructed jets:
+
+```bash
+micromamba run -n ttbar python -m vcb.postprocessing.matching \
+  --files '/path/to/processed/roots/*.root' \
+  --label TTBB --outdir outputs/ttbb-matching-report
+```
+
+This separate module writes `matching_summary.txt`, `matching_summary.json`,
+and PNG/PDF plots for both matching selections. Counts are unweighted and
+refer to events in the supplied skims. It reads the saved assignments without
+running the processor again. See the [matching report guide](docs/matching-report.md)
+for definitions, multi-sample comparisons, and validation limits.
+
 ## Checks
 
 ```bash
@@ -197,6 +214,9 @@ end in `VERDICT: PASS`. Fixture setup and check details are in
 | [Event truth labels](docs/event-truth-labels.md) | TT2Q/TTCB, extra-b-quark count, validity masks, and complete-truth sidecars |
 | [B0 input preparation](docs/b0-input-readiness-2026-10-28.md) | Processor freeze scope, ten-jet cap, retained W-lepton flag, TTBB matching pilot and provisional normalization sources |
 | [B0 input profile](docs/b0-input-profile.md) | [Processing flowchart](docs/b0-input-profile.md#processing-flow), central-jet selection before the ten-slot cap, feature masks, zero-charge decoding, matching and source identity |
+| [B0 matched-jet mass check](docs/b0-mass-sanity-2026-11-03.md) | Bounded TT2Q/TTBB W and top mass comparison before full skim production |
+| [Optional matching report](docs/matching-report.md) | Full and hadronic-top matching counts, text/JSON summaries, and matched-jet W/top mass plots |
+| [TTBB B0 production](docs/ttbb-b0-production.md) | Frozen EOS-input campaign, scale-weight fix, final-configuration pilot, and automatic validation/normalization/reporting |
 | [Output schema](tests/outfile/test-output-schema.csv) | Branch names and types for the nominal test skim, before `finalWeight` |
 | [CLI reference](docs/cli.md) | Run options and defaults |
 | [Condor guide](condor/README.md) | Submit, normalize, validate, and merge |

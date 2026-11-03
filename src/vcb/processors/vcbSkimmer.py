@@ -1187,7 +1187,9 @@ class vcbSkimmer(SkimmerABC):
         # 10) Add theory variations (scale/PDF) for supported datasets.
         ###################### alpha_S and PDF variations ######################
 
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith(("TTTo", "TTto")):
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith(
+            ("TTTo", "TTto", "TTBB-")
+        ):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
