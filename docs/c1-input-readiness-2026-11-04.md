@@ -105,7 +105,24 @@ remain intact, and code and common schemas agree. It reports actual support
 of exact extra-quark multiplicities. Missing sources or failed jobs leave C1
 open. Sources remain separate; the audit does not combine physics yields.
 
-At this software checkpoint, bounded validation is complete. Full-population
-processing and its final audit are not yet complete. The subsequent production
-record supplies campaign paths and queue identifiers. Protected lineage splits,
-HDF5 assembly and train-only normalization are C2 work; training has not started.
+**Production submitted: 2026-11-04, 17:39 UTC.** Frozen processor commit
+`0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf` passed 474 unit tests, 22 subtests,
+lint and the unchanged calibration regression. All three new Condor pilots
+passed 149 campaign checks each, plus normalization rerun and matching-report
+checks. Their clusters were TT2Q `7651228`, TTCB `7651226` and TTBB `7651227`.
+
+One master DAG, cluster **7651230**, covers 13,737 inputs and 548,444,645 raw
+events with a shared maximum of 40 active processing/finalization jobs. It
+interleaves sources and runs the overall C1 audit after all three finalizers.
+The campaign root is
+`/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104`.
+The [submission record](c1-b0-production-2026-11-04.json) pins source snapshots,
+pilot gates, workflow hashes and queue identifiers.
+
+Pilot scaling estimates about 204 GB of skim ROOTs, plus metadata and logs;
+the shared filesystem had about 18 TB available at submission. This is an
+estimate, not a quota measurement or a production size result.
+
+Full-population processing and its final audit are **not yet complete** at
+submission. Protected lineage splits, HDF5 assembly and train-only normalization
+are C2 work; training has not started.

@@ -163,8 +163,9 @@ the complete dataset's all-input denominator; do not normalize each job alone.
 The [general Condor guide](condor/README.md) covers other campaigns.
 
 **Current checkpoint:** B0 schema 2 adds the agreed b-jet truth labels.
+Full TT2Q, TTCB and TTBB processing was submitted after all three pilots passed.
 See the [C1 readiness record](docs/c1-input-readiness-2026-11-04.md) for validation
-and production status. The [November 3 pilot](docs/ttbb-helper-integration-2026-11-03.md)
+and the production checkpoint. The [November 3 pilot](docs/ttbb-helper-integration-2026-11-03.md)
 remains the historical schema-1 checkpoint.
 
 **Scope:** 2024 MC. Collision-data processing is rejected. Combining inclusive

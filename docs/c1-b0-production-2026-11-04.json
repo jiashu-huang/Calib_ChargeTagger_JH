@@ -1,0 +1,221 @@
+{
+  "state": "submitted",
+  "submitted_utc": "2026-11-04T17:39:24.537735+00:00",
+  "dagman_cluster": 7651230,
+  "command": [
+    "condor_submit_dag",
+    "-maxjobs",
+    "40",
+    "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/production.dag"
+  ],
+  "workflow_sha256": "068ccb3b623b2cdb13897331756bf00771319a81ea37ead121afdd262c7e0e4c",
+  "max_jobs": 40,
+  "input_files": 13737,
+  "input_events": 548444645,
+  "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+  "training_started": false,
+  "recorded_utc": "2026-11-04T17:41:28.254681+00:00",
+  "campaign_root": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104",
+  "workflow": {
+    "created_utc": "2026-11-04T17:38:22.158609+00:00",
+    "state": "prepared",
+    "max_running_jobs": 40,
+    "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+    "sources": {
+      "TT2Q": {
+        "campaign": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TT2Q",
+        "files": 11014,
+        "input_events": 484298177,
+        "campaign_sha256": "51f09edbd7d6ac7b74e6cb911b14c6af5d208b3a7fe84672a9a23815f839deb7",
+        "pilot_gate_sha256": "0aae78f821e63d1047f54284909066283d118509718244778058e96c30ceffdc"
+      },
+      "TTCB": {
+        "campaign": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB",
+        "files": 465,
+        "input_events": 19823340,
+        "campaign_sha256": "70253f67ddc503fac10927df55b180c18f4befa8a3d1e48e44035b9514bdaa99",
+        "pilot_gate_sha256": "8c3a536cee23be06302bfa8027d8679f5c51e09ba55a5ebc03731b327849a575"
+      },
+      "TTBB": {
+        "campaign": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTBB",
+        "files": 2258,
+        "input_events": 44323128,
+        "campaign_sha256": "39338156e32359fa3ff7c5a0a09242d9c8b9731a6c757b1cef04ce79efd7f914",
+        "pilot_gate_sha256": "02526ad40b49d457cce1700c6dc09b0b7e3a79a1e8b0ff82c5e706f74ef8748b"
+      }
+    },
+    "dag": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/production.dag",
+    "dag_sha256": "ed2327d507aebf8da33b7c98e8705088c7ddc68aa67c837f45592962eb117912",
+    "nodes": 13741,
+    "audit_script_sha256": "09dd2a4ca8c54849d770d0624a1ca270359fbf0f6f1be90524e47d9a7f17b604",
+    "audit_submit_sha256": "d708705553694ecefc1e1ab323db0c7e4c4d7ea9b9dab23c7b6c63264d2bd33d",
+    "builder_sha256": "3d4c12d894547431c4d699232cf34c8a7baa504179b817bb8e299877e02686af",
+    "training_started": false,
+    "physics_yields_combined": false
+  },
+  "pilots": {
+    "TT2Q": {
+      "submission": {
+        "cluster": 7651228,
+        "submission": "7651228.0 - 7651228.0",
+        "submitted_utc": "2026-11-04T17:35:15.442011+00:00",
+        "campaign_sha256": "51f09edbd7d6ac7b74e6cb911b14c6af5d208b3a7fe84672a9a23815f839deb7"
+      },
+      "gate": {
+        "state": "passed",
+        "completed_utc": "2026-11-04T17:23:12.735828+00:00",
+        "campaign_sha256": "51f09edbd7d6ac7b74e6cb911b14c6af5d208b3a7fe84672a9a23815f839deb7",
+        "schema_sha256": "9bca9ff77196514f527367ff18d965e2dd9aa21c8ea88d47ed05d1fd5e7ff11b",
+        "schema_csv_sha256": "b0eb9d27c183a5ffb7119af25d709e65cf7bc8814cc2ec2a062fd2c4cda484e2",
+        "pilot_result_sha256": "ea2156ad12d6c8e9e393ab98a497942fbdfc7432e1c82a930d7da4d938b6da4a",
+        "weight_prescription_sha256": "09be4d04580ea936db80638240127e75f5dbd409d0ab2d39f58f83c16725c0c2",
+        "pdf_layout_sha256": "96c5691f49227f508c998611de9beedbf36ec66176a6bcf62758c125f6b2d05e",
+        "pilot_artifacts": {
+          "pilot-matching-report/matching_summary.txt": "213dd8e3dcddf03e2ebe40318be83b393d5a9a654c1682a1fc1c2e73d79a0669",
+          "pilot-matching-report/matching_summary.json": "087502dadb3d14411574ac3de46b12e1d0098c3a71c11047bb0c30be8fb5cb4b",
+          "pilot-matching-report/fully_matched_masses.png": "02d11ffd8c39271a1e2b835aff463dfb78fb48e60453d9f4f3d665bf343db183",
+          "pilot-matching-report/fully_matched_masses.pdf": "7460fcccae733e0caf9fbeff071718397eaadc020776c56d29ba72d1d21624cb",
+          "pilot-matching-report/hadronic_top_matched_masses.png": "a4b111d8aeb9a34036812f361557806a8095dad419f1a7bb7902a9ad5ca80703",
+          "pilot-matching-report/hadronic_top_matched_masses.pdf": "895c576cb2c1d540a2714fe76e6066bb8bfe0d116f06aeb26c2e21981f02188e",
+          "pilot/roots/TT2Q_09f4682a-07fd-4bc8-bac3-d3cf85fd3810.root": "13ce35cd65444fa828f7f1dfa46e1d9fbc7e1a2d374f429fad06fea20b818957",
+          "pilot/metadata/normalization.json": "70a4056618460e66124b1cd25f12b9749e3e73841407886caa359ed91b072153"
+        },
+        "normalization_rerun_byte_identical": true,
+        "normalized_root_sha256": "13ce35cd65444fa828f7f1dfa46e1d9fbc7e1a2d374f429fad06fea20b818957",
+        "input_events": 27269,
+        "selected_events": 4050,
+        "fully_matched": 1595,
+        "matching_counts": {
+          "events_in_processed_files": 4050,
+          "fully_matched": 1595,
+          "hadronic_top_matched": 1926,
+          "hadronic_top_only": 331,
+          "w_pair_matched": 2372,
+          "b0_mask_checked_events": 4050,
+          "b0_assignment_eligible": 1595
+        },
+        "branches_before_finalWeight": 1373
+      },
+      "gate_sha256": "0aae78f821e63d1047f54284909066283d118509718244778058e96c30ceffdc",
+      "campaign_validation": {
+        "passed": 149,
+        "failed": 0
+      }
+    },
+    "TTCB": {
+      "submission": {
+        "cluster": 7651226,
+        "submission": "7651226.0 - 7651226.0",
+        "submitted_utc": "2026-11-04T17:33:31.169968+00:00",
+        "campaign_sha256": "70253f67ddc503fac10927df55b180c18f4befa8a3d1e48e44035b9514bdaa99"
+      },
+      "gate": {
+        "state": "passed",
+        "completed_utc": "2026-11-04T17:16:53.272435+00:00",
+        "campaign_sha256": "70253f67ddc503fac10927df55b180c18f4befa8a3d1e48e44035b9514bdaa99",
+        "schema_sha256": "9bca9ff77196514f527367ff18d965e2dd9aa21c8ea88d47ed05d1fd5e7ff11b",
+        "schema_csv_sha256": "b0eb9d27c183a5ffb7119af25d709e65cf7bc8814cc2ec2a062fd2c4cda484e2",
+        "pilot_result_sha256": "1ae5d4a0645bc6af56f07797d2f2005df60b44d2ca43c9cdd44f10e12cf0aba6",
+        "weight_prescription_sha256": "09be4d04580ea936db80638240127e75f5dbd409d0ab2d39f58f83c16725c0c2",
+        "pdf_layout_sha256": "96c5691f49227f508c998611de9beedbf36ec66176a6bcf62758c125f6b2d05e",
+        "pilot_artifacts": {
+          "pilot-matching-report/matching_summary.txt": "ce89dc4a869fe0e2763105cf49f2e919f3876f21258ec1a52f5e6240893fb351",
+          "pilot-matching-report/matching_summary.json": "af7392a34c52237503e6894cf88ef1f1da21f674ba5ad4d6a8c26bfff4c3e2e4",
+          "pilot-matching-report/fully_matched_masses.png": "707fa8cce69a2fcce6a51bd2fcb89a56af9450021637a0772b141b4fcba6b702",
+          "pilot-matching-report/fully_matched_masses.pdf": "7f0b1234c636369ef20763c72d9816b20fe66605682d4889b185c51d9f5003e9",
+          "pilot-matching-report/hadronic_top_matched_masses.png": "e814bea80216fe30f2612f35a7826e30ecaf82c8061be34d8e834539c2e27934",
+          "pilot-matching-report/hadronic_top_matched_masses.pdf": "d4f74284ed5e044d6a4b22857d9c30195ef44ee0a477d55f8f49a9bac16ae2e1",
+          "pilot/roots/TTCB_7c88774e-ad11-4513-aca4-d9f4b6146707.root": "64622a824f4d7fbb976fdaf9c1a56e50d72a22c78856c8b3323209f2e929c355",
+          "pilot/metadata/normalization.json": "f895c285211f2968fe5c7b76b4f38dd3f46cef1a27c9fa50b5c60361b5a9b01a"
+        },
+        "normalization_rerun_byte_identical": true,
+        "normalized_root_sha256": "64622a824f4d7fbb976fdaf9c1a56e50d72a22c78856c8b3323209f2e929c355",
+        "input_events": 33580,
+        "selected_events": 4703,
+        "fully_matched": 1705,
+        "matching_counts": {
+          "events_in_processed_files": 4703,
+          "fully_matched": 1705,
+          "hadronic_top_matched": 2063,
+          "hadronic_top_only": 358,
+          "w_pair_matched": 2551,
+          "b0_mask_checked_events": 4703,
+          "b0_assignment_eligible": 1705
+        },
+        "branches_before_finalWeight": 1373
+      },
+      "gate_sha256": "8c3a536cee23be06302bfa8027d8679f5c51e09ba55a5ebc03731b327849a575",
+      "campaign_validation": {
+        "passed": 149,
+        "failed": 0
+      }
+    },
+    "TTBB": {
+      "submission": {
+        "cluster": 7651227,
+        "submission": "7651227.0 - 7651227.0",
+        "submitted_utc": "2026-11-04T17:33:31.285630+00:00",
+        "campaign_sha256": "39338156e32359fa3ff7c5a0a09242d9c8b9731a6c757b1cef04ce79efd7f914"
+      },
+      "gate": {
+        "state": "passed",
+        "completed_utc": "2026-11-04T17:21:24.966254+00:00",
+        "campaign_sha256": "39338156e32359fa3ff7c5a0a09242d9c8b9731a6c757b1cef04ce79efd7f914",
+        "schema_sha256": "e8275f0c54ee1cd9b90c5d3ede596bb52e656ff95db3989f1bc286e54a61216e",
+        "schema_csv_sha256": "0a54c7b0b114ca3ee5be7d20a1574078f1faf7fcaa67c1781f92c395b5dd228c",
+        "pilot_result_sha256": "a3302063a287ae85cf50b382afacec842e3b545c9ae808e9163836e6c406b365",
+        "weight_prescription_sha256": "09be4d04580ea936db80638240127e75f5dbd409d0ab2d39f58f83c16725c0c2",
+        "pdf_layout_sha256": "1d8512989973c2d1586e56ec4d5d6ab4f70dcf1e1fac4de6b8e67abbaad92bc6",
+        "pilot_artifacts": {
+          "pilot-matching-report/matching_summary.txt": "a43dde2245b857bf9166e0b5c9f58726cb09f90766060126d141a1e46c74eec9",
+          "pilot-matching-report/matching_summary.json": "b28d2c675fbc32717bf9ccc9f0337fe40bdcc5f34b4a91d3b670664426a5493f",
+          "pilot-matching-report/fully_matched_masses.png": "636ae5e640e323530f87d04225106415f4da1350d098fc9d1e3e023375df603f",
+          "pilot-matching-report/fully_matched_masses.pdf": "309957ceebbb191150d29e92d6f44599ce7a81486dd4f9d5f58798241fc867cb",
+          "pilot-matching-report/hadronic_top_matched_masses.png": "1d14aebdcfe1ff3dba72f6dc2c9cb984daeb0993b9180c31f1d262eca303b4ea",
+          "pilot-matching-report/hadronic_top_matched_masses.pdf": "b4804faf413f931df1c677622da5f934433897d58b165f648d711ef29650b3ec",
+          "pilot/roots/TTBB_0038b18a-907c-4e5d-8152-9642adf7f90a.root": "d5b2350d9025999bbc5417c2e8a13becd4d8d8aaf1c1252e96364f74391fb260",
+          "pilot/metadata/normalization.json": "35efb44443aefbbb859f76eac0ab84d485b3d490611cf55a3d182b9a480e717e"
+        },
+        "normalization_rerun_byte_identical": true,
+        "normalized_root_sha256": "d5b2350d9025999bbc5417c2e8a13becd4d8d8aaf1c1252e96364f74391fb260",
+        "input_events": 22176,
+        "selected_events": 4055,
+        "fully_matched": 1438,
+        "matching_counts": {
+          "events_in_processed_files": 4055,
+          "fully_matched": 1438,
+          "hadronic_top_matched": 1794,
+          "hadronic_top_only": 356,
+          "w_pair_matched": 2243,
+          "b0_mask_checked_events": 4055,
+          "b0_assignment_eligible": 1438
+        },
+        "branches_before_finalWeight": 1371
+      },
+      "gate_sha256": "02526ad40b49d457cce1700c6dc09b0b7e3a79a1e8b0ff82c5e706f74ef8748b",
+      "campaign_validation": {
+        "passed": 149,
+        "failed": 0
+      }
+    }
+  },
+  "software_validation": {
+    "unit_tests_passed": 474,
+    "subtests_passed": 22,
+    "lint": "passed",
+    "calibration_baselines": "unchanged",
+    "real_file_validation": "all three sources passed"
+  },
+  "storage_estimate": {
+    "skim_bytes_approx": 204100000000,
+    "method": "extrapolated from the three full-file pilots",
+    "excludes": [
+      "logs",
+      "metadata",
+      "retained failed attempts"
+    ],
+    "shared_free_space_at_submission_approx_TB": 18
+  },
+  "c1_complete": false,
+  "completion_gate": "All three source finalizations, matching reports, population audits and overall c1-input-readiness.json must pass."
+}
