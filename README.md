@@ -18,8 +18,9 @@ and network training come later.
 ![B0 flow: CMSSW_CHARGE NanoAOD and complete generator truth enter corrections, selection, feature preparation and matching. ROOT skims retain incomplete matches and all-input normalization totals. Separate steps produce matching reports and normalized weights.](docs/images/readme-b0-flow.svg)
 
 MiniAOD → NanoAOD conversion happens **before** this repository runs.
-The complete-truth companion files come from **C1**, our generator-truth
-preparation step. See the [detailed B0 flow](docs/b0-input-profile.md#processing-flow).
+Separate **C1** jobs read MiniAOD generator truth and write the extra-b-quark
+labels. Jet-flavour truth already comes from NanoAOD. See the
+[detailed B0 flow](docs/b0-input-profile.md#processing-flow).
 
 ## Choose a mode
 
@@ -103,12 +104,16 @@ A **validity mask** is a yes/no flag: can this value or target be used?
 | --- | --- |
 | `GenWDecay` | `0` = TT2Q (non-b W daughters, including charm); `1` = TTCB (W → cb); `-1` = unknown/outside these modes |
 | `GenNExtraBQuarks` | Exact extra b/anti-b **quark** count, not a jet count; `-1` = unknown |
+| `RecoNBJets`, `GenNBJets` | Total reco/gen b-jet counts from `hadronFlavour == 5`, before output limits; pT > 25 GeV, \|η\| < 2.4 |
+| `B0JetIsB0..9` | Whether each retained reco jet has b hadron flavour; use its `B0JetIsBValid` flag |
 | `GenWLeptonFlavor` | Direct leptonic W daughter: `11` = e, `13` = μ, `15` = τ; `0` = unavailable |
 | Four `Gen*JetIdx` fields | Jet slots for hadronic-top b, leptonic-top b and the two W daughters; `-1` = unmatched |
 | `B0AssignmentMask` | All four roles matched to distinct jets **and** a valid W-decay topology |
 
 The matcher is greedy with **ΔR < 0.4**. The W pair is unordered and allows
 W → cb. A TTCB event with extra b quarks retains its TTCB label.
+The two b-jet counts **include top, W and radiation jets**; they are not
+additional-b-jet counts. Reco jets also pass the usual ID and lepton cleaning.
 
 **Incomplete matches stay in the skim.** Use `B0AssignmentMask` for reconstruction
 training and each truth label's own `Valid` flag for classification. Use the
@@ -146,20 +151,21 @@ also shows how to compare TT2Q and TTBB on the same plots.
 
 ## Run the full TTBB sample
 
-Use the [TTBB production guide](docs/ttbb-b0-production.md). Its helper freezes
+Use the [B0 production guide](docs/ttbb-b0-production.md). Its helper freezes
 the code and checks a complete one-file pilot before production:
 
 **Prepare → pass pilot → submit full sample → validate coverage → normalize → report.**
 
-It reads NanoAODs from **EOS** and writes processed skims on **BRUX**. The integrated
+It reads TTBB NanoAODs from **EOS**, or TT2Q/TTCB NanoAODs already on BRUX, and
+writes processed skims on **BRUX**. Select the source with `--sample`. The integrated
 workflow uses **one input file per job**. Finalization adds `finalWeight` using
 the complete dataset's all-input denominator; do not normalize each job alone.
 The [general Condor guide](condor/README.md) covers other campaigns.
 
-**Checkpoint — 3 November 2026:** integrated code passes 445 tests + 22 subtests
-and lint. The complete TTBB Condor pilot passed with 22,176 input events,
-4,055 selected and 1,438 fully matched. Full production with this integrated
-code has **not** been submitted. See the [validation record](docs/ttbb-helper-integration-2026-11-03.md).
+**Current checkpoint:** B0 schema 2 adds the agreed b-jet truth labels.
+See the [C1 readiness record](docs/c1-input-readiness-2026-11-04.md) for validation
+and production status. The [November 3 pilot](docs/ttbb-helper-integration-2026-11-03.md)
+remains the historical schema-1 checkpoint.
 
 **Scope:** 2024 MC. Collision-data processing is rejected. Combining inclusive
 TT2Q and dedicated TTBB yields still requires an overlap prescription; the
@@ -174,6 +180,7 @@ and [B0 dataset requirements](docs/b0-input-profile.md#release-validation-2026-1
 | Corrections and saved object fields | [Object synopsis](docs/object-synopsis.md) |
 | B0 features, masks and jet-charge decoding | [B0 input profile](docs/b0-input-profile.md) |
 | Truth labels and complete-truth files | [Event truth labels](docs/event-truth-labels.md) · [C1 campaign](docs/c1-truth-campaign.md) |
+| Current C1 definitions, validation and production | [C1 input readiness](docs/c1-input-readiness-2026-11-04.md) |
 | Commands and production | [CLI](docs/cli.md) · [TTBB workflow](docs/ttbb-b0-production.md) · [Condor](condor/README.md) |
 | Matching counts and mass plots | [Matching report](docs/matching-report.md) |
 | Development checks | [Tests and fixtures](docs/tests.md) · [Repository instructions](AGENTS.md) |

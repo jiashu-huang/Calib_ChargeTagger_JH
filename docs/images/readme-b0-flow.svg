@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1040" height="784" viewBox="0 0 1040 784" role="img" aria-labelledby="title desc">
   <title id="title">B0: from NanoAOD to checked ROOT skims</title>
-  <desc id="desc">2024 TT2Q, TTCB or TTBB NanoAOD enters the B0 processor. C1 companion files supply complete-generator extra-b counts. Correct and select objects, prepare observable features, and attach two truth labels and four distinct jet assignments using greedy delta-R below 0.4. Keep selected events with incomplete matching. Save ROOT events, all-input normalization totals and provenance. Separate steps make matching counts and W/top mass plots, and normalize using the complete dataset. Dataset assembly and SPANet training follow downstream.</desc>
+  <desc id="desc">2024 TT2Q, TTCB or TTBB NanoAOD enters the B0 processor. Separate C1 jobs read MiniAOD truth and prepare extra-b-quark labels. Correct and select objects, prepare observable features, and attach W-decay and extra-quark labels, total reco/gen b-jet counts, and four distinct jet assignments using greedy delta-R below 0.4. Jet flavour comes from NanoAOD. Keep selected events with incomplete matching. Save ROOT events, all-input normalization totals and provenance. Separate steps make matching reports and normalized weights. Dataset assembly and SPANet training follow downstream.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#526279"/>
@@ -21,9 +21,9 @@
   <text x="62" y="99" class="body">TT2Q · TTCB · TTBB</text>
   <text x="62" y="124" class="body">Jets, leptons, MET and retained truth</text>
   <rect x="540" y="32" width="460" height="110" rx="14" fill="#edf8f3" stroke="#93bca8" stroke-width="1.5"/>
-  <text x="562" y="67" class="heading">Complete generator truth</text>
-  <text x="562" y="99" class="body">C1 companion files</text>
-  <text x="562" y="124" class="body">Required for valid extra-b-quark counts</text>
+  <text x="562" y="67" class="heading">MiniAOD truth → extra-b labels</text>
+  <text x="562" y="99" class="body">Prepared by separate C1 jobs</text>
+  <text x="562" y="124" class="body">One label file per NanoAOD input</text>
   <path d="M 200 142 V 192" class="connector"/>
   <path d="M 850 142 V 192" class="connector"/>
 
@@ -42,9 +42,10 @@
   <text x="392" y="363" class="body">Record missing-value masks</text>
   <path d="M 674 318 H 704" class="connector"/>
   <text x="720" y="278" class="heading">3. Label &amp; match</text>
-  <text x="720" y="309" class="body">W decay + extra-b count</text>
-  <text x="720" y="336" class="body">4 roles; greedy ΔR &lt; 0.4</text>
-  <text x="720" y="363" class="body">Unordered W-jet pair</text>
+  <text x="720" y="309" class="body">W decay + extra-b quarks</text>
+  <text x="720" y="330" class="body">Reco/gen b-jet truth</text>
+  <text x="720" y="351" class="body">4 roles; greedy ΔR &lt; 0.4</text>
+  <text x="720" y="372" class="body">Unordered W-jet pair</text>
   <rect x="56" y="384" width="928" height="32" rx="7" fill="#e0edf5"/>
   <text x="520" y="406" text-anchor="middle" class="body">Keep incomplete matches. Reconstruction and classification use separate validity masks.</text>
 

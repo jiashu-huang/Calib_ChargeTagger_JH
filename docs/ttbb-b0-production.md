@@ -1,4 +1,11 @@
-# 2024 TTBB B0 production
+# 2024 B0 production: TTBB, TT2Q and TTCB
+
+The `ttbb_b0_campaign.py` helper now accepts `prepare --sample TTBB|TT2Q|TTCB`;
+TTBB remains the default. Use a separate campaign directory and complete-file
+reference pilot for each source. TTBB inputs are on EOS; TT2Q/TTCB may use their
+certified local BRUX files. The [November 4 C1 record](c1-input-readiness-2026-11-04.md)
+defines schema 2 and the common-input audit. Earlier pilot numbers below are
+historical schema-1 results.
 
 This workflow reads certified CMSSW_CHARGE NanoAODs from EOS and writes B0
 ROOT skims, normalization totals and matching reports on BRUX. It runs the
@@ -132,6 +139,7 @@ pdf-layout.json                 pilot's registered member mapping
 processed/roots/                one skim ROOT per original NanoAOD
 processed/pickles/              per-file cutflows and all-input weight sums
 processed/metadata/             provenance, normalization receipt and totals
+input-audit.json, input-audit.txt full selected-population feature/truth/cap audit
 status/                         one validated success record per input
 attempts/, logs/                processing and retry evidence
 matching-report/                full-campaign counts and W/top mass plots

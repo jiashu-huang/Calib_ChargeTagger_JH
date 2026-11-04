@@ -135,3 +135,56 @@ def test_source_uuid_and_entry_are_exact_and_profile_is_explicit():
     assert len(schema["jet_features"]) == 18
     assert len(schema["event_features"]) == 15
     assert not schema["source_identity_weights_truth_are_features"]
+
+
+def test_b_jet_counts_are_independent_and_precede_both_output_caps():
+    reco = ak.Array([[jet(i, hadronFlavour=5 if i in (0, 10, 11) else 0)
+                      for i in range(12)], [jet(0, hadronFlavour=4)]])
+    # A late gen jet must still count even though the skim saves only 25 slots.
+    gen = ak.Array([[jet(i, hadronFlavour=5 if i in (0, 25, 26) else 0)
+                     for i in range(27)], [jet(0, hadronFlavour=5),
+                                           jet(1, hadronFlavour=5)]])
+    out = b0.build_jet_truth_columns(reco, gen)
+    assert out["RecoNBJets"].tolist() == [3, 0]
+    assert out["GenNBJets"].tolist() == [3, 2]
+    assert out["B0JetIsB"].sum(axis=1).tolist() == [1, 0]
+    assert out["B0JetIsBValid"].sum(axis=1).tolist() == [10, 1]
+    assert out["RecoNBJetsValid"].all()
+    assert out["GenNBJetsValid"].all()
+    assert out["RecoNBJets"].dtype == np.dtype("int32")
+
+
+def test_b_jet_acceptance_counts_jets_not_hadrons_or_parton_flavour():
+    jets = ak.Array([[jet(0, hadronFlavour=5, nBHadrons=2, partonFlavour=21),
+                      jet(1, hadronFlavour=4, nBHadrons=0, partonFlavour=5),
+                      jet(2, pt=25, hadronFlavour=5, nBHadrons=1, partonFlavour=5),
+                      jet(3, eta=-2.4, hadronFlavour=5, nBHadrons=1, partonFlavour=5)]])
+    out = b0.build_jet_truth_columns(b0.select_jets(jets), jets)
+    assert out["RecoNBJets"].tolist() == [1]
+    assert out["GenNBJets"].tolist() == [1]
+    assert out["B0JetIsB"][0, :2].tolist() == [True, False]
+
+
+def test_b_jet_unknowns_do_not_become_zero_or_light_flavour():
+    jets = ak.Array([[jet(0, hadronFlavour=5), jet(1, hadronFlavour=-5)],
+                     [jet(0, hadronFlavour=None)], []])
+    out = b0.build_jet_truth_columns(jets, jets)
+    assert out["RecoNBJets"].tolist() == [-1, -1, 0]
+    assert out["GenNBJetsValid"].tolist() == [False, False, True]
+    assert not out["B0JetIsBValid"][0, 1:].any()
+    assert not out["B0JetIsB"][1:].any()
+    missing = b0.build_jet_truth_columns(jets[[f for f in jets.fields if f != "hadronFlavour"]], jets)
+    assert missing["RecoNBJets"].tolist() == [-1, -1, 0]
+    assert not missing["B0JetIsBValid"].any()
+    empty = b0.build_jet_truth_columns(jets[:0], jets[:0])
+    assert empty["B0JetIsB"].shape == (0, 10)
+    with pytest.raises(ValueError, match="not aligned"):
+        b0.build_jet_truth_columns(jets, jets[:1])
+
+
+def test_b_jet_truth_is_excluded_from_the_feature_allowlist():
+    schema = b0.schema_metadata()
+    assert schema["schema_version"] == 2
+    assert schema["bjet_truth"]["gen_jet_pt_strict_min_GeV"] == 25
+    assert not any("Hadron" in name or "IsB" in name or "NBJets" in name
+                   for name in schema["jet_features"] + schema["event_features"])

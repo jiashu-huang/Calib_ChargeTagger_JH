@@ -7,8 +7,8 @@ trigger lepton, event-quality filters, jet ID, cleaning and event weights.
 
 The [CMS/C1 integration](cms-c1-integration-2026-11-03.md) combines this profile
 with CMS realignment: the corrected Ele30 trigger match and weight prescription
-version 3 apply to both profiles. The feature definitions and B0 schema version
-remain unchanged. Earlier pilot counts below describe the October 28 processor;
+version 3 apply to both profiles. B0 schema 2 adds the November 4 b-jet truth
+metadata while retaining the same observable features. Earlier pilot counts below describe the October 28 processor;
 use the integration record for validation of the combined code.
 
 ## Processing flow
@@ -28,7 +28,7 @@ flowchart TD
         C["Select jets: pT > 25 GeV, |eta| < 2.4<br/>Require at least 4"]
         D["Keep up to 10 jets<br/>Record multiplicity and overflow"]
         E["Prepare observable features<br/>Jet tags, charge, lepton and MET<br/>Attach validity masks"]
-        F["Build independent truth labels<br/>TT2Q or TTCB<br/>Exact extra-b-quark count"]
+        F["Build independent truth labels<br/>W decay and extra-b quarks<br/>Total reco/gen b jets; reco-jet b flags"]
         G["Match top-decay partons to jets<br/>Greedy matching, delta-R < 0.4"]
         H["Write ROOT skim<br/>Features, labels, matching masks,<br/>weights and source-event identity"]
 
@@ -138,8 +138,37 @@ Every B0 row stores the original NanoAOD entry in `B0SourceEntry` (`uint64`)
 and its UUID in `B0SourceUUID0..3` (four `uint32` words, most significant first).
 Keep these with the input-to-MiniAOD conversion records and truth manifest.
 Dataset construction must use the original MiniAOD lineage for protected splits.
-`B0SchemaVersion` is currently 1. The two physical truth definitions and sidecar
+`B0SchemaVersion` is currently 2. The two physical classification definitions and sidecar
 schema remain version 1; event alignment changes their transport, not their meaning.
+
+## Hadron-based b-jet truth
+
+The November 4 decision uses `hadronFlavour == 5` for each b jet. In B0 only:
+
+| Columns | Definition |
+| --- | --- |
+| `RecoNBJets`, `RecoNBJetsValid` | Count all corrected, ID-selected, lepton-cleaned jets passing B0 acceptance, before keeping ten slots. |
+| `GenNBJets`, `GenNBJetsValid` | Count all input AK4 generator jets with pT > 25 GeV and abs(eta) < 2.4, before the 25-slot output limit. No detector ID or lepton cleaning. |
+| `B0JetIsB0..9`, `B0JetIsBValid0..9` | Per-retained-reco-jet b flag and validity. The raw `ak4JetHadronFlavour0..9` remains available. |
+
+These counts include b jets from all origins, including direct top and W decays.
+A jet containing two b hadrons counts once. Reconstructed and generator counts
+can differ. Generator acceptance uses the previously recorded 25 GeV diagnostic
+definition, not AN-25-214's separate 20 GeV additional-jet category.
+
+Hadron flavours 0, 4 and 5 are known values. Missing or unsupported flavour makes
+the affected jet label invalid and the relevant complete count `-1` with
+validity=false. Padding has a false b flag and false validity. Unknown jet
+flavour does not remove an event or mask the independent W/quark labels.
+
+These are truth metadata, outside the 18 jet and 15 event features. They do not
+add classification heads, replace the extra-quark count, or modify the four-role
+greedy matcher. The existing complete-truth sidecars need no regeneration.
+The [C1 decision and validation record](c1-input-readiness-2026-11-04.md) pins this
+extension; additional-b-jet origins and physics-yield sample combination remain
+separate analysis decisions.
+
+## Truth validity
 
 Without a complete-truth manifest, the extra-quark label stays unknown with
 validity=false. This is useful for diagnostics and reconstruction preparation,

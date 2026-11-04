@@ -38,7 +38,7 @@ def audit(source: Path) -> dict:
     saved = np.column_stack([a[f"Gen{r}JetIdx"] for r in ROLES])
     replay = _greedy_jet_parton_assignment(
         [ak.Array(p) for p in partons], ak.Array(jets), 10, dr_max=0.4
-    )
+    ) if len(saved) else saved.copy()
     reference = np.full_like(saved, -1)
     optimal = np.full_like(saved, -1)
     bad_index = int(np.sum((saved < -1) | (saved >= 10)))
@@ -89,11 +89,11 @@ def audit(source: Path) -> dict:
         "saved_vs_production_replay_events": int(np.any(saved != replay, axis=1).sum()),
         "saved_vs_independent_greedy_events": int(np.any(saved != reference, axis=1).sum()),
         "greedy_fully_matched": int(full.sum()),
-        "greedy_fully_matched_fraction": float(full.mean()),
+        "greedy_fully_matched_fraction": float(full.mean()) if len(full) else None,
         "greedy_matched_by_role": dict(zip(ROLES, (saved >= 0).sum(axis=0).tolist())),
         "global_cardinality_then_distance_fully_matched": int(opt_full.sum()),
-        "global_fully_matched_fraction": float(opt_full.mean()),
-        "global_full_matching_gain_percentage_points": float(100 * (opt_full.mean() - full.mean())),
+        "global_fully_matched_fraction": float(opt_full.mean()) if len(full) else None,
+        "global_full_matching_gain_percentage_points": float(100 * (opt_full.mean() - full.mean())) if len(full) else None,
         "global_assignment_different_events": int(np.any(saved != optimal, axis=1).sum()),
         "greedy_full_global_not_full": int((full & ~opt_full).sum()),
         "global_full_greedy_not_full": int((opt_full & ~full).sum()),

@@ -8,9 +8,11 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+import awkward as ak
 import numpy as np
 import uproot
 
+from vcb.postprocessing.input_audit import summarize_rows
 from validate_ttbb_matching import audit as matching_audit
 
 
@@ -32,6 +34,9 @@ def validate(nano: Path, skim: Path, metadata: Path, manifest: Path | None = Non
         source_size = source["Events"].num_entries
         ids = source["Events"].arrays(["run", "luminosityBlock", "event"], library="np")
         input_sumw = source["Events"]["genWeight"].array(library="np").sum(dtype=np.float64)
+        jet_truth = (source["Events"].arrays([
+            "Jet_hadronFlavour", "GenJet_pt", "GenJet_eta", "GenJet_hadronFlavour"
+        ])[entries] if schema["schema_version"] >= 2 else None)
         for field in ids:
             np.testing.assert_array_equal(a[field], ids[field][entries])
     # The inherited MC Norm.nevents name stores signed genWeight, not raw count.
@@ -53,6 +58,37 @@ def validate(nano: Path, skim: Path, metadata: Path, manifest: Path | None = Non
     np.testing.assert_array_equal(a["B0Event_n_selected_jets"], a["nJets"])
     np.testing.assert_allclose(a["B0Event_selected_HT"], a["ht"], rtol=1e-6)
     np.testing.assert_array_equal(a["B0Event_n_overflow"], np.maximum(a["nJets"] - 10, 0))
+
+    if jet_truth is not None:
+        # Check retained flavour labels against the original, unsorted NanoAOD.
+        nano_indices = slots("ak4JetNanoIdx").astype(np.int64)
+        multiplicities = ak.to_numpy(ak.num(jet_truth.Jet_hadronFlavour))
+        assert np.all((nano_indices >= 0)[real])
+        assert np.all((nano_indices < multiplicities[:, None])[real])
+        offsets = np.cumsum(multiplicities) - multiplicities
+        flat = ak.to_numpy(ak.flatten(jet_truth.Jet_hadronFlavour))
+        raw = np.zeros(real.shape, dtype=flat.dtype)
+        raw[real] = flat[(offsets[:, None] + nano_indices)[real]]
+        known = real & np.isin(raw, [0, 4, 5])
+        np.testing.assert_array_equal(slots("ak4JetHadronFlavour")[real], raw[real])
+        np.testing.assert_array_equal(slots("B0JetIsBValid"), known)
+        np.testing.assert_array_equal(slots("B0JetIsB"), known & (raw == 5))
+
+        # Full generator collection: do not reconstruct this count from the
+        # 25 output slots, which could have lost a jet inside acceptance.
+        definition = schema["bjet_truth"]
+        accepted = (np.isfinite(jet_truth.GenJet_pt) & np.isfinite(jet_truth.GenJet_eta)
+                    & (jet_truth.GenJet_pt > definition["gen_jet_pt_strict_min_GeV"])
+                    & (abs(jet_truth.GenJet_eta) < definition["gen_jet_abs_eta_strict_max"]))
+        flavours = jet_truth.GenJet_hadronFlavour[accepted]
+        valid = ak.to_numpy(ak.all((flavours == 0) | (flavours == 4) | (flavours == 5), axis=1))
+        count = ak.to_numpy(ak.sum(flavours == 5, axis=1))
+        np.testing.assert_array_equal(a["GenNBJetsValid"], valid)
+        np.testing.assert_array_equal(a["GenNBJets"], np.where(valid, count, -1))
+        for field in ("RecoNBJets", "GenNBJets"):
+            assert a[field].dtype == np.dtype("int32")
+            assert np.all(a[field][~a[field + "Valid"]] == -1)
+            assert np.all(a[field][a[field + "Valid"]] >= 0)
 
     missing = {}
     for feature in schema["jet_features"]:
@@ -114,6 +150,7 @@ def validate(nano: Path, skim: Path, metadata: Path, manifest: Path | None = Non
         "input_signed_genweight_sum": float(input_sumw),
         "input_uuid": str(uuid), "schema_sha256": schema["schema_sha256"],
         "sidecar_checked": sidecar_checked,
+        "hadron_flavour_truth_checked": jet_truth is not None,
         "fully_matched": int(a["B0AssignmentMask"].sum()),
         "unmatched_with_W_label": int((~a["B0AssignmentMask"] & a["GenWDecayValid"]).sum()),
         "unmatched_with_quark_count": int((~a["B0AssignmentMask"] & a["GenNExtraBQuarksValid"]).sum()),
@@ -121,6 +158,7 @@ def validate(nano: Path, skim: Path, metadata: Path, manifest: Path | None = Non
         "W_lepton_flavors": counts("GenWLeptonFlavor"),
         "valid_zero_Qk_from_sentinel": zero_counts, "missing_features": missing,
         "overflow_events": int((a["nJets"] > 10).sum()), "matching": matching,
+        "population": summarize_rows(a, schema),
     }
 
 

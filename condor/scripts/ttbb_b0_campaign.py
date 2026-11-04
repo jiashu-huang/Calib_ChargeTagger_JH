@@ -1,4 +1,4 @@
-"""Frozen, checksum-validated 2024 TTBB B0 production from the certified EOS inventory.
+"""Frozen 2024 B0 production from certified TTBB, TT2Q or TTCB inventories.
 
 prepare -> Condor pilot -> authorize -> Condor DAG (workers -> finalize).
 Preparation and authorization write job descriptions; neither submits jobs.
@@ -27,12 +27,14 @@ from pathlib import Path
 import numpy as np
 import uproot
 
+from vcb.postprocessing.input_audit import merge_summaries, render_summary
 from vcb.processors.lepton_sf import MUON_COMPONENT_WEIGHT_BRANCHES
 from vcb.processors.pdf_weights import read_saved_layout
 from vcb.processors.weight_prescription import read_saved_prescription
 
 REPO = Path(__file__).resolve().parents[2]
 DATASET = "TTBB-TTtoLNu2Q"
+SAMPLE_DATASETS = {"TTBB": DATASET, "TT2Q": "TTtoLNu2Q", "TTCB": "TTtoLNuCB"}
 DEFAULT_ENV = Path("/isilon/export/home/jhuan166/micromamba/envs/ttbar")
 DEFAULT_MAMBA = Path("/isilon/export/home/jhuan166/.local/bin/micromamba")
 # Coffea multiplies partial-weight factors through a Python set. Across processes,
@@ -89,7 +91,8 @@ def write_job(campaign, name, arguments, config):
     (campaign / f"{name}.sub").write_text("\n".join([
         "universe = vanilla", "getenv = false", "should_transfer_files = NO",
         "use_x509userproxy = true", f"x509userproxy = {config['proxy']}",
-        "request_cpus = 1", "request_memory = 4G", "request_disk = 2G",
+        "request_cpus = 1", f"request_memory = {'12G' if name == 'finalize' else '4G'}",
+        "request_disk = 2G",
         f'+JobBatchName = "{config["batch_name"]}_{name}"',
         f"initialdir = {campaign}", f"executable = {campaign}/worker.sh",
         f"arguments = {arguments}", f"log = {campaign}/logs/jobs.log",
@@ -101,16 +104,18 @@ def write_job(campaign, name, arguments, config):
 def prepare(args):
     if args.max_jobs < 1 or not args.proxy.is_file():
         raise ValueError("A positive concurrency limit and an existing CMS proxy are required")
+    sample_name = getattr(args, "sample", "TTBB")
+    dataset = SAMPLE_DATASETS[sample_name]
     source = args.truth_campaign.resolve()
     certificate = json.loads((source / "completion.json").read_text())
     if certificate["state"] != "complete" or certificate["failed_or_missing_pairs"]:
         raise ValueError("Truth campaign is not complete")
     inventory = source / "inventory.json"
-    manifest = source / "TTBB-truth-manifest.json"
+    manifest = source / f"{sample_name}-truth-manifest.json"
     if (sha(inventory) != certificate["inventory_sha256"]
-            or sha(manifest) != certificate["manifests"]["TTBB"]["sha256"]):
+            or sha(manifest) != certificate["manifests"][sample_name]["sha256"]):
         raise ValueError("Certified truth inventory or manifest changed")
-    records = [r for r in json.loads(inventory.read_text())["files"] if r["sample"] == "TTBB"]
+    records = [r for r in json.loads(inventory.read_text())["files"] if r["sample"] == sample_name]
     truth = json.loads(manifest.read_text())
     expected = {r["nano_uuid"]: r for r in records}
     truth_ids = [r["nano_uuid"] for r in truth["files"]]
@@ -126,12 +131,12 @@ def prepare(args):
         if sha(labels) != row["sha256"]:
             raise ValueError(f"Changed truth payload: {labels}")
         row["labels"] = str(labels)
-    summary = certificate["summary"]["TTBB"]
+    summary = certificate["summary"][sample_name]
     if (len(records) != summary["verified_files"]
             or sum(r["entries"] for r in records) != summary["verified_events"]):
-        raise ValueError("TTBB population differs from its certificate")
+        raise ValueError("Source population differs from its certificate")
     if args.pilot_id not in {r["id"] for r in records}:
-        raise ValueError("Pilot input is not part of the certified TTBB inventory")
+        raise ValueError("Pilot input is not part of the certified source inventory")
     # A legacy skim cannot define this release's selection or weight baseline.
     with uproot.open(args.reference_skim) as reference:
         prescription = read_saved_prescription(reference)
@@ -151,6 +156,7 @@ def prepare(args):
     code = campaign / "code"
     shutil.copytree(REPO / "src", code / "src", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     code_files = ["condor/scripts/ttbb_b0_campaign.py", "condor/scripts/validate_ttbb_b0_weights.py",
+                  "condor/scripts/c1_input_readiness.py",
                   "condor/scripts/normalize.py", "condor/scripts/validate_processed.py",
                   "diagnostics/validate_b0_inputs.py", "diagnostics/validate_ttbb_matching.py",
                   "diagnostics/check_jet_tagger_roundtrip.py", "environment.yaml", "pyproject.toml"]
@@ -163,7 +169,7 @@ def prepare(args):
     write_json(campaign / "truth-manifest.json", truth)
     shutil.copy2(source / "completion.json", campaign / "truth-certificate.json")
     config = {"schema_version": 2, "weight_prescription_version": 3,
-        "created_utc": now(), "dataset": DATASET,
+        "created_utc": now(), "sample": sample_name, "dataset": dataset,
         "processor_commit": subprocess.check_output(
             ["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
         "processor_checkout": str(REPO), "code_sha256": {
@@ -180,9 +186,9 @@ def prepare(args):
         "pilot_reference_sha256": sha(args.reference_skim), "proxy": str(args.proxy.resolve()),
         "environment": str(DEFAULT_ENV),
         "batch_name": "VCB_" + re.sub(r"[^A-Za-z0-9_]", "_", campaign.name),
-        "outputs": "BRUX processed/{roots,pickles,metadata}; EOS is the preserved input source",
+        "outputs": "BRUX processed/{roots,pickles,metadata}; certified inputs remain unchanged",
         "normalization": "Nominal finalWeight after complete coverage; all-input variation sums retained",
-        "scope": "TTBB-only B0 preparation with registered PDF members and version-3 weights; no stitching or training"}
+        "scope": f"{sample_name} B0 preparation with registered PDF members and version-3 weights; no stitching or training"}
     write_json(campaign / "campaign.json", config)
     wrapper = campaign / "worker.sh"
     wrapper.write_text("\n".join([
@@ -207,6 +213,18 @@ def prepare(args):
 
 
 def staged_input(record, path, log):
+    if "://" not in record["nano_file"]:
+        original = Path(record["nano_file"])
+        expected = (record["nano_bytes"], record["nano_mtime_ns"])
+        before = original.stat()
+        if (before.st_size, before.st_mtime_ns) != expected:
+            raise ValueError("Local input differs from the certified inventory")
+        shutil.copyfile(original, path)
+        after = original.stat()
+        if ((after.st_size, after.st_mtime_ns) != expected
+                or path.stat().st_size != expected[0]):
+            raise ValueError("Local input changed during staging")
+        return
     command(["/usr/bin/xrdcp", "--nopbar", "--cksum", "adler32", record["nano_file"], path],
             log, timeout=900)
     checksum = 1
@@ -233,7 +251,7 @@ def compare_reference(skim, config):
         # The saved independent reference may already have second-pass normalization.
         before.pop("finalWeight", None)
         if set(after) != set(before):
-            raise ValueError("Unexpected branch change in TTBB pilot")
+            raise ValueError("Unexpected branch change in B0 pilot")
         maximum_roundoff = 0.
         for name in before:
             if old["Events"][name].typename != new["Events"][name].typename:
@@ -275,7 +293,7 @@ def run_one(campaign, config, record, *, pilot=False):
             staged_input(record, nano, attempt / "stage.log")
             manifest = campaign / config["truth_manifest"]
             argv = [sys.executable, "-u", "-m", "vcb.run", "--year", "2024",
-                    "--files", str(nano), "--files-name", DATASET, "--input-profile", "b0",
+                    "--files", str(nano), "--files-name", config["dataset"], "--input-profile", "b0",
                     "--kinematic-variation", "nominal", "--save-systematics", "--root-only",
                     "--truth-label-manifest", str(manifest), "--truth-label-manifest-sha256",
                     config["truth_manifest_sha256"], "--chunksize", str(config["chunksize"]),
@@ -289,7 +307,7 @@ def run_one(campaign, config, record, *, pilot=False):
             metadata = attempt / "outfiles" / f"{identity}.kinematics.json"
             totals = attempt / "outfiles" / f"{identity}.pkl"
             b0 = validate_b0(nano, skim, metadata, manifest)
-            weights = validate_weights(nano, skim, totals)
+            weights = validate_weights(nano, skim, totals, dataset=config["dataset"])
             if (b0["input_events"] != record["entries"] or b0["input_uuid"] != record["nano_uuid"]
                     or not b0["passed"] or not weights["passed"]):
                 raise ValueError("Unexpected input identity, event coverage or failed validation")
@@ -324,7 +342,7 @@ def run_one(campaign, config, record, *, pilot=False):
                 artifacts[kind] = {"path": str(target), "sha256": sha(target), "bytes": target.stat().st_size}
             b0["skim"] = artifacts["root"]["path"]
             b0["matching"]["source"] = artifacts["root"]["path"]
-            return {"state": "complete", "id": identity, "sample": "TTBB", "completed_utc": now(),
+            return {"state": "complete", "id": identity, "sample": record["sample"], "completed_utc": now(),
                     "elapsed_seconds": time.monotonic() - started, "command": argv,
                     "source": record, "b0": b0, "weights": weights, "reference": reference,
                     "artifacts": artifacts, "attempt": str(attempt), "pilot": pilot}
@@ -336,16 +354,20 @@ def run_one(campaign, config, record, *, pilot=False):
 
 def matching_report(campaign, output, results, *, pilot=False):
     """Produce and validate the same six report artifacts in pilot and production."""
+    labels = {result.get("sample", "TTBB") for result in results}
+    if len(labels) != 1 or not labels.issubset(SAMPLE_DATASETS):
+        raise ValueError("Matching reports require one registered source")
+    label = labels.pop()
     name = "pilot-matching-report" if pilot else "matching-report"
     directory = campaign / name
     if directory.exists():
         directory.rename(campaign / f"{name}-previous-{time.time_ns()}")
     command([sys.executable, "-m", "vcb.postprocessing.matching", "--files", output / "roots",
-             "--label", "TTBB", "--outdir", directory], campaign / "logs" / f"{name}.log", timeout=14400)
+             "--label", label, "--outdir", directory], campaign / "logs" / f"{name}.log", timeout=14400)
     report = json.loads((directory / "matching_summary.json").read_text())
-    if set(report["samples"]) != {"TTBB"}:
+    if set(report["samples"]) != {label}:
         raise ValueError("Unexpected matching-report sample")
-    sample = report["samples"]["TTBB"]
+    sample = report["samples"][label]
     expected = {
         "events_in_processed_files": sum(r["b0"]["selected_events"] for r in results),
         "fully_matched": sum(r["b0"]["matching"]["greedy_fully_matched"] for r in results),
@@ -492,8 +514,11 @@ def finalize(args):
     if (any(r["state"] != "complete" or not r["b0"]["passed"] or not r["weights"]["passed"]
             or r["pilot"] for r in results)
             or sum(r["b0"]["input_events"] for r in results) != config["input_events"]):
-        raise ValueError("Incomplete validated TTBB input coverage")
+        raise ValueError("Incomplete validated source input coverage")
     status_hashes = {p.name: sha(p) for p in statuses}
+    population = merge_summaries([r["b0"]["population"] for r in results])
+    write_json(campaign / "input-audit.json", population)
+    (campaign / "input-audit.txt").write_text(render_summary(population))
     marker = campaign / "pre-normalization.json"
     if marker.exists():
         if json.loads(marker.read_text())["status_sha256"] != status_hashes:
@@ -510,7 +535,7 @@ def finalize(args):
         for name, values in result["weights"]["all_input_totals"].items():
             totals[name] = totals.get(name, 0) + np.asarray(values, dtype=np.float64)
     write_json(output / "metadata/weight-totals.json", {
-        "scope": "Complete TTBB source before reco selection; signed sums, not raw counts",
+        "scope": f"Complete {config['dataset']} source before reco selection; signed sums, not raw counts",
         "input_events": config["input_events"], "input_files": len(results),
         "all_input_totals": {name: np.asarray(values).tolist() for name, values in totals.items()},
         "usage": "Only nominal finalWeight is appended; use the corresponding sums for variation templates"})
@@ -530,6 +555,8 @@ def finalize(args):
         "input_events": config["input_events"], "selected_events": selected,
         "matching_counts": matching["counts"], "publication_sha256": sha(campaign / "publication.json"),
         "matching_artifacts": matching["artifacts"],
+        "input_audit_sha256": sha(campaign / "input-audit.json"),
+        "input_audit_text_sha256": sha(campaign / "input-audit.txt"),
         "matching_summary": str(report_dir / "matching_summary.txt"),
         "normalization": str(output / "metadata/normalization.json"), "training_started": False})
     print((campaign / "completion.json").read_text())
@@ -542,6 +569,7 @@ def main():
         item = sub.add_parser(action)
         item.add_argument("--campaign", type=Path, required=True)
         if action == "prepare":
+            item.add_argument("--sample", choices=tuple(SAMPLE_DATASETS), default="TTBB")
             item.add_argument("--truth-campaign", type=Path, required=True)
             item.add_argument("--pilot-id", required=True)
             item.add_argument("--reference-skim", type=Path, required=True)

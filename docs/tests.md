@@ -12,6 +12,9 @@ micromamba run -n ttbar python -m pytest tests/ -q  # no input data needed
 
 | File | What it does |
 |---|---|
+| [tests/test_b0_inputs.py](../tests/test_b0_inputs.py) | Observable masks and source identity; uncapped reco/gen b counts, merged hadrons, strict acceptance, unknown flavours, padding and truth-feature separation. |
+| [tests/test_input_audit.py](../tests/test_input_audit.py) | Independent label populations, feature availability, additive audits, b-jet overflow accounting and inconsistent mask/count rejection. |
+| [tests/test_c1_input_readiness.py](../tests/test_c1_input_readiness.py) | Full-source coverage and report integrity, common schemas, separate populations, and empty selected-file matching audits. |
 | [tests/test_ttbb_campaign.py](../tests/test_ttbb_campaign.py) | Frozen source, schema/metadata/report checksums, rejection of legacy campaigns and clipped ratios, exact integrated-reference comparisons, incomplete-report failures, input checksums, coverage and retry behavior. |
 | [tests/test_matching_report.py](../tests/test_matching_report.py) | Geometric versus B0-eligible counts, analytic W/top masses, unordered W pair, invalid indices/geometry, duplicate files, empty populations, chunking and plot artifacts. |
 | [tests/test_ttbar_scale_weights.py](../tests/test_ttbar_scale_weights.py) | Supported ttbar/TTBB routing, signed all-input scale sums and preservation of raw PDF members with systematics enabled. |

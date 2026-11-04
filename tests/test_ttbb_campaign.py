@@ -126,14 +126,15 @@ def test_reference_accepts_only_equal_integrated_values_and_metadata(monkeypatch
         campaign.compare_reference(new, config)
 
 
-def test_matching_report_checks_counts_and_every_artifact(monkeypatch, tmp_path):
+@pytest.mark.parametrize("sample", ["TTBB", "TT2Q", "TTCB"])
+def test_matching_report_checks_counts_and_every_artifact(monkeypatch, tmp_path, sample):
     (tmp_path / "pilot/roots").mkdir(parents=True)
     (tmp_path / "logs").mkdir()
     root = tmp_path / "pilot/roots/one.root"
     root.write_bytes(b"stand-in ROOT")
-    result = {"b0": {"selected_events": 5, "fully_matched": 1,
+    result = {"sample": sample, "b0": {"selected_events": 5, "fully_matched": 1,
                       "matching": {"greedy_fully_matched": 2}}}
-    report = {"samples": {"TTBB": {"counts": {
+    report = {"samples": {sample: {"counts": {
         "events_in_processed_files": 5, "fully_matched": 2,
         "b0_assignment_eligible": 1, "b0_mask_checked_events": 5},
         "files": [{"path": str(root)}]}}}
@@ -150,10 +151,10 @@ def test_matching_report_checks_counts_and_every_artifact(monkeypatch, tmp_path)
     monkeypatch.setattr(campaign, "command", render)
     validated = campaign.matching_report(tmp_path, tmp_path / "pilot", [result], pilot=True)
     assert len(validated["artifacts"]) == 6
-    report["samples"]["TTBB"]["counts"]["fully_matched"] = 1
+    report["samples"][sample]["counts"]["fully_matched"] = 1
     with pytest.raises(ValueError, match="accounting differs"):
         campaign.matching_report(tmp_path, tmp_path / "pilot", [result], pilot=True)
-    report["samples"]["TTBB"]["counts"]["fully_matched"] = 2
+    report["samples"][sample]["counts"]["fully_matched"] = 2
 
     def incomplete_render(*args, **kwargs):
         render(*args, **kwargs)
@@ -197,6 +198,43 @@ def test_staged_input_checksum_failure(monkeypatch, tmp_path):
               "nano_adler32": "00000000"}
     with pytest.raises(ValueError, match="Adler-32"):
         campaign.staged_input(record, path, tmp_path / "log")
+
+
+def test_local_staging_preserves_content_and_rejects_changed_source(tmp_path):
+    original, staged = tmp_path / "original.root", tmp_path / "staged.root"
+    original.write_bytes(b"certified NanoAOD bytes")
+    record = {"nano_file": str(original), "nano_bytes": original.stat().st_size,
+              "nano_mtime_ns": original.stat().st_mtime_ns}
+    campaign.staged_input(record, staged, tmp_path / "log")
+    assert staged.read_bytes() == original.read_bytes()
+    original.write_bytes(b"changed input")
+    with pytest.raises(ValueError, match="certified inventory"):
+        campaign.staged_input(record, staged, tmp_path / "log")
+
+
+def test_local_staging_rejects_source_change_during_copy(monkeypatch, tmp_path):
+    original, staged = tmp_path / "original.root", tmp_path / "staged.root"
+    original.write_bytes(b"certified bytes")
+    record = {"nano_file": str(original), "nano_bytes": original.stat().st_size,
+              "nano_mtime_ns": original.stat().st_mtime_ns}
+
+    def changed_copy(source, destination):
+        destination.write_bytes(source.read_bytes())
+        source.write_bytes(b"changed")
+
+    monkeypatch.setattr(campaign.shutil, "copyfile", changed_copy)
+    with pytest.raises(ValueError, match="changed during staging"):
+        campaign.staged_input(record, staged, tmp_path / "log")
+
+
+def test_normalization_registry_and_unknown_source():
+    from boostedhh.hh_vars import LUMI
+    from boostedhh.xsecs import xsecs
+
+    for dataset in campaign.SAMPLE_DATASETS.values():
+        assert weights.DATASET_SIGMA_LUMI[dataset] == xsecs[dataset] * LUMI["2024"]
+    with pytest.raises(ValueError, match="Unsupported normalization dataset"):
+        weights.validate(None, None, None, dataset="unregistered")
 
 
 def test_incomplete_campaign_cannot_normalize(monkeypatch, tmp_path):

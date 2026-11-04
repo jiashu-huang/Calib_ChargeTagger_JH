@@ -19,7 +19,7 @@ from boostedhh.processors.utils import PAD_VAL
 from .GenSelection import NUM_JET_SLOTS
 from .objects import QK_SENTINEL_MAX
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 MAX_JETS = NUM_JET_SLOTS
 MIN_JETS = 4
 JET_PT_MIN = 25.0
@@ -77,6 +77,18 @@ def schema_metadata() -> dict:
         "source_to_jet_mapping": "ak4JetNanoIdx{slot}; metadata only",
         "assignment_mask": "B0AssignmentMask shared by had_top and lep_top; four distinct real matches and valid W topology",
         "classification_masks": ["GenWDecayValid", "GenNExtraBQuarksValid"],
+        "bjet_truth": {
+            "definition_version": 1,
+            "flavour_rule": "hadronFlavour == 5; 0 and 4 are valid non-b flavours",
+            "reco_count": "RecoNBJets: all corrected, ID-selected, lepton-cleaned B0 jets before the ten-jet cap",
+            "gen_count": "GenNBJets: all input AK4 GenJets in acceptance before the 25-slot output cap",
+            "gen_jet_pt_strict_min_GeV": JET_PT_MIN,
+            "gen_jet_abs_eta_strict_max": JET_ABS_ETA_MAX,
+            "count_validity": "RecoNBJetsValid and GenNBJetsValid; unknown counts are -1",
+            "retained_jet_flag": "B0JetIsB{slot}, with B0JetIsBValid{slot}; padding is invalid",
+            "origin": "Total b jets, including top, W and radiation; not additional-b-jet counts",
+            "use": "Truth metadata only; not inference features or new B0 classification heads",
+        },
         "source_identity_weights_truth_are_features": False,
     }
     schema["schema_sha256"] = hashlib.sha256(
@@ -103,6 +115,38 @@ def select_jets(jets: ak.Array) -> ak.Array:
 def _slots(jets: ak.Array, field: str) -> np.ndarray:
     values = jets[field] if field in jets.fields else ak.full_like(jets.pt, np.nan)
     return ak.to_numpy(ak.fill_none(ak.pad_none(values, MAX_JETS, clip=True), np.nan))
+
+
+def build_jet_truth_columns(jets: ak.Array, gen_jets: ak.Array) -> dict:
+    """Count hadron-flavour b jets before either collection's output truncation.
+
+    ``jets`` is the full B0 selected reco collection. Generator jets receive
+    only the recorded fiducial acceptance, with no detector ID or cleaning.
+    These labels have no dependency on top-quark matching or W-decay labels.
+    """
+    if len(jets) != len(gen_jets):
+        raise ValueError("Reco and generator jet events are not aligned")
+
+    def count(collection):
+        flavour = (collection.hadronFlavour if "hadronFlavour" in collection.fields
+                   else ak.full_like(collection.pt, np.nan))
+        known = ak.fill_none((flavour == 0) | (flavour == 4) | (flavour == 5), False)
+        valid = ak.to_numpy(ak.all(known, axis=1)).astype(bool)
+        number = ak.to_numpy(ak.sum(ak.fill_none(flavour == 5, False), axis=1))
+        return np.where(valid, number, -1).astype(np.int32), valid
+
+    gen_accepted = gen_jets[
+        np.isfinite(gen_jets.pt) & np.isfinite(gen_jets.eta)
+        & (gen_jets.pt > JET_PT_MIN) & (abs(gen_jets.eta) < JET_ABS_ETA_MAX)
+    ]
+    reco_count, reco_valid = count(jets)
+    gen_count, gen_valid = count(gen_accepted)
+    flavour = _slots(jets, "hadronFlavour")
+    real = np.arange(MAX_JETS)[None, :] < ak.to_numpy(ak.num(jets))[:, None]
+    known = real & np.isin(flavour, [0, 4, 5])
+    return {"RecoNBJets": reco_count, "RecoNBJetsValid": reco_valid,
+            "GenNBJets": gen_count, "GenNBJetsValid": gen_valid,
+            "B0JetIsB": known & (flavour == 5), "B0JetIsBValid": known}
 
 
 def decode_qk(values: np.ndarray, real: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

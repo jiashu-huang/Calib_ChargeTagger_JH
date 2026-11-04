@@ -999,6 +999,7 @@ class vcbSkimmer(SkimmerABC):
         }
         if self._input_profile == "b0":
             skimmed_events.update(b0_inputs.build_columns(jets, triggerLeptonVars, metVars, genVars))
+            skimmed_events.update(b0_inputs.build_jet_truth_columns(jets, events.GenJet))
             skimmed_events.update(b0_inputs.source_columns(events.metadata, len(events)))
 
         print("Vars", f"{time.time() - start:.2f}")

@@ -1,6 +1,11 @@
 # Event truth labels
 
-The ttbar processor writes two separate labels. MC sample names select the
+The ttbar processor writes two separate classification labels. B0 also saves
+[total reco/gen b-jet counts and per-jet b flags](b0-input-profile.md#hadron-based-b-jet-truth)
+from NanoAOD hadron flavour. Those jet labels require no complete-truth sidecar;
+the unrestricted extra-quark count still does.
+
+MC sample names select the
 processing path and normalization; they do not determine either truth label.
 No new event cut or reconstruction-matching requirement is applied.
 

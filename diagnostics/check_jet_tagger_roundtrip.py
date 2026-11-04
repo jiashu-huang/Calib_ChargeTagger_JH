@@ -383,6 +383,9 @@ def check_jet_tagger_roundtrip(
         has_index = bool(present_index)
         if "KinematicVariation" in out_branches:
             event_branches.append("KinematicVariation")
+        has_b_counts = "RecoNBJets" in out_branches
+        if has_b_counts:
+            event_branches += ["RecoNBJets", "RecoNBJetsValid"]
         out = out_tree.arrays(
             event_branches + slot_branches + (index_branches if has_index else []), library="np"
         )
@@ -405,6 +408,8 @@ def check_jet_tagger_roundtrip(
         + list(JET_ID_BRANCHES)
         + [f"Jet_{name}" for name in TAGGER_FIELD_MAP.values()]
     )
+    if has_b_counts:
+        input_jet_branches.append("Jet_hadronFlavour")
     input_charge_branches = [f"JetQk_{name}" for name in JET_CHARGE_FIELD_MAP.values()]
     # A Condor job skims several input files into one output, so the index and
     # the jet arrays span every input file, concatenated in the given order.
@@ -499,6 +504,8 @@ def check_jet_tagger_roundtrip(
         "comparisons": 0,
         "comparisons_differing": 0,
     }
+    if has_b_counts:
+        stats["events_reco_b_count_disagree"] = 0
     missing_counts = dict.fromkeys(MISSING_REASONS, 0)
     max_match_dr = 0.0
     anomalies: dict[str, list[str]] = {
@@ -511,6 +518,8 @@ def check_jet_tagger_roundtrip(
         "value_mismatches": [],
         "unexplained": [],
     }
+    if has_b_counts:
+        anomalies["b_count_disagree"] = []
 
     def record(bucket: str, message: str) -> None:
         if len(anomalies[bucket]) < max_anomalies:
@@ -671,6 +680,15 @@ def check_jet_tagger_roundtrip(
                     f"{tag}: saved nJets={n_jets_branch[i]} but "
                     f"{int(np.count_nonzero(selected))} input jets pass the selection",
                 )
+            if has_b_counts:
+                flavour = in_flat["Jet_hadronFlavour"][start:stop][selected]
+                valid = bool(np.isin(flavour, [0, 4, 5]).all())
+                number = int(np.count_nonzero(flavour == 5)) if valid else -1
+                if (number != out["RecoNBJets"][i]
+                        or valid != bool(out["RecoNBJetsValid"][i])):
+                    stats["events_reco_b_count_disagree"] += 1
+                    record("b_count_disagree", f"{tag}: expected {number} (valid={valid}), "
+                           f"saved {out['RecoNBJets'][i]} (valid={out['RecoNBJetsValid'][i]})")
 
     if stats["slots_matched"] == 0:
         raise RuntimeError("No output jet slot could be matched to an input jet.")
@@ -684,6 +702,7 @@ def check_jet_tagger_roundtrip(
         and stats["events_njets_disagree"] == 0
         and stats["comparisons_differing"] == 0
         and missing_counts["UNEXPLAINED"] == 0
+        and stats.get("events_reco_b_count_disagree", 0) == 0
     )
 
     report = _format_report(
@@ -821,6 +840,11 @@ def _format_report(**ctx) -> str:
             lines.append(f"  ... {total - len(entries)} more (raise --max-anomalies to see them)")
         lines.append("")
 
+    if "events_reco_b_count_disagree" in stats:
+        lines += ["Uncapped reconstructed b-jet truth count", rule,
+                  (f"  disagreements: {stats['events_reco_b_count_disagree']}"
+                   if verify_jec else "  NOT CHECKED (JEC verification disabled)"),
+                  *ctx["anomalies"]["b_count_disagree"], ""]
     lines += ["=" * 78, f"VERDICT: {'PASS' if ctx['passed'] else 'FAIL'}"]
     return "\n".join(lines) + "\n"
 

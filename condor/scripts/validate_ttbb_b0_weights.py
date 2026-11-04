@@ -1,4 +1,4 @@
-"""Check version-3 TTBB weights against every event in a staged input NanoAOD."""
+"""Check version-3 ttbar weights against every input event (TTBB by default)."""
 
 from __future__ import annotations
 
@@ -18,6 +18,11 @@ from vcb.processors.weight_prescription import read_saved_prescription, read_wei
 
 DATASET = "TTBB-TTtoLNu2Q"
 SIGMA_LUMI = 16.011655167690346 * 109820.0
+DATASET_SIGMA_LUMI = {
+    DATASET: SIGMA_LUMI,
+    "TTtoLNu2Q": (923.6 * 2 * (0.667 * 0.333)) * 109820.0,
+    "TTtoLNuCB": (923.6 * 2 * 0.333 * (0.667 * 0.0410**2 / 2)) * 109820.0,
+}
 LEPTON_FACTORS = ("electron_reco", "electron_id", "electron_trigger",
                   "muon_id", "muon_iso", "muon_trigger")
 SYSTEMATIC_BRANCHES = {
@@ -95,14 +100,17 @@ def source_expectations(nano):
             "top_valid": top_valid, "sums": sums}
 
 
-def validate(nano, skim, pickle_path):
+def validate(nano, skim, pickle_path, *, dataset=DATASET):
+    if dataset not in DATASET_SIGMA_LUMI:
+        raise ValueError(f"Unsupported normalization dataset: {dataset}")
+    sigma_lumi = DATASET_SIGMA_LUMI[dataset]
     expected = source_expectations(nano)
     gen, pu, scales = expected["gen"], expected["pu"], expected["scales"]
     with Path(pickle_path).open("rb") as stream:
         payload = pickle.load(stream)
-    if set(payload) != {"2024"} or set(payload["2024"]) != {DATASET}:
-        raise ValueError("Unexpected year/dataset in TTBB totals")
-    sample = payload["2024"][DATASET]
+    if set(payload) != {"2024"} or set(payload["2024"]) != {dataset}:
+        raise ValueError("Unexpected year/dataset in ttbar totals")
+    sample = payload["2024"][dataset]
     totals = sample["totals"]
     for field, value in (("weight_prescriptions", expected["prescription"]),
                          ("pdf_layouts", expected["layout"])):
@@ -141,14 +149,14 @@ def validate(nano, skim, pickle_path):
     entries = a["B0SourceEntry"]
     if entries.dtype.kind != "u" or np.any(entries >= len(gen)) or len(np.unique(entries)) != len(entries):
         raise ValueError("Invalid or duplicate saved source entry")
-    lepton = np.prod([a[f"single_weight_{name}"] / SIGMA_LUMI for name in LEPTON_FACTORS], axis=0)
+    lepton = np.prod([a[f"single_weight_{name}"] / sigma_lumi for name in LEPTON_FACTORS], axis=0)
     nominal = gen[entries] * pu["nominal"][entries] * lepton
     np.testing.assert_allclose(a["weight_noxsec"], nominal, rtol=1e-12)
-    np.testing.assert_allclose(a["weight"], nominal * SIGMA_LUMI, rtol=1e-12)
-    np.testing.assert_allclose(a["single_weight_genweight"], gen[entries] * SIGMA_LUMI, rtol=1e-12)
-    np.testing.assert_allclose(a["single_weight_pileup"], pu["nominal"][entries] * SIGMA_LUMI, rtol=1e-12)
+    np.testing.assert_allclose(a["weight"], nominal * sigma_lumi, rtol=1e-12)
+    np.testing.assert_allclose(a["single_weight_genweight"], gen[entries] * sigma_lumi, rtol=1e-12)
+    np.testing.assert_allclose(a["single_weight_pileup"], pu["nominal"][entries] * sigma_lumi, rtol=1e-12)
     for direction in ("Up", "Down"):
-        value = gen[entries] * pu[direction.lower()][entries] * lepton * SIGMA_LUMI
+        value = gen[entries] * pu[direction.lower()][entries] * lepton * sigma_lumi
         np.testing.assert_allclose(a[f"weight_pileup{direction}"], value, rtol=1e-12, atol=1e-6)
     for i in range(6):
         np.testing.assert_allclose(a[f"scale_weights{i}"], a["weight"] * scales[entries, i],
