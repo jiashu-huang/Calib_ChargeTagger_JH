@@ -2,9 +2,6 @@
 
 ***Turn 2024 MC NanoAODs into smaller ROOT files for the |Vcb| analysis.***
 
-This repo is a vendored version of 
-[Clara Ramon Alvarez's processor](https://github.com/cramonal/Calib_ChargeTagger).
-
 The `Calib_ChargeTagger_JH` processor corrects and selects objects, labels events, 
 matches jets to top-decay quarks, and saves features and weights. 
 It handles [CMSSW_CHARGE](https://github.com/jiashu-huang/cmssw-charge-setup) 
@@ -15,6 +12,9 @@ For the |Vcb| analysis, we aim to build a “Grand Network” based on
 and semi-leptonic ttbar reconstruction. 
 **B0** is the input-preparation mode for our first SPANet baseline. 
 Dataset assembly and network training come later.
+
+This repo is a vendored version of 
+[Clara Ramon Alvarez's processor](https://github.com/cramonal/Calib_ChargeTagger).
 
 **Jump to:** [Run one file](#run-one-file) · [Outputs](#what-you-get) ·
 [Matching counts and plots](#check-the-matching) · [Full TTBB production](#run-the-full-ttbb-sample)
