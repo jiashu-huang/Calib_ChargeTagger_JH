@@ -1,6 +1,6 @@
 # Calib_ChargeTagger_JH
 
-**Turn 2024 MC NanoAODs into smaller ROOT files for the |Vcb| analysis.**
+***Turn 2024 MC NanoAODs into smaller ROOT files for the |Vcb| analysis.***
 
 This repo is a vendored version of 
 [Clara Ramon Alvarez's processor](https://github.com/cramonal/Calib_ChargeTagger).
