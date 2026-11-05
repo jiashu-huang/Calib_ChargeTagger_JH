@@ -2,13 +2,19 @@
 
 **Turn 2024 MC NanoAODs into smaller ROOT files for the |Vcb| analysis.**
 
-The processor corrects and selects objects, labels events, matches jets to
-top-decay quarks, and saves features and weights. It handles CMSSW_CHARGE
-NanoAODs for **TT2Q, TTCB and TTBB** samples.
+This repo is a vendored version of 
+[Clara Ramon Alvarez's processor](https://github.com/cramonal/Calib_ChargeTagger).
 
-For the “Grand Network,” use **B0**: the input-preparation mode for our first
-SPANet baseline combining reconstruction and classification. Dataset assembly
-and network training come later.
+The `Calib_ChargeTagger_JH` processor corrects and selects objects, labels events, 
+matches jets to top-decay quarks, and saves features and weights. 
+It handles [CMSSW_CHARGE](https://github.com/jiashu-huang/cmssw-charge-setup) 
+NanoAODs for **2024 TT2Q, TTCB and TTBB** samples.
+
+For the |Vcb| analysis, we aim to build a “Grand Network” based on 
+[SPANet](https://github.com/Alexanders101/SPANet), combining event classification
+and semi-leptonic ttbar reconstruction. 
+**B0** is the input-preparation mode for our first SPANet baseline. 
+Dataset assembly and network training come later.
 
 **Jump to:** [Run one file](#run-one-file) · [Outputs](#what-you-get) ·
 [Matching counts and plots](#check-the-matching) · [Full TTBB production](#run-the-full-ttbb-sample)
@@ -17,7 +23,7 @@ and network training come later.
 
 ![B0 flow: CMSSW_CHARGE NanoAOD and complete generator truth enter corrections, selection, feature preparation and matching. ROOT skims retain incomplete matches and all-input normalization totals. Separate steps produce matching reports and normalized weights.](docs/images/readme-b0-flow.svg)
 
-MiniAOD → NanoAOD conversion happens **before** this repository runs.
+MiniAOD → NanoAOD conversion happens **before** this repository runs through CMSSW_CHARGE.
 Separate **C1** jobs read MiniAOD generator truth and write the extra-b-quark
 labels. Jet-flavour truth already comes from NanoAOD. See the
 [detailed B0 flow](docs/b0-input-profile.md#processing-flow).
