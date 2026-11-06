@@ -59,3 +59,10 @@ it cannot treat an undeclared recovery as an ordinary completed campaign.
 Finalization commands allow up to 24 hours each to accommodate TT2Q's 11,014
 files. TT2Q normalization and matching reports must finish before the combined
 C1 audit can pass. C2 dataset assembly and training remain separate work.
+
+**Recovery published November 6.** All 11,014 TT2Q inputs now have validated
+outputs. The four recovered outputs use frozen processor
+`befa26eedd5672e24205a017d49435406090fc3b`; the other 11,010 retain their original
+provenance. Condor DAG **7665851** resumes TT2Q finalization, followed by the
+combined C1 audit. The [submission record](c1-met-recovery-2026-11-06-production.json)
+pins the recovery manifest and the two-job workflow. Submission does not close C1.

@@ -1,0 +1,34 @@
+{
+  "state": "submitted",
+  "recorded_utc": "2026-11-06T16:15:57.069914+00:00",
+  "dagman_cluster": 7665851,
+  "processor_commit": "befa26eedd5672e24205a017d49435406090fc3b",
+  "base_processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+  "campaign_root": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104",
+  "recovery_root": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/recovery-20261106",
+  "workflow": {
+    "state": "prepared",
+    "processor_commit": "befa26eedd5672e24205a017d49435406090fc3b",
+    "files": {
+      "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/recovery-20261106/worker.sh": "4ba12e1ee035ab3132e85e8db2e2c5383ab6b53dd8c4abece966e1bea4e4c53f",
+      "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/recovery-20261106/finalize.dag": "6b8ffb42562994eb79fe2f55de4ce0cdf28ee91d861863bad8a371fd1ef072af",
+      "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/recovery-20261106/finalize.sub": "f3e8ea584b1633173da31bf4a026553c63bd9f2a08014b0ea7ad6eb00ece7f43",
+      "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/recovery-20261106/readiness.sub": "aaa43e0905e7f9fabb76196792e2f0ca301695052586a7f2a0c5d604ef074942"
+    },
+    "max_jobs": 1,
+    "nodes": 2,
+    "training_started": false
+  },
+  "recovery_manifest_sha256": "9898961d3a0330fef4e015eda12595da5f0aa7a4d5d06c549784111f53a03df6",
+  "promotion_sha256": "de65539a167744c4e8027394d757bd3ddadf829072cc9b2b8a376613f915128a",
+  "recovered_files": 4,
+  "recovered_input_events": 176880,
+  "recovered_selected_events": 26269,
+  "input_files_with_validated_outputs": {
+    "TT2Q": 11014,
+    "TTCB": 465,
+    "TTBB": 2258
+  },
+  "C1_complete": false,
+  "training_started": false
+}
