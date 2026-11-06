@@ -924,8 +924,6 @@ class vcbSkimmer(SkimmerABC):
 
         # MET
         metVars = {f"MET{key}": met[var].to_numpy() for (var, key) in self.skim_vars["MET"].items()}
-        if year == "2024" and not isData:
-            metVars.update(unclustered_met_fields(events[MET_COLLECTION], met))
 
         # Event variables
         eventVars = {
@@ -1097,6 +1095,12 @@ class vcbSkimmer(SkimmerABC):
             key: value.reshape(len(skimmed_events["weight"]), -1)[sel_all]
             for (key, value) in skimmed_events.items()
         }
+        if year == "2024" and not isData:
+            # Validate persisted MET only after the existing event cuts. A
+            # rejected event can have nonfinite RawPuppiMET; it must still
+            # contribute to the all-input weight totals computed above.
+            # Selected events retain the strict finite-MET requirement.
+            skimmed_events.update(unclustered_met_fields(events[MET_COLLECTION][sel_all], met[sel_all]))
 
         dataframe = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"

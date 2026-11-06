@@ -72,6 +72,24 @@ def test_unclustered_shifts_are_rebased_vectors_not_nano_absolute_met():
         unclustered_met_fields(nano[[f for f in nano.fields if f != "phiUnclusteredDown"]], rebuilt)
 
 
+@pytest.mark.parametrize("bad_field", ["pt", "phi", "ptUnclusteredUp", "phiUnclusteredDown"])
+def test_persisted_unclustered_met_must_remain_finite(bad_field):
+    nano = ak.Array([{"pt": 10., "phi": 0., "ptUnclusteredUp": 13., "phiUnclusteredUp": 0.,
+                      "ptUnclusteredDown": 9., "phiUnclusteredDown": 0.}])
+    rebuilt = ak.Array([{"pt": 20., "phi": 0.}])
+    if "Unclustered" in bad_field:
+        nano = ak.with_field(nano, [np.nan], bad_field)
+    else:
+        rebuilt = ak.with_field(rebuilt, [np.inf], bad_field)
+    with np.errstate(invalid="ignore"), pytest.raises(ValueError, match="Nonfinite"):
+        unclustered_met_fields(nano, rebuilt)
+    # A chunk with no selected events retains typed fields and its all-input
+    # normalization metadata, without validating rejected-event MET values.
+    fields = unclustered_met_fields(nano[:0], rebuilt[:0])
+    assert len(fields) == 8
+    assert all(value.shape == (0,) for value in fields.values())
+
+
 def _layout(first=325300, last=325402):
     return layout_from_title(
         f"LHE pdf variation weights (w_var / w_nominal) for LHA IDs {first} - {last}"

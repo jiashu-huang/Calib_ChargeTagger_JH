@@ -10,7 +10,15 @@ import argparse
 import json
 from pathlib import Path
 
-from ttbb_b0_campaign import SAMPLE_DATASETS, check_gate, now, read_config, sha, write_json
+from ttbb_b0_campaign import (
+    SAMPLE_DATASETS,
+    check_gate,
+    check_recovery,
+    now,
+    read_config,
+    sha,
+    write_json,
+)
 
 
 def check_source(sample, campaign):
@@ -19,6 +27,9 @@ def check_source(sample, campaign):
     if config.get("sample") != sample or config["dataset"] != SAMPLE_DATASETS[sample]:
         raise ValueError("Source label does not match its frozen campaign")
     completion = json.loads((campaign / "completion.json").read_text())
+    recovery = check_recovery(campaign, config)
+    if completion.get("recovery") != recovery:
+        raise ValueError("Completed source recovery provenance differs")
     if (completion["state"] != "complete" or completion.get("training_started") is not False
             or completion["processor_commit"] != config["processor_commit"]
             or completion["files"] != config["files"]
@@ -60,6 +71,7 @@ def check_source(sample, campaign):
         raise ValueError("A required C1 supervision or b-jet population has no usable events")
     return {"campaign": str(campaign), "dataset": config["dataset"],
             "processor_commit": config["processor_commit"],
+            "recovery": recovery,
             "truth_certificate_sha256": config["truth_certificate_sha256"],
             "completion_sha256": sha(campaign / "completion.json"),
             "input_audit_sha256": completion["input_audit_sha256"],
@@ -99,6 +111,11 @@ def render(result):
     for sample, source in result["sources"].items():
         lines += [sample, f"  Input files: {source['input_files']:,}",
                   f"  Input events: {source['input_events']:,}"]
+        if source.get("recovery"):
+            recovery = source["recovery"]
+            lines += [f"  Base processor: {source['processor_commit']}",
+                      f"  Recovery processor: {recovery['processor_commit']} "
+                      f"({len(recovery['files'])} input files)"]
         lines += [f"  {key}: {value:,}" for key, value in source["counts"].items()]
         bins = source["histograms"]["extra_b_quarks"]
         lines += ["  Exact extra-b-quark support: "

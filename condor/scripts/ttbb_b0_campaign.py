@@ -87,6 +87,76 @@ def records_for(campaign):
     return json.loads((campaign / "inventory.json").read_text())["files"]
 
 
+def check_recovery(campaign, config, results=None):
+    """Verify a declared MET-selection recovery without rewriting the base freeze."""
+    manifest = campaign / "recovery.json"
+    if not manifest.exists():
+        if results is not None and any(r.get("recovery") for r in results):
+            raise ValueError("Recovered worker has no pinned recovery manifest")
+        return None
+    recovery = json.loads(manifest.read_text())
+    if (recovery.get("version") != 1
+            or recovery.get("kind") != "selected-event-met-validation"
+            or recovery.get("base_processor_commit") != config["processor_commit"]
+            or not recovery.get("processor_commit")
+            or recovery["processor_commit"] == config["processor_commit"]
+            or not recovery.get("files")):
+        raise ValueError("Invalid recovery identity or base processor")
+    code = Path(recovery["code_directory"])
+    hashes = recovery["code_sha256"]
+    # This compatibility route permits only the audited selection-order fix
+    # in computational source. Campaign helpers may additionally record it.
+    before = {k: v for k, v in config["code_sha256"].items() if k.startswith("src/")}
+    after = {k: v for k, v in hashes.items() if k.startswith("src/")}
+    changed = {k for k in before.keys() | after.keys() if before.get(k) != after.get(k)}
+    if changed != {"src/vcb/processors/vcbSkimmer.py"}:
+        raise ValueError("Recovery changes unaudited processor sources")
+    for name, digest in hashes.items():
+        if sha(code / name) != digest:
+            raise ValueError(f"Frozen recovery code changed: {name}")
+    evidence_path = Path(recovery["validation"]["path"])
+    if sha(evidence_path) != recovery["validation"]["sha256"]:
+        raise ValueError("Recovery validation evidence changed")
+    evidence = json.loads(evidence_path.read_text())
+    if evidence.get("processing_source_sha256") != after:
+        raise ValueError("Recovery processor differs from the tested source fingerprint")
+    checks = ("healthy_reference_unchanged", "calibration_baselines_unchanged",
+              "selected_nonfinite_control_rejected", "unit_tests_passed")
+    if any(evidence.get(key) is not True for key in checks):
+        raise ValueError("Recovery compatibility checks are incomplete")
+    identities = set(recovery["files"])
+    if set(evidence.get("recovered", {})) != identities:
+        raise ValueError("Recovery validation coverage differs")
+    if results is None:
+        recovered = [json.loads((campaign / "status" / f"{identity}.json").read_text())
+                     for identity in sorted(identities)]
+    else:
+        recovered = [r for r in results if r.get("recovery")]
+    if {r["id"] for r in recovered} != identities or len(recovered) != len(identities):
+        raise ValueError("Declared and actual recovered worker coverage differs")
+    receipt = {"processor_commit": recovery["processor_commit"],
+               "manifest_sha256": sha(manifest)}
+    status_hashes = {}
+    for result in recovered:
+        identity = result["id"]
+        proof = evidence["recovered"][identity]
+        if (result.get("recovery") != receipt
+                or result["source"]["nano_uuid"] != recovery["files"][identity]
+                or result["state"] != "complete"
+                or not result["b0"]["passed"] or not result["weights"]["passed"]
+                or proof.get("nonfinite_met_selected") != 0
+                or proof.get("input_events") != result["b0"]["input_events"]
+                or proof.get("selected_events") != result["b0"]["selected_events"]
+                or any(result["artifacts"][key]["sha256"] != proof["artifacts"][key]["sha256"]
+                       for key in ("root", "pickle", "metadata"))):
+            raise ValueError("Recovered worker is inconsistent with its validation")
+        status_hashes[identity] = sha(campaign / "status" / f"{identity}.json")
+    return {**receipt, "base_processor_commit": config["processor_commit"],
+            "kind": recovery["kind"], "files": sorted(identities),
+            "validation_sha256": recovery["validation"]["sha256"],
+            "status_sha256": status_hashes}
+
+
 def write_job(campaign, name, arguments, config):
     (campaign / f"{name}.sub").write_text("\n".join([
         "universe = vanilla", "getenv = false", "should_transfer_files = NO",
@@ -515,6 +585,7 @@ def finalize(args):
             or r["pilot"] for r in results)
             or sum(r["b0"]["input_events"] for r in results) != config["input_events"]):
         raise ValueError("Incomplete validated source input coverage")
+    recovery = check_recovery(campaign, config, results)
     status_hashes = {p.name: sha(p) for p in statuses}
     population = merge_summaries([r["b0"]["population"] for r in results])
     write_json(campaign / "input-audit.json", population)
@@ -540,9 +611,9 @@ def finalize(args):
         "all_input_totals": {name: np.asarray(values).tolist() for name, values in totals.items()},
         "usage": "Only nominal finalWeight is appended; use the corresponding sums for variation templates"})
     command([sys.executable, REPO / "condor/scripts/normalize.py", "--processed-dir", output],
-            campaign / "logs/normalization.log", timeout=14400)
+            campaign / "logs/normalization.log", timeout=86400)
     command([sys.executable, REPO / "condor/scripts/validate_processed.py", "--processed-dir", output,
-             "--schema-baseline", campaign / "schema.csv"], campaign / "logs/validation.log", timeout=14400)
+             "--schema-baseline", campaign / "schema.csv"], campaign / "logs/validation.log", timeout=86400)
     matching = matching_report(campaign, output, results)
     report_dir = campaign / "matching-report"
     selected = sum(r["b0"]["selected_events"] for r in results)
@@ -552,6 +623,7 @@ def finalize(args):
     write_json(campaign / "publication.json", publication)
     write_json(campaign / "completion.json", {"state": "complete", "completed_utc": now(),
         "processor_commit": config["processor_commit"], "files": len(results),
+        "recovery": recovery,
         "input_events": config["input_events"], "selected_events": selected,
         "matching_counts": matching["counts"], "publication_sha256": sha(campaign / "publication.json"),
         "matching_artifacts": matching["artifacts"],

@@ -1,0 +1,387 @@
+{
+  "version": 1,
+  "checked_utc": "2026-11-06T16:01:38.878227+00:00",
+  "base_processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+  "kind": "selected-event-met-validation",
+  "healthy_reference_unchanged": true,
+  "healthy_reference": {
+    "compared_branches": 1373,
+    "new_branches": 0,
+    "all_columns_agree": true,
+    "normalization_values_identical": true,
+    "component_roundoff_relative_tolerance": 3.552713678800501e-15,
+    "component_roundoff_absolute_tolerance": 0.0,
+    "maximum_component_relative_difference": 5.119621833161381e-16,
+    "weight_prescription_version": 3
+  },
+  "calibration_baselines_unchanged": true,
+  "selected_nonfinite_control_rejected": true,
+  "unit_tests_passed": true,
+  "tests": {
+    "unit": 489,
+    "subtests": 22,
+    "calibration_input_events": 208780,
+    "lint": "passed"
+  },
+  "processing_source_sha256": {
+    "src/boostedhh/VENDORED.md": "b95265a8583b315548e6b6f0c9d10e16ab25f66c8baa5071d838b9fc2de9d322",
+    "src/boostedhh/__init__.py": "708ceeb0ddda59e6a6805d869934ab54b0e3fca8c26d1f255d20f6904fcc9a5c",
+    "src/boostedhh/corrections/2024_jet_jerc.json.gz": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540",
+    "src/boostedhh/corrections/2024_jetid.json.gz": "2ae07e7b7c67332fa4ccc374c7b3cfe667c653ce65c3f421f956460e46b1eb35",
+    "src/boostedhh/corrections/2024_jetvetomaps.json.gz": "849cd1098814175ab58faac4834df0a353de63482f4017e22c0134ee7e840aec",
+    "src/boostedhh/corrections/2024_puWeights.json.gz": "716a7ed57e5246bc131c9054e48eb530930b81fc3720d1a8ace8131b64e47867",
+    "src/boostedhh/corrections/README.md": "d06c6325ec6775dbe8a7d17376d0a31100c19313af4392cbabff2446829d5fd8",
+    "src/boostedhh/corrections/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/boostedhh/corrections/build_jec.py": "864b3896ecf0a4113d59a4f2742e684d0478420a1cfdf90251267591bc0a2c38",
+    "src/boostedhh/corrections/jec_compiled_py311.pkl.gz": "9f5f64790ed0dd70eccf16ab83a3de7515230c6763212278b019b54a72a04a4b",
+    "src/boostedhh/corrections/jer_smear.json.gz": "a6a625b958704991147f2e90aa53631df100db9390b0981b9553298cb70cda05",
+    "src/boostedhh/hh_vars.py": "2e83fa1b9c7ef0574eae915fe1eadfeea078eb033316912aa8d92d732dd34ca6",
+    "src/boostedhh/processors/SkimmerABC.py": "18094869a15721e5f83ba300cb513713791e66384e9fad4a8a4ee2a4b59c0cd7",
+    "src/boostedhh/processors/__init__.py": "5f6fef1086f019975eaa1b1d5c0fd6302f90a7a1bca2f3c7eeeadc5cca5207be",
+    "src/boostedhh/processors/corrections.py": "d020c5946a5343895d7cbc8bfd701e38add109225e359ea759615671d88a207e",
+    "src/boostedhh/processors/utils.py": "fff558c0c99cda321b54cf4c5f61983fb472c1dd80cedce626557bc375f746f0",
+    "src/boostedhh/run_utils.py": "bc4d11278e8269144113211f2e27527641bc65e304bf0ecdd16e2b38c924a23a",
+    "src/boostedhh/utils.py": "99b6c716eca897170f988d69fc999b540f62d5dad5b28405c7d32f012bad2ff0",
+    "src/boostedhh/xsecs.py": "4fd4ff4d16af3e1e4d9daf418d2a5ae2b9d1c0b2f09ee497b84a621bccc300d3",
+    "src/vcb/HLTs.py": "592098a0c7c195a3b75271741676a53e1644e845198148baf8305a6f620dd3e5",
+    "src/vcb/__init__.py": "4c14439e0d57702adde90c9143951472fa1c97a7e64d59117538dc60c681482f",
+    "src/vcb/corrections/2024_electron.json.gz": "fbdf9e241414f98cdc3185d65f83f2b329a8876f4fe69b1175b47ec673db6973",
+    "src/vcb/corrections/2024_electronHlt.json.gz": "566ee3b86d174c0e961890bf730100b6422d39e55cbc9b5164eda50eee60e856",
+    "src/vcb/corrections/2024_electronSS_EtDependent.json.gz": "b464129d2c0c3974618d0d0dbda7d1bdff73641a0b8d04c2ac4164180ae5ed67",
+    "src/vcb/corrections/2024_muon_Z.json.gz": "a103af495ff5d7c96d4d2b3dd50927fc942484bffbb392553ab059fddeded37f",
+    "src/vcb/corrections/2024_muon_scalesmearing.json.gz": "d9ca1368ae0bd09535d8fa8ea90df07242cee4d8e9ca9279c0032657624fa041",
+    "src/vcb/corrections/README.md": "5ea5578c423af5e34609df3ba62b50cb738e8b31ef046447d193af7e7e233a19",
+    "src/vcb/normalization.py": "c804659414b0ffebaf0b08e1f0d873e3fa148c11ea77864b28809d06d97e82f9",
+    "src/vcb/postprocessing/__init__.py": "4c616a229d4bdf3191cf52591de91377287bb4384428f0cbce9f65c2425da247",
+    "src/vcb/postprocessing/input_audit.py": "d842a0da76f99aa441c4d8a7086f913ae650fc284db98541972e3a7b7f65452d",
+    "src/vcb/postprocessing/matching.py": "c69a2f89003a65201989c1d0fcd2339bf01ab7f74adf75cfe638cd0f6d1b8bef",
+    "src/vcb/processors/GenSelection.py": "dcbed46af9ee4a68b1e40a0088ec3f4b072e73156d228846386821bf4cb122e2",
+    "src/vcb/processors/__init__.py": "05328b9dffd2311419a27e58a2dbee641f3e3f409cc9a86f175b549f1feaceb0",
+    "src/vcb/processors/b0_inputs.py": "d48d9b00c7b65faf68f1fcce1f9ecf8f8872f3660e2170df8a75d6070f266e0c",
+    "src/vcb/processors/electron_ss.py": "06f55301d554dff1f5ffeece7ecf21adb9a2d7c47fc323b8ad06568fc566da66",
+    "src/vcb/processors/kinematic_variations.py": "1f35b13e8381da808066dd143158fe0f2444e4c89fe8df198f09a2bb0d351000",
+    "src/vcb/processors/lepton_sf.py": "8ab3549af9ad816d9b392804c256fa4d9ba960cc83517e88404e065739baf812",
+    "src/vcb/processors/lepton_veto.py": "c061f17efc7c8a5e9d7640e16910e4db1caa9b0dd34e6b92e22c841699d27a0f",
+    "src/vcb/processors/met_variations.py": "f38d99cd37ecf107816e52eb6dfa714c09b6203f3f8573ec25461d782a4e20cd",
+    "src/vcb/processors/muon_ss.py": "c91369678456b7df5d723eb0c6dbd0fc0a4d7a509c8bad6a9c0cc41829c6361c",
+    "src/vcb/processors/objects.py": "ca6805a1427bab0381fac74abe73a95ea61a034cf1b5be2b06f1342ccbcd1cb4",
+    "src/vcb/processors/pdf_weights.py": "25acfc5f0061140f9c5aa6c1c41c450a28958672b8c6cd9e25901c36e4b56766",
+    "src/vcb/processors/skim_metadata.py": "60a70b71cd1f230a611776eadf491b5dc4a30c68ebb35e4bcd18c622374c342b",
+    "src/vcb/processors/top_pt.py": "efe68f3885861c8ef8154df5a9a1ada63b83de0c854bac836a3d1486645dedec",
+    "src/vcb/processors/truth_labels.py": "f4c22f378158300c34946fac29ac45a263af14c468e51afdc62fdb536be3099d",
+    "src/vcb/processors/vcbSkimmer.py": "847c857f764d888f1e48f683c60d54b2b2893515a04ee94e89698e6dcc332af3",
+    "src/vcb/processors/weight_prescription.py": "9cb410bdca97b2fe121ff79b34bcc35f4ab8348f89679cf829947ba4aee12b78",
+    "src/vcb/run.py": "736fdad6e8d930ae53ddd979484e529bb1bb9c51775810a8e8e4d735662686cf",
+    "src/vcb/truth.py": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+    "src/vcb/vcb_utils.py": "ae611f31b05bc121afeafeeb415203a251196e8ec79c97fa482304abf193ef6a"
+  },
+  "changed_processor_sources": [
+    "src/vcb/processors/vcbSkimmer.py"
+  ],
+  "recovered": {
+    "TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0": {
+      "nano_uuid": "bc5b6e48-6ae7-11f1-8937-08e114acbeef",
+      "input_events": 44220,
+      "selected_events": 6625,
+      "fully_matched": 2702,
+      "nonfinite_raw_met_events": 1,
+      "nonfinite_met_selected": 0,
+      "bad_source_entries": [
+        9065
+      ],
+      "bad_event_identity": {
+        "run": [
+          1
+        ],
+        "luminosityBlock": [
+          142747
+        ],
+        "event": [
+          105204021
+        ]
+      },
+      "cuts_for_bad_rows": {
+        "single_lep_trigger": [
+          false
+        ],
+        "met_filters": [
+          true
+        ],
+        "ak4_jetveto": [
+          true
+        ],
+        "1lep": [
+          true
+        ],
+        "trigger_lepton": [
+          false
+        ],
+        "b0_min_jets": [
+          true
+        ]
+      },
+      "b0_validation_passed": true,
+      "weight_validation_passed": true,
+      "saved_met_finite": true,
+      "worker_result": {
+        "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0.json",
+        "sha256": "c6a8702894b4d538e4334c152f3d30467e2bb896a9d1cb89cf4508daceb79d18"
+      },
+      "artifacts": {
+        "root": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/roots/TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0.root",
+          "sha256": "f4e0b1f77a6756314fbb0540a00bcc6d55f45c40f3872259b90f87489d569941",
+          "bytes": 15482148
+        },
+        "pickle": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/pickles/TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0.pkl",
+          "sha256": "9aa9ff0912d3125a145bfc6dd91b9b5f5547d1bf47cdb72bc36e3c5a3815dd4f",
+          "bytes": 12302
+        },
+        "metadata": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/metadata/TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0.kinematics.json",
+          "sha256": "932c5344180a3d5c0dea0bdb54a1a30cdef45ad75da5d2945fc4919dc185a4f3",
+          "bytes": 4745
+        }
+      }
+    },
+    "TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34": {
+      "nano_uuid": "d675c268-6c56-11f1-a073-08e114acbeef",
+      "input_events": 44220,
+      "selected_events": 6543,
+      "fully_matched": 2631,
+      "nonfinite_raw_met_events": 1,
+      "nonfinite_met_selected": 0,
+      "bad_source_entries": [
+        7298
+      ],
+      "bad_event_identity": {
+        "run": [
+          1
+        ],
+        "luminosityBlock": [
+          146463
+        ],
+        "event": [
+          107943157
+        ]
+      },
+      "cuts_for_bad_rows": {
+        "single_lep_trigger": [
+          false
+        ],
+        "met_filters": [
+          true
+        ],
+        "ak4_jetveto": [
+          true
+        ],
+        "1lep": [
+          false
+        ],
+        "trigger_lepton": [
+          false
+        ],
+        "b0_min_jets": [
+          false
+        ]
+      },
+      "b0_validation_passed": true,
+      "weight_validation_passed": true,
+      "saved_met_finite": true,
+      "worker_result": {
+        "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34.json",
+        "sha256": "024ac5dcc42f0b96c65298930e4d34faa53cc8759d217700627cf9c38b2c07e9"
+      },
+      "artifacts": {
+        "root": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/roots/TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34.root",
+          "sha256": "6f7c6af1e088fc6e66a819f8286164a340d4124349830f32f46d2e2a27176a27",
+          "bytes": 15321880
+        },
+        "pickle": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/pickles/TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34.pkl",
+          "sha256": "73a728fc283fb299bce4ab0ef0e639fb81ac54ffb73d9f5c54a23fbb4aae4dcb",
+          "bytes": 12302
+        },
+        "metadata": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/metadata/TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34.kinematics.json",
+          "sha256": "a63a71d207c302e256b78d0ff892976cd9c48bf094320fc831eb1fdb776992ae",
+          "bytes": 4745
+        }
+      }
+    },
+    "TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff": {
+      "nano_uuid": "addeb330-6dbb-11f1-a57b-06e114acbeef",
+      "input_events": 44220,
+      "selected_events": 6592,
+      "fully_matched": 2608,
+      "nonfinite_raw_met_events": 1,
+      "nonfinite_met_selected": 0,
+      "bad_source_entries": [
+        10347
+      ],
+      "bad_event_identity": {
+        "run": [
+          1
+        ],
+        "luminosityBlock": [
+          521780
+        ],
+        "event": [
+          384551156
+        ]
+      },
+      "cuts_for_bad_rows": {
+        "single_lep_trigger": [
+          true
+        ],
+        "met_filters": [
+          true
+        ],
+        "ak4_jetveto": [
+          true
+        ],
+        "1lep": [
+          true
+        ],
+        "trigger_lepton": [
+          true
+        ],
+        "b0_min_jets": [
+          false
+        ]
+      },
+      "b0_validation_passed": true,
+      "weight_validation_passed": true,
+      "saved_met_finite": true,
+      "worker_result": {
+        "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff.json",
+        "sha256": "83e2d0ebbe19acd9f125881faa0e9385f954b8e706f3b9cb06d2242877983026"
+      },
+      "artifacts": {
+        "root": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/roots/TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff.root",
+          "sha256": "0a541009347592e727fcd6dbfecfbc596c1e29bf6e44902d6af62560f5df58fa",
+          "bytes": 15428002
+        },
+        "pickle": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/pickles/TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff.pkl",
+          "sha256": "3e41be1335512b68f13a8640f473efd87735b10a9f4fca36f0bb025b0e074752",
+          "bytes": 12302
+        },
+        "metadata": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/metadata/TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff.kinematics.json",
+          "sha256": "32d1d89f2ee0c163d313225bb47b50596344278d41c8235e6215e5722d569d87",
+          "bytes": 4745
+        }
+      }
+    },
+    "TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479": {
+      "nano_uuid": "9663e644-6aff-11f1-8c6c-05e114acbeef",
+      "input_events": 44220,
+      "selected_events": 6509,
+      "fully_matched": 2624,
+      "nonfinite_raw_met_events": 1,
+      "nonfinite_met_selected": 0,
+      "bad_source_entries": [
+        4230
+      ],
+      "bad_event_identity": {
+        "run": [
+          1
+        ],
+        "luminosityBlock": [
+          150558
+        ],
+        "event": [
+          110961056
+        ]
+      },
+      "cuts_for_bad_rows": {
+        "single_lep_trigger": [
+          false
+        ],
+        "met_filters": [
+          true
+        ],
+        "ak4_jetveto": [
+          true
+        ],
+        "1lep": [
+          true
+        ],
+        "trigger_lepton": [
+          false
+        ],
+        "b0_min_jets": [
+          true
+        ]
+      },
+      "b0_validation_passed": true,
+      "weight_validation_passed": true,
+      "saved_met_finite": true,
+      "worker_result": {
+        "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479.json",
+        "sha256": "31f86be1d79a14df3365b7589a71a3a31325d5581cc405c6d775f78953892d11"
+      },
+      "artifacts": {
+        "root": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/roots/TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479.root",
+          "sha256": "dd40b5fb8f1495103972ccb551e0ed7aa52f43a4abedc73ee504cb673b421f99",
+          "bytes": 15199525
+        },
+        "pickle": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/pickles/TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479.pkl",
+          "sha256": "63141772ead2fecb62c19eab807f1ba1c6e943fb937e7c76a13f0dcde0b41dd9",
+          "bytes": 12302
+        },
+        "metadata": {
+          "path": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/processed/metadata/TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479.kinematics.json",
+          "sha256": "c40e40cafacd0c07d56080eda84aec98f58f54637adafc1e6a0610e5831d8c11",
+          "bytes": 4745
+        }
+      }
+    }
+  },
+  "evidence_artifacts": {
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/full-unit.log": {
+      "sha256": "02fc969cee594083cbc23ddf528256d18be6f6032feb726e5c35f4fdae108bbe",
+      "bytes": 1764
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/lint.log": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/calibration-regression.log": {
+      "sha256": "a4d671e96b8000dc4f3bb3888d43395803f7be9e6141efe0b40a86d4604dcaec",
+      "bytes": 53604
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/selected-control/result.json": {
+      "sha256": "c08f1706cc9fa779b6edf20ff9c344ec43806eceb01770edb21ff40b3773394e",
+      "bytes": 4821
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/validated/results.json": {
+      "sha256": "9dbdb21bf0787cce0d3ac8289009c76222863dd499a0a267c6c305271bef75b7",
+      "bytes": 244526
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0/diagnosis.json": {
+      "sha256": "d7b2750043c550f03810f44b25c22af7ebcec53ab520a900038c17fb080d1260",
+      "bytes": 35961
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34/diagnosis.json": {
+      "sha256": "e116a9071d965eee7f8f6cfc7b3872946e3daa6b2d442189c6b1b63a8be53726",
+      "bytes": 35546
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff/diagnosis.json": {
+      "sha256": "6c3abd70f42ba5a5f9b5c689c5f3ac053d47e4e502be8bcb7ee832dc72a1c9e7",
+      "bytes": 35383
+    },
+    "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-met-recovery-20261106/TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479/diagnosis.json": {
+      "sha256": "05763435cb737cd90790090792bb962f0a0ba565b99dd1b9cb9b80cb08f3c2ee",
+      "bytes": 37912
+    }
+  },
+  "recovered_input_events": 176880,
+  "recovered_selected_events": 26269
+}

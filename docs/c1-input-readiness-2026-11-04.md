@@ -126,3 +126,9 @@ estimate, not a quota measurement or a production size result.
 Full-population processing and its final audit are **not yet complete** at
 submission. Protected lineage splits, HDF5 assembly and train-only normalization
 are C2 work; training has not started.
+
+**November 6 recovery:** TTCB and TTBB finalized successfully. Four TT2Q files
+failed because the pre-selection MET check encountered rejected events with
+infinite raw MET. The [recovery record](c1-met-recovery-2026-11-06.md) documents
+the selection-preserving fix, complete-file validation and separate processor
+provenance. C1 remains open until TT2Q finalization and the combined audit pass.
