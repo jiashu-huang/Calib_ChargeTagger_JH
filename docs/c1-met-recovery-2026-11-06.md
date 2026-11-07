@@ -66,3 +66,22 @@ outputs. The four recovered outputs use frozen processor
 provenance. Condor DAG **7665851** resumes TT2Q finalization, followed by the
 combined C1 audit. The [submission record](c1-met-recovery-2026-11-06-production.json)
 pins the recovery manifest and the two-job workflow. Submission does not close C1.
+
+**TT2Q normalization verified November 7.** The existing finalizer appended
+`finalWeight` to all **11,014 files**, with **zero skipped files**. The global
+denominator is `162134476672.01794`, covering all **484,298,177 input events**.
+The worker audit contains **71,941,485 selected events**. No production code
+change or job restart was needed to finish normalization.
+
+An independent check read every ROOT normalization total and every paired
+pickle total, verified complete file coverage, and reproduced the exact ROOT
+denominator and fingerprint. Fifty-nine per-file ROOT/pickle totals differ at
+rounding precision (maximum relative difference `2.95e-16`); their global sums
+agree exactly. The fingerprint uses the canonical ROOT values. A further
+**104,504 events in 16 files**, including all four recovered files, passed
+exact stored-weight quotient and provenance checks. The
+[normalization record](c1-tt2q-normalization-2026-11-07.json) pins the evidence.
+
+The same Condor job has started full output validation. Matching reports and
+the combined C1 audit still follow. This record confirms normalization only;
+it does not close C1 or establish an inclusive/dedicated sample combination.

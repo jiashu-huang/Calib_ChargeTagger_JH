@@ -1,0 +1,136 @@
+{
+  "state": "normalization_complete",
+  "verified_utc": "2026-11-07T06:03:11.566946+00:00",
+  "campaign": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TT2Q",
+  "normalization_receipt": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TT2Q/processed/metadata/normalization.json",
+  "normalization_receipt_sha256": "0a946c3a09603eec27bf0a89da9f68db71dd65cfbf61b7adcfe94507150e60d1",
+  "expected_totals_sha256": "9efd9315873424ef5d224b1cdef91f412094bd7dd30aa1ae0a89174910a9840d",
+  "root_totals_sha256": "c22910d0fc60a5f61b9c445a229996b87e58956e8421a8bd2498b2bfae4f297f",
+  "verification_script_sha256": "e5dabc8b4e204c2dc3dc1d3f3fee4b362820c609ff730d35de92754f66c6a69c",
+  "files": 11014,
+  "input_events": 484298177,
+  "global_np_nominal": 162134476672.01794,
+  "fingerprint": "810ea030c721878cc74659d8bd5b87e28f7a87f5",
+  "updated": 11014,
+  "skipped": 0,
+  "all_pickle_and_root_totals_and_file_coverage_verified": true,
+  "pickle_root_roundoff_files": 59,
+  "maximum_pickle_root_relative_difference": 2.945188741777672e-16,
+  "sampled_files": [
+    {
+      "id": "TT2Q_00039b51-738e-467d-8357-23b11bcf2124",
+      "events": 6469,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_1716b738-6e14-4c7e-8e85-71c174a8e6f4",
+      "events": 6481,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_2e851e8e-1f2b-4d5f-9fd1-629539c1c3e6",
+      "events": 6469,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_46cf140b-97a5-49b3-a202-c2838a54083b",
+      "events": 6562,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_4c82b44a-583a-415c-8759-b965cd436cb0",
+      "events": 6625,
+      "recovered": true,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_5ea75e89-8b7a-4fae-994d-1052eceb4563",
+      "events": 6607,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_62ff5ebe-5072-4f97-9b95-f8edf3d14f34",
+      "events": 6543,
+      "recovered": true,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_762eccc7-1f29-405f-b3f2-bb32fb780b2a",
+      "events": 6601,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_8cb965ae-0781-4480-b55c-32f3b6f26ecf",
+      "events": 6579,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_a3d528ac-a423-4d69-ae06-218818fea517",
+      "events": 6527,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_b8dc7d58-d41c-4e70-9de3-161353aeacff",
+      "events": 6592,
+      "recovered": true,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_bb92e010-9301-4293-95e9-e8710c471beb",
+      "events": 6575,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_d06d0183-00f1-4cdf-9cb9-509ee1f21479",
+      "events": 6509,
+      "recovered": true,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_d1f3b145-34a6-4957-bd8b-0ee6c988c02f",
+      "events": 6375,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_e9a5a9dd-1b3f-4663-a502-4a00e99b824d",
+      "events": 6409,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    },
+    {
+      "id": "TT2Q_fffe7592-673c-4953-94f0-f72831082fee",
+      "events": 6581,
+      "recovered": false,
+      "exact_quotient_and_provenance": true
+    }
+  ],
+  "sampled_events": 104504,
+  "scope": "All-file receipt and independent denominator; sampled event quotients. Full output validation and C1 closure remain separate.",
+  "recorded_utc": "2026-11-07T06:03:53.191678+00:00",
+  "dagman_cluster": 7665851,
+  "finalizer_cluster": 7665852,
+  "processor_commit": "befa26eedd5672e24205a017d49435406090fc3b",
+  "base_processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+  "selected_events_from_worker_audit": 71941485,
+  "sampled_file_count": 16,
+  "all_four_recovered_files_checked": true,
+  "normalization_script_sha256": "739eca484378132133897abb1083e1e11a317d97aae0dac0aa8e47e92845eb03",
+  "verification_directory": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/outputs/c1-normalization-20261107",
+  "normalization_log": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TT2Q/logs/normalization.log",
+  "normalization_log_sha256": "1a50322cf60a651444b8b821e690d453adf1dc08a02267631546c90e9b96c64d",
+  "full_output_validation_started": true,
+  "source_finalization_complete_at_recording": false,
+  "C1_complete_at_recording": false,
+  "training_started": false,
+  "physical_sample_combination_verified": false
+}
