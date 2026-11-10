@@ -232,7 +232,8 @@ flavour. The V5 payload provides all four. At 30 GeV in the central detector,
 ## Not verified
 
 - Pages behind CERN SSO: JetID13p6TeV, TopPtReweighting/TopSystematics, BTV 2024
-  SFs and the MUO wiki.
+  SFs and the MUO wiki. (JetID13p6TeV rev 24 was supplied and checked on
+  10 November 2026; see [2024 inputs, item 6](2024-inputs.md#6-ak4-jet-id--done).)
 - The GE-table transcription.
 - The remaining 62 variation passes.
 - The audit's muon impact-parameter counts and electron energy-error ratios.

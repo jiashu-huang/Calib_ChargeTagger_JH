@@ -328,6 +328,19 @@ numeric change from its former source. Provenance is in the
   (twiki `chHEF > 0.01` vs payload `≥ 0.01`; twiki closes η bins above, payload
   half-open); we follow the payload. Details in
   [docs/processor.md](processor.md#jet-id--objectsak4_jet_id).
+- **Re-checked 2026-11-10 against a saved copy.** The page was supplied again
+  and is still at rev 24, so the 2024 criteria have not been revised. Copies
+  are in `/isilon/export/home/jhuan166/Vcb/References/jme-jetid-2026-11-10/`
+  (`JetID13p6TeV_r24.html`, sha256 `a219f690c399166a…`;
+  `JetID13p6TeV_r24.pdf`, sha256 `9fada0fc8867faf0…`). A literal transcription
+  of its NanoV15 pseudocode agrees with `ak4_jet_id` on 2,000,000 random jets
+  for both Tight and TightLepVeto, with zero differences. The page states the
+  cleaning exception in the words quoted in the `ak4_jet_id` docstring; it does
+  not define "special cleaning", so the adequacy of cleaning against the one
+  trigger lepton remains ours to show. It also recommends plotting the jet-ID
+  input observables, not only the boolean. The nominal calibration schema saves
+  none of those fractions or multiplicities, so such plots need the input
+  NanoAOD or new output columns.
 - **⚠️ Preliminary, revisit later.** The twiki flags the 2024 numbers as coming
   from a JMAR presentation on prompt-reco 2024 F/G, *"To be tested when the
   re-reco 2024 CDE will be available"*. Our campaign is
