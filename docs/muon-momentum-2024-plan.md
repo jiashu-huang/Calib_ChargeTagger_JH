@@ -1,6 +1,6 @@
 # 2024 muon momentum corrections — implementation and remaining validation
 
-Implemented on 12 September 2026 for `Calib_ChargeTagger_JH`, building on the audit of `d212f09313e4418bd8b14d96bfa61356b3ee9c9d` and preserving the separate luminosity fix. **The ordinary-momentum 26–200 GeV correction and its complete processing passes are implemented; high-pT treatment and collision-data closure remain open.** Numerical checks, source hashes and implementation results are recorded under `muon_momentum_implementation` in [the audit metrics](audit-2024-mc-2026-09-11-metrics.json). The earlier research sections remain as provenance.
+Implemented on 12 September 2026 for `Calib_ChargeTagger_JH`, building on the audit of `d212f09313e4418bd8b14d96bfa61356b3ee9c9d` and preserving the separate luminosity fix. **The ordinary-momentum 26–200 GeV correction and its complete processing passes are implemented; high-pT treatment and collision-data closure remain open.** A 10 November 2026 review of further MUO material narrows the high-pT question to the uncertainty model and the data-side convention; see the follow-up section below. Numerical checks, source hashes and implementation results are recorded under `muon_momentum_implementation` in [the audit metrics](audit-2024-mc-2026-09-11-metrics.json). The earlier research sections remain as provenance.
 
 **Implemented behavior**
 
@@ -173,12 +173,56 @@ where pT is in GeV and the tabulated bias is in TeV⁻¹. This formula is a deri
 
 GE bias removal itself reduces the high-eta Z-peak width in the presentation (page 19). Therefore determine the residual data/MC resolution difference **after the chosen GE treatment**, before adopting the 15% smearing benchmark. Combining an unchanged smearing amount with a newly narrowed data reference could oversmear MC; the appropriate amount requires that closure comparison.
 
+**10 November 2026 follow-up: momentum definition, ID and the earlier GE talk**
+
+Four further MUO sources and a fresh copy of the corrections page were supplied and read on 10 November 2026. Copies are in `/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/`; their hashes are in the access table at the end of this note. They narrow the high-pT question. They do not close it.
+
+| Source | What it establishes |
+| --- | --- |
+| [Muon usage recommendations](/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/Muon_usage_recommendations_-_CMS_Muon_POG_Wiki.html), last updated 13 May 2026 | Tight ID "exhibits an inefficiency for muons with pT above 200 GeV" and is not recommended "where a significant fraction of muons has pt > 200 GeV". The high-pT ID "does not use the Particle-Flow algorithm" and should be considered "ONLY if you do not use the Particle-Flow event description". `Muon_pt` is "recommended for all analyses relying on particle flow information"; TuneP (`Muon_pt * Muon_tunepRelPt`) is "mostly for high-pT muon analyses that don't use particle flow information", and analyses relying on PF quantities such as PF MET are advised "to stick with the estimation of the muon pT made by PF". Tight ID already contains dxy < 0.2 cm and dz < 0.5 cm. Tight PF isolation is the Δβ-corrected relative isolation in a 0.4 cone below 0.15, which is `Muon_pfRelIso04_all < 0.15`. |
+| [Earlier GE-method talk](/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/muonpogtalk.pdf), L. Thomas, 10 February 2026; all 16 pages read | Slide 2 states the recommendation current at that date: apply momentum scale corrections up to 200 GeV and "take the bias as an uncertainty above 200 GeV", noting that this "introduces a discontinuity at pT = 200 GeV". Slides 4–5 compare uncorrected TuneP and scale-corrected dimuon masses; above 200 GeV the medium-pT corrections "are not perfect but go in the right direction". Slide 7 indicates stronger additive biases in 2022EE+2023 and 2025 than in 2024. Slide 10 notes that the 2024 MC energy scale "seems off" in the very forward region at high pT. Slide 11 suggests applying the existing corrections at higher pT and deriving GE uncertainties on top; that is a proposal in a talk, not a recommendation. |
+| Same talk, slide 15 | 2024 additive curvature biases from the medium-pT corrections, three phi rows by six eta columns; transcribed below. |
+| [2024 high-pT efficiencies](/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/20250616_HighPtEffs2024_JSchulte.pdf), J.-F. Schulte, 16 June 2025; 41 pages | High-mass tag-and-probe binned in TuneP pT, with tracker-isolated global-muon probes. Slide 9, read by eye: Tight ID efficiency falls from about 0.98–0.99 near 50 GeV to about 0.95–0.98 in 450–1000 GeV, with a flat data/MC ratio. Exact scale factors are taken from the official file below. The plots are labelled 109.0 fb⁻¹; this processor uses 109.82 fb⁻¹ (see [2024 inputs](2024-inputs.md)). |
+| [Approved scale factors from PAGs](/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/Approved_Scale_Factors_from_PAGs_-_CMS_Muon_POG_Wiki.html), last updated 3 December 2025 | One entry: SMP-25-013, Medium ID with prompt MVA > 0.7. Nothing matches this selection. |
+| [Corrections page](/isilon/export/home/jhuan166/Vcb/References/muon-pog-2026-11-10/Efficiency_and_momentum_corrections_-_CMS_Muon_POG_Wiki.html), last updated 13 August 2026 | Eleven key statements, including the Run-3 GE note, the 2024 resolution "Work In Progress" text and the sentence on choosing one pT regime, match the September markdown copy. This was a spot check, not a full comparison. |
+
+Slide 15, additive bias in TeV⁻¹. The outer eta edges and the phi edges are read from the coloured cells; the inner eta edges are inferred from the label positions.
+
+| phi | η < −2.1 | −2.1 to −1.2 | −1.2 to 0 | 0 to 1.2 | 1.2 to 2.1 | η > 2.1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| π/3 to π | 0.09 | 0.03 | 0.01 | 0.00 | 0.00 | −0.03 |
+| −π/3 to π/3 | −0.03 | 0.01 | 0.01 | −0.01 | −0.05 | −0.19 |
+| −π to −π/3 | −0.04 | 0.00 | 0.01 | −0.01 | −0.01 | −0.04 |
+
+A curvature shift κ changes pT by about κ·pT. A bias of 0.01 TeV⁻¹ is 0.2% at 200 GeV; 0.19 TeV⁻¹ is 3.8% at 200 GeV and 9.5% at 500 GeV. Slide 3 prints typical κ as 10⁻⁵–10⁻⁴ with a TeV⁻¹ label; those magnitudes agree with the maps only when read in GeV⁻¹, so the maps' axis unit is used here. The slide does not say whether its values are data, MC or data-minus-MC terms, nor which momentum the "scale corrected" mass starts from.
+
+**Tight ID scale factor above 200 GeV.** The processor takes the ID and isolation factors from the last pT bin of the Z-based file, 120 GeV to infinity, and the trigger factor from its 200 GeV to infinity bin. CAT's `muon_HighPt.json.gz` (the `latest/` copy, not bundled) has a dedicated `NUM_TightID_DEN_GlobalMuonProbes`, evaluated here on 10 November 2026. Errors are the quadrature sum of `stat` and `syst`.
+
+| \|eta\| | 60–120 GeV | 120–200 GeV | 200–450 GeV | above 450 GeV |
+| --- | ---: | ---: | ---: | ---: |
+| 0–0.9 | 0.9919 | 0.9894 | 0.9871 ± 0.0033 | 0.9871 ± 0.0202 |
+| 0.9–1.2 | 0.9876 | 0.9830 | 0.9806 ± 0.0023 | 0.9865 ± 0.0339 |
+| 1.2–2.1 | 0.9966 | 0.9967 | 0.9991 ± 0.0074 | 0.9950 ± 0.0145 |
+| 2.1–2.4 | 0.9962 | 0.9974 | 1.0106 ± 0.0196 | 1.0106 ± 0.0196 |
+
+Its denominator and TuneP binning differ from the Z-based `NUM_TightID_DEN_TrackerMuons`, so the absolute values are not interchangeable with the applied factors. The comparison shows only that the data/MC ratio moves by at most 0.3% across 200 GeV for |eta| < 2.1, and by 1.3% ± 2.0% for 2.1–2.4. Extending the Z-based last bin to the muons above 200 GeV is therefore a sub-percent effect on about 1% of trigger muons.
+
+**Reading for this processor.** This is the repository's reading of the sources on 10 November 2026. It is not an adopted decision and not a MUO statement.
+
+1. Keep Tight ID, PF isolation and `Muon_pt` for every selected muon. The analysis relies on PF isolation, PUPPI jets and MET, and 330 of 34,651 selected trigger muons (0.95%) exceed 200 GeV. This follows the usage page and the corrections page's instruction to choose the regime covering the bulk of the muons. Of those 330, 303 have TuneP equal to `Muon_pt`; the other 27 have `tunepRelPt` down to 0.992.
+2. The MC nominal above 200 GeV stays unchanged under every source read. The February recommendation leaves these muons uncorrected. The GE bias of the later Run-3 note is a bias removed from data, as in the sign discussion above, and the deck does not support adding it to MC. The present `muon_ss.py` behaviour therefore needs no nominal change for the supported MC scope.
+3. Missing: a momentum-scale uncertainty for MC muons above 200 GeV. The slide-15 biases and the GE tables give its plausible size. Neither defines a nuisance model, and the GE values are measured on TuneP.
+4. Missing: the 2024 high-pT resolution treatment. The guide still marks it as work in progress and asks for closure in the analysis phase space, with a 10% width uncertainty as a proxy.
+5. For collision data, when that path exists: choose between removing the GE bias above 200 GeV (Run-3 note, TuneP, the newer text) and leaving data uncorrected with the bias as an uncertainty (February recommendation).
+6. The discontinuity noted on slide 2 exists in this MC as well: muons just below 200 GeV receive scale and smearing, those above receive neither.
+7. No source read gives an explicit prescription for `Muon_pt` above 200 GeV in a PF-based analysis. Confirm items 1–5 with the MUO contact before closing the finding.
+
 **Validation and remaining work before closing the full finding**
 
 1. **Implemented and checked:** 191 unit tests and 18 subtests pass, including the pinned nominal and residual-K reference, both Crystal Ball tails and tracker-layer edges, statistical/systematic combination, data behavior, empty/missing inputs, domain boundaries, fallback visibility, chunk/event/object ordering and entering events through the real trigger selection. Changed implementation/test files pass lint; repository-wide lint still reports two pre-existing `B905` errors in `tests/test_objects.py`.
 2. **Full integration completed:** all 208,780 fixture events were processed in nominal and four total shifted passes with weight systematics enabled. The nominal skim retains 59,537 events (24,925 electron and 34,612 muon), versus 59,575 before correction; 38 events leave and one common event changes from a muon to an electron trigger. Each pass retains entering events and recalculates weights. Normalization totals are identical across all five passes. The nominal baseline was regenerated through `tests/test_run.py`, with 734 columns and 5,420,807 jet-tagger/charge comparisons passing. The systematics-enabled passes each have 752 columns.
 3. Validate the dimuon Z-peak mean and width in data versus corrected DY MC, including charge, eta, phi and pT dependence, following the notes' control-region approach. Study any high-pT non-closure in suitable data and MC. A single signal fixture cannot supply these data/MC checks.
-4. Record the adopted TuneP/data-correction convention, which GE stages are applied, any boundary treatment and the final nuisance model before calling the full momentum issue resolved. Existing skims require reprocessing for corrected acceptance; an event-weight rescaling cannot supply the missing kinematics or recover lost events.
+4. Record the adopted TuneP/data-correction convention, which GE stages are applied, any boundary treatment and the final nuisance model before calling the full momentum issue resolved. The 10 November 2026 follow-up above gives the current reading (keep `Muon_pt`; no MC nominal change above 200 GeV); it is not yet an adopted decision. Existing skims require reprocessing for corrected acceptance; an event-weight rescaling cannot supply the missing kinematics or recover lost events.
 
 | Muon pass | Selected events | Entering versus corrected nominal | Leaving versus corrected nominal |
 | --- | ---: | ---: | ---: |
@@ -211,7 +255,12 @@ differ between runner invocations.
 | [MUO momentum-correction guide](https://muon-wiki.docs.cern.ch/code/ptcorr/) | HTTP 401 | The supplied PDF already covers the main prescription. A newer copy is useful only if its guidance has changed. |
 | [MUO correction recommendations](https://muon-wiki.docs.cern.ch/guidelines/corrections/) | HTTP 401 | The supplied markdown already covers the medium/high-pT guidance discussed above. |
 | [High-pT presentation with 2024 GE tables](https://indico.cern.ch/event/1665380/contributions/7001589/attachments/3243397/5786110/highptmuons.pdf) | Historical CERN SSO redirect; **the supplied PDF has now been read** | Table-access request closed. The GE maps are on pages 11 and 16; remaining application/correlation questions are described above. |
-| [Earlier GE-method presentation](https://indico.cern.ch/event/1648086/contributions/6926843/attachments/3216713/5734489/muonpogtalk.pdf) | CERN SSO redirect in the earlier access check; the web reader remains unable to open it | Supplementary source that may help with the remaining application/uncertainty details; its content has not been read. |
+| [Earlier GE-method presentation](https://indico.cern.ch/event/1648086/contributions/6926843/attachments/3216713/5734489/muonpogtalk.pdf) | CERN SSO redirect in the earlier access check; **supplied and read on 10 November 2026** (SHA-256 `28efbb688c57658748e5a45826575be14a5b769968c8959d8930adab81721f84`) | Closed. It states the February recommendation and the 2024 medium-pT bias map; see the 10 November follow-up. |
+| [MUO usage recommendations](https://muon-wiki.docs.cern.ch/guidelines/recommendations/) | Not reviewed in September; **supplied and read on 10 November 2026** (SHA-256 `2c19a7394b3e25fc61e54c9587e3bba0d1b930e2dfff64f2c00547cb4d0e73b1`) | Closed. It gives the ID and momentum-definition guidance for PF-based analyses. |
+| [2024 high-pT efficiency presentation](https://indico.cern.ch/event/1558823/contributions/6565608/attachments/3087099/5465940/20250616_HighPtEffs2024_JSchulte.pdf) | Not reviewed in September; **supplied and read on 10 November 2026** (SHA-256 `75749982038802dc9ec58740a92feae44997f4fabc8a2631ca0cc38f5feaa8dc`) | Closed for the Tight ID question. |
+| [Approved scale factors from PAGs](https://muon-wiki.docs.cern.ch/guidelines/approved_pag_sfs/) | Not reviewed in September; **supplied and read on 10 November 2026** (SHA-256 `db7603e56452dde38e3b2a60566be39f456d38de602274ce6c593cbad69d126a`) | Closed. Nothing applies to this selection. |
+| MUO correction recommendations, HTML copy of the page above | **Supplied on 10 November 2026** (SHA-256 `46c179d10d6dc76c92b63dee5af5a29143d5b699822ac48399a7ddcf196f57fb`) | Spot-checked against the September markdown; no change found in the statements compared. |
+| MUO contact | Not yet asked | An explicit prescription for `Muon_pt` above 200 GeV in a PF-based analysis: scale uncertainty, resolution, and the data-side convention. |
 | [MuonScaReKIT](https://gitlab.cern.ch/cms-muonPOG/muonscarekit) | HTTP 200; source files readable | No upload needed. |
 
 The 26–200 GeV processor implementation, pinned payload, separate variation passes and regression baselines are now supplied. Existing production files were not rewritten. High-pT prescription, the below-range acceptance limit and data/MC closure remain explicit analysis work; the GE tables remain a documentary transcription, not an applied MC correction.
