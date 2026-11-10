@@ -176,8 +176,11 @@ directly. `_canonicalize_infinities` still runs on it (the loader is shared)
 and is simply a no-op — which is a fact about today's file, not a guarantee
 about the next release.
 
-**Coverage.** EGM states these should not be used below ~20 GeV and may be
-ineffective at very high pT. Every binning is `flow="clamp"`, so out-of-range
+**Coverage.** EGM states these should not be used below ~15 GeV, should be used
+with caution between 15 and 20 GeV, and may be ineffective at very high pT
+(`EgammSFandSSRun3` TWiki r57, 2025-11-05). The baseline electron cut is 20 GeV;
+the recorded extra-lepton electrons start at 15 GeV, inside the caution range.
+Every binning is `flow="clamp"`, so out-of-range
 inputs return the edge bin: run numbers below 379416 (early 2024B/C) and above
 386951 clamp to the first and last time bin. Nothing is clipped in our code —
 clamping is EGM's own choice.

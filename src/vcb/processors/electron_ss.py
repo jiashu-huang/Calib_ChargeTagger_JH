@@ -49,8 +49,9 @@ Also note the 2024 argument list dropped ``AbsScEta``, which the 2022/2023
 payloads took between ``r9`` and ``pt``. A snippet copied from a 2022 analysis
 silently shifts every argument by one.
 
-Coverage. EGM states the corrections should not be used below ~20 GeV and may
-be ineffective at very high pT. Every binning in the payload declares
+Coverage. EGM states the corrections should not be used below ~15 GeV, should
+be used with caution between 15 and 20 GeV, and may be ineffective at very high
+pT. Every binning in the payload declares
 ``flow="clamp"``, so out-of-range inputs return the edge bin rather than
 raising -- including run numbers before 379416 (early 2024B/C) and after
 386951. Nothing is clipped here; clamping is EGM's own choice and this module

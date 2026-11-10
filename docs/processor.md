@@ -137,9 +137,11 @@ per electron rather than as a weight because a pT shift changes *which*
 electrons pass the selection, which cannot be recovered downstream from the
 nominal column alone.
 
-**Coverage and limits.** EGM says not to use these below ~20 GeV (the baseline
-cut sits exactly on that boundary) and that they may be ineffective at very
-high pT. Every binning declares `flow="clamp"`, so out-of-range inputs return
+**Coverage and limits.** EGM says not to use these below ~15 GeV, to use them
+with caution between 15 and 20 GeV, and that they may be ineffective at very
+high pT. The baseline cut sits at the top of the caution range; the recorded
+extra-lepton electrons start at 15 GeV, inside it. Every binning declares
+`flow="clamp"`, so out-of-range inputs return
 the edge bin rather than raising — including runs before 379416 and after
 386951. Nothing is clipped in our code; clamping is EGM's own choice.
 
