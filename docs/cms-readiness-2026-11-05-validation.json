@@ -1,0 +1,363 @@
+{
+  "record_version": 1,
+  "review_date": "2026-11-05",
+  "assembled_utc": "2026-11-05T17:02:36.953181+00:00",
+  "scope": "Read-only CMS readiness and production-evidence review; documentation updates only. No production mutation, reprocessing, source stitching or training.",
+  "conclusion": "Supported MC implementation and three-source pilots validated; overall C1 receipt absent and physics closure incomplete.",
+  "source_review": {
+    "recorded_utc": "2026-11-05T16:55:54.331728+00:00",
+    "worktree": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103",
+    "branch": "codex/cms-c1-integration-20261103",
+    "head": "1a56399089980e5630f6339ca50c70d09abb0270",
+    "vcb_import": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/src/vcb/__init__.py",
+    "weight_prescription_version": 3,
+    "muon_momentum_pt_range_GeV": [
+      26.0,
+      200.0
+    ],
+    "ttbb_effective_xsec_pb": 16.011655167690346,
+    "campaign_root": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104",
+    "sources": {
+      "TT2Q": {
+        "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+        "processor_checkout": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103",
+        "campaign_sha256": "51f09edbd7d6ac7b74e6cb911b14c6af5d208b3a7fe84672a9a23815f839deb7",
+        "code_files_checked": 60,
+        "checkout_code_mismatches": [],
+        "frozen_code_mismatches": [],
+        "input_files": 11014,
+        "input_events": 484298177,
+        "weight_prescription_version": 3,
+        "kinematic_variation": "nominal",
+        "save_systematics": true,
+        "completion_present": false,
+        "input_audit_present": false
+      },
+      "TTCB": {
+        "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+        "processor_checkout": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103",
+        "campaign_sha256": "70253f67ddc503fac10927df55b180c18f4befa8a3d1e48e44035b9514bdaa99",
+        "code_files_checked": 60,
+        "checkout_code_mismatches": [],
+        "frozen_code_mismatches": [],
+        "input_files": 465,
+        "input_events": 19823340,
+        "weight_prescription_version": 3,
+        "kinematic_variation": "nominal",
+        "save_systematics": true,
+        "completion_present": true,
+        "input_audit_present": true,
+        "completion_sha256": "cb9ed80d542a1bce0625e100d2f5951362cf4140d3489c595dd0ee624e5597f7",
+        "completion": {
+          "state": "complete",
+          "completed_utc": "2026-11-05T14:20:15.635511+00:00",
+          "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+          "files": 465,
+          "input_events": 19823340,
+          "selected_events": 2779586,
+          "matching_counts": {
+            "events_in_processed_files": 2779586,
+            "fully_matched": 1000604,
+            "hadronic_top_matched": 1220460,
+            "hadronic_top_only": 219856,
+            "w_pair_matched": 1500394,
+            "b0_mask_checked_events": 2779586,
+            "b0_assignment_eligible": 1000604
+          },
+          "publication_sha256": "c735fd9f943cbd9d6873a66f1fa6cf561ce7ab27eae0a520f07722ff0abfb97b",
+          "matching_artifacts": {
+            "matching-report/matching_summary.txt": "f1facd8c15a957cb342f7f790b7a6aa789f2ef1cad7253990c92a7cadff261a4",
+            "matching-report/matching_summary.json": "d02e44f124dcd3fdc807bc5c7239a3baedfcfea77a199cb46621da700ad16de7",
+            "matching-report/fully_matched_masses.png": "25a4c1b263aef0f7b7852c23254142dad96520dcc9cb356c00ecccf3f37cbdd8",
+            "matching-report/fully_matched_masses.pdf": "a7ec7e05b9ed445cd4eda6f64b4e5dc2516c25523521429eb7ce57f10414a9a2",
+            "matching-report/hadronic_top_matched_masses.png": "dc27b468524ad5f66a9c276c98dc5bec2d55848e1a64dc83251c34d3edd9ee55",
+            "matching-report/hadronic_top_matched_masses.pdf": "99b7f879181dc2b95f63cd478768c7b9ada40f8bea0c27917cd3a247dfa5898f"
+          },
+          "input_audit_sha256": "ab91dda7d94bcd9284f194f39ac8a6e0f97bc3557020e0a22978f6d0b2967642",
+          "input_audit_text_sha256": "721b0a9f77386eacc10efa0d8fd374f02ba478c2f18618ec1fd7320a6f56004c",
+          "matching_summary": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB/matching-report/matching_summary.txt",
+          "normalization": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB/processed/metadata/normalization.json",
+          "training_started": false
+        }
+      },
+      "TTBB": {
+        "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+        "processor_checkout": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103",
+        "campaign_sha256": "39338156e32359fa3ff7c5a0a09242d9c8b9731a6c757b1cef04ce79efd7f914",
+        "code_files_checked": 60,
+        "checkout_code_mismatches": [],
+        "frozen_code_mismatches": [],
+        "input_files": 2258,
+        "input_events": 44323128,
+        "weight_prescription_version": 3,
+        "kinematic_variation": "nominal",
+        "save_systematics": true,
+        "completion_present": false,
+        "input_audit_present": true
+      }
+    },
+    "overall_c1_receipt_present": false,
+    "production_to_head_changed_paths": [
+      "README.md",
+      "docs/c1-b0-production-2026-11-04.json",
+      "docs/c1-input-readiness-2026-11-04.md"
+    ],
+    "ttcb_read_only_source_check": {
+      "campaign": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB",
+      "dataset": "TTtoLNuCB",
+      "processor_commit": "0fc83d74807c89d18e0f63df3a0cddbf9ea6cbdf",
+      "truth_certificate_sha256": "9021657aaa7a42ea3ac68d039d1366fbc34cd7a1b50d9f8daf8e56d1a6c9bb3d",
+      "completion_sha256": "cb9ed80d542a1bce0625e100d2f5951362cf4140d3489c595dd0ee624e5597f7",
+      "input_audit_sha256": "ab91dda7d94bcd9284f194f39ac8a6e0f97bc3557020e0a22978f6d0b2967642",
+      "publication_sha256": "c735fd9f943cbd9d6873a66f1fa6cf561ce7ab27eae0a520f07722ff0abfb97b",
+      "schema_sha256": "417966e8868f7d7e060b554fa3900d89e511c1ffc89c9cc4205dee1674277d54",
+      "input_files": 465,
+      "input_events": 19823340,
+      "counts": {
+        "selected": 2779586,
+        "W_label_valid": 2779586,
+        "extra_b_label_valid": 2779472,
+        "both_labels_valid": 2779472,
+        "fully_matched": 1000604,
+        "hadronic_top_matched": 1220460,
+        "assignment_eligible": 1000604,
+        "overflow": 380,
+        "unmatched_with_W_label": 1778982,
+        "unmatched_with_extra_b_label": 1778901,
+        "fully_matched_with_overflow": 159,
+        "fully_matched_without_overflow": 1000445,
+        "accepted_jets": 12947249,
+        "retained_jets": 12946779,
+        "overflow_jets": 470,
+        "reco_b_jets_count_valid": 2779586,
+        "gen_b_jets_count_valid": 2779586,
+        "retained_b_jets": 6681588,
+        "retained_jets_with_unknown_b_truth": 0,
+        "overflow_b_jets_in_valid_events": 72
+      },
+      "population_report": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB/input-audit.txt",
+      "matching_report": "/isilon/export/home/jhuan166/Vcb/Calib_ChargeTagger_JH/outputs/c1-b0-20261104/TTCB/matching-report/matching_summary.txt",
+      "result": "passed"
+    }
+  },
+  "production_source_sha256": {
+    "condor/scripts/c1_input_readiness.py": "d57afc2291923b809e9f5bffdefed5cd7e8c3a8348c303b8dad1152c0d83a3d4",
+    "condor/scripts/normalize.py": "739eca484378132133897abb1083e1e11a317d97aae0dac0aa8e47e92845eb03",
+    "condor/scripts/ttbb_b0_campaign.py": "68147be269ed4e9678ab82da52b6640e9ea435f705816088aab217d6ccf714ad",
+    "condor/scripts/validate_processed.py": "e8b08003e973a0a56e5ed4ca6a29ada7d92080660c8473d1bc317ad4716ca1c0",
+    "condor/scripts/validate_ttbb_b0_weights.py": "4dfbdde71973e15ebb35daa7a8513fab258b30862328fbc5ec3408fd98e4a55d",
+    "diagnostics/check_jet_tagger_roundtrip.py": "9e51498a0db2e018909e68ecd21339fc02adb270c9f8d22d2f719608cec75ddf",
+    "diagnostics/validate_b0_inputs.py": "28d60491d16a5594e54b51b99731b25fc6ed9543841e9be6b0ffdd222fadfa12",
+    "diagnostics/validate_ttbb_matching.py": "96643c572b146d5e7dd7fe24136d75a79662a6cc45447b136c5248895bdcfb02",
+    "environment.yaml": "0ee9ac27e701f8784174c0c5fa119c0e4d5c7a0d616f5313edf6df29571db140",
+    "pyproject.toml": "7a7a9b9c49d40ed9778930ee4786c7501068555d446c0c6b83c35bad0351f767",
+    "src/boostedhh/VENDORED.md": "b95265a8583b315548e6b6f0c9d10e16ab25f66c8baa5071d838b9fc2de9d322",
+    "src/boostedhh/__init__.py": "708ceeb0ddda59e6a6805d869934ab54b0e3fca8c26d1f255d20f6904fcc9a5c",
+    "src/boostedhh/corrections/2024_jet_jerc.json.gz": "b0e60dd2244f9d4cfa3215eafb94afa5b6a491b18af4584522b749d56f5c9540",
+    "src/boostedhh/corrections/2024_jetid.json.gz": "2ae07e7b7c67332fa4ccc374c7b3cfe667c653ce65c3f421f956460e46b1eb35",
+    "src/boostedhh/corrections/2024_jetvetomaps.json.gz": "849cd1098814175ab58faac4834df0a353de63482f4017e22c0134ee7e840aec",
+    "src/boostedhh/corrections/2024_puWeights.json.gz": "716a7ed57e5246bc131c9054e48eb530930b81fc3720d1a8ace8131b64e47867",
+    "src/boostedhh/corrections/README.md": "d06c6325ec6775dbe8a7d17376d0a31100c19313af4392cbabff2446829d5fd8",
+    "src/boostedhh/corrections/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/boostedhh/corrections/build_jec.py": "864b3896ecf0a4113d59a4f2742e684d0478420a1cfdf90251267591bc0a2c38",
+    "src/boostedhh/corrections/jec_compiled_py311.pkl.gz": "9f5f64790ed0dd70eccf16ab83a3de7515230c6763212278b019b54a72a04a4b",
+    "src/boostedhh/corrections/jer_smear.json.gz": "a6a625b958704991147f2e90aa53631df100db9390b0981b9553298cb70cda05",
+    "src/boostedhh/hh_vars.py": "2e83fa1b9c7ef0574eae915fe1eadfeea078eb033316912aa8d92d732dd34ca6",
+    "src/boostedhh/processors/SkimmerABC.py": "18094869a15721e5f83ba300cb513713791e66384e9fad4a8a4ee2a4b59c0cd7",
+    "src/boostedhh/processors/__init__.py": "5f6fef1086f019975eaa1b1d5c0fd6302f90a7a1bca2f3c7eeeadc5cca5207be",
+    "src/boostedhh/processors/corrections.py": "d020c5946a5343895d7cbc8bfd701e38add109225e359ea759615671d88a207e",
+    "src/boostedhh/processors/utils.py": "fff558c0c99cda321b54cf4c5f61983fb472c1dd80cedce626557bc375f746f0",
+    "src/boostedhh/run_utils.py": "bc4d11278e8269144113211f2e27527641bc65e304bf0ecdd16e2b38c924a23a",
+    "src/boostedhh/utils.py": "99b6c716eca897170f988d69fc999b540f62d5dad5b28405c7d32f012bad2ff0",
+    "src/boostedhh/xsecs.py": "4fd4ff4d16af3e1e4d9daf418d2a5ae2b9d1c0b2f09ee497b84a621bccc300d3",
+    "src/vcb/HLTs.py": "592098a0c7c195a3b75271741676a53e1644e845198148baf8305a6f620dd3e5",
+    "src/vcb/__init__.py": "4c14439e0d57702adde90c9143951472fa1c97a7e64d59117538dc60c681482f",
+    "src/vcb/corrections/2024_electron.json.gz": "fbdf9e241414f98cdc3185d65f83f2b329a8876f4fe69b1175b47ec673db6973",
+    "src/vcb/corrections/2024_electronHlt.json.gz": "566ee3b86d174c0e961890bf730100b6422d39e55cbc9b5164eda50eee60e856",
+    "src/vcb/corrections/2024_electronSS_EtDependent.json.gz": "b464129d2c0c3974618d0d0dbda7d1bdff73641a0b8d04c2ac4164180ae5ed67",
+    "src/vcb/corrections/2024_muon_Z.json.gz": "a103af495ff5d7c96d4d2b3dd50927fc942484bffbb392553ab059fddeded37f",
+    "src/vcb/corrections/2024_muon_scalesmearing.json.gz": "d9ca1368ae0bd09535d8fa8ea90df07242cee4d8e9ca9279c0032657624fa041",
+    "src/vcb/corrections/README.md": "5ea5578c423af5e34609df3ba62b50cb738e8b31ef046447d193af7e7e233a19",
+    "src/vcb/normalization.py": "c804659414b0ffebaf0b08e1f0d873e3fa148c11ea77864b28809d06d97e82f9",
+    "src/vcb/postprocessing/__init__.py": "4c616a229d4bdf3191cf52591de91377287bb4384428f0cbce9f65c2425da247",
+    "src/vcb/postprocessing/input_audit.py": "d842a0da76f99aa441c4d8a7086f913ae650fc284db98541972e3a7b7f65452d",
+    "src/vcb/postprocessing/matching.py": "c69a2f89003a65201989c1d0fcd2339bf01ab7f74adf75cfe638cd0f6d1b8bef",
+    "src/vcb/processors/GenSelection.py": "dcbed46af9ee4a68b1e40a0088ec3f4b072e73156d228846386821bf4cb122e2",
+    "src/vcb/processors/__init__.py": "05328b9dffd2311419a27e58a2dbee641f3e3f409cc9a86f175b549f1feaceb0",
+    "src/vcb/processors/b0_inputs.py": "d48d9b00c7b65faf68f1fcce1f9ecf8f8872f3660e2170df8a75d6070f266e0c",
+    "src/vcb/processors/electron_ss.py": "06f55301d554dff1f5ffeece7ecf21adb9a2d7c47fc323b8ad06568fc566da66",
+    "src/vcb/processors/kinematic_variations.py": "1f35b13e8381da808066dd143158fe0f2444e4c89fe8df198f09a2bb0d351000",
+    "src/vcb/processors/lepton_sf.py": "8ab3549af9ad816d9b392804c256fa4d9ba960cc83517e88404e065739baf812",
+    "src/vcb/processors/lepton_veto.py": "c061f17efc7c8a5e9d7640e16910e4db1caa9b0dd34e6b92e22c841699d27a0f",
+    "src/vcb/processors/met_variations.py": "f38d99cd37ecf107816e52eb6dfa714c09b6203f3f8573ec25461d782a4e20cd",
+    "src/vcb/processors/muon_ss.py": "c91369678456b7df5d723eb0c6dbd0fc0a4d7a509c8bad6a9c0cc41829c6361c",
+    "src/vcb/processors/objects.py": "ca6805a1427bab0381fac74abe73a95ea61a034cf1b5be2b06f1342ccbcd1cb4",
+    "src/vcb/processors/pdf_weights.py": "25acfc5f0061140f9c5aa6c1c41c450a28958672b8c6cd9e25901c36e4b56766",
+    "src/vcb/processors/skim_metadata.py": "60a70b71cd1f230a611776eadf491b5dc4a30c68ebb35e4bcd18c622374c342b",
+    "src/vcb/processors/top_pt.py": "efe68f3885861c8ef8154df5a9a1ada63b83de0c854bac836a3d1486645dedec",
+    "src/vcb/processors/truth_labels.py": "f4c22f378158300c34946fac29ac45a263af14c468e51afdc62fdb536be3099d",
+    "src/vcb/processors/vcbSkimmer.py": "fd3dcb9ae4ed556de0ff5219601624912467dfdfec5a1902bcb9e1da2099c708",
+    "src/vcb/processors/weight_prescription.py": "9cb410bdca97b2fe121ff79b34bcc35f4ab8348f89679cf829947ba4aee12b78",
+    "src/vcb/run.py": "736fdad6e8d930ae53ddd979484e529bb1bb9c51775810a8e8e4d735662686cf",
+    "src/vcb/truth.py": "d8a2fa3f9f476d36add9ba68796cd60f780555aaeade0c90afbfb973b29e9c84",
+    "src/vcb/vcb_utils.py": "ae611f31b05bc121afeafeeb415203a251196e8ec79c97fa482304abf193ef6a"
+  },
+  "fresh_validation": {
+    "environment": "ttbar",
+    "PYTHONPATH": "/isilon/export/home/jhuan166/Vcb/worktrees/calib-cms-c1-integration-20261103/src",
+    "XDG_CACHE_HOME": "/tmp/vcb-cms-readiness-20261105-cache",
+    "pytest": {
+      "command": "PYTHONPATH=\"$PWD/src\" XDG_CACHE_HOME=/tmp/vcb-cms-readiness-20261105-cache OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 micromamba run -n ttbar python -m pytest tests/ -q",
+      "exit_code": 0,
+      "passed": 474,
+      "subtests_passed": 22,
+      "warnings": 3,
+      "elapsed_seconds": 119.78,
+      "log": "outputs/cms-readiness-review-20261105/pytest.log",
+      "log_sha256": "25117bb67443178838ddc58fde48f43b2647450b4fe8bcd24ca603cc0d90d51e",
+      "warning_scope": "Existing awkward sre_parse/sre_constants and uproot pkg_resources deprecations."
+    },
+    "lint": {
+      "command": "PYTHONPATH=\"$PWD/src\" XDG_CACHE_HOME=/tmp/vcb-cms-readiness-20261105-cache micromamba run -n ttbar ruff check src/vcb tests condor",
+      "exit_code": 0,
+      "result": "All checks passed!"
+    },
+    "ttcb_check": {
+      "entrypoint": "condor/scripts/c1_input_readiness.py:check_source",
+      "sample": "TTCB",
+      "result": "passed",
+      "scope": "Read-only frozen-source, pilot-gate, receipt, certified coverage, publication, report hash, schema and population-count checks. Full production ROOT files were not reread."
+    },
+    "new_full_fixture_run": false,
+    "new_65_pass_kinematic_run": false,
+    "real_file_evidence": "November 3 integration and November 4 schema-2 pilots retained; no new event processing in this review."
+  },
+  "official_CAT_payload_content_comparison": [
+    {
+      "local": "src/vcb/corrections/2024_electron.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electron.json.gz",
+      "local_content_sha256": "2598d3b76eb16f72b45951af1778a2bf0de94542818b806609120358c70e55ab",
+      "official_content_sha256": "2598d3b76eb16f72b45951af1778a2bf0de94542818b806609120358c70e55ab",
+      "content_matches": true
+    },
+    {
+      "local": "src/vcb/corrections/2024_electronHlt.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronHlt.json.gz",
+      "local_content_sha256": "d78e0928fb10a6a56ad1d99a88babaae2133e390ef33c6dad079b05bd8c1e273",
+      "official_content_sha256": "d78e0928fb10a6a56ad1d99a88babaae2133e390ef33c6dad079b05bd8c1e273",
+      "content_matches": true
+    },
+    {
+      "local": "src/vcb/corrections/2024_electronSS_EtDependent.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronSS_EtDependent.json.gz",
+      "local_content_sha256": "9678dbc2ce8cb93fe257867e90bd150a924121985108b24f634ca63c269bf0c7",
+      "official_content_sha256": "9678dbc2ce8cb93fe257867e90bd150a924121985108b24f634ca63c269bf0c7",
+      "content_matches": true
+    },
+    {
+      "local": "src/vcb/corrections/2024_muon_Z.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_Z.json.gz",
+      "local_content_sha256": "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47",
+      "official_content_sha256": "99dad8b9143dc08bf31eaf84424f77fa79cf7c6e108b09ae43f31714ec7e1f47",
+      "content_matches": true
+    },
+    {
+      "local": "src/vcb/corrections/2024_muon_scalesmearing.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_scalesmearing.json.gz",
+      "local_content_sha256": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+      "official_content_sha256": "4d3137a34fd6cba316d9fd3b2f9f5f7df8aaac8f8f878e283d0f5ff89053589f",
+      "content_matches": true
+    },
+    {
+      "local": "src/boostedhh/corrections/2024_jet_jerc.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz",
+      "local_content_sha256": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78",
+      "official_content_sha256": "9f4183a40afc718ffcfa5d87ef4c32f96598cf7b2c897ee3fa24bf1e0aee3a78",
+      "content_matches": true
+    },
+    {
+      "local": "src/boostedhh/corrections/2024_jetvetomaps.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetvetomaps.json.gz",
+      "local_content_sha256": "61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2",
+      "official_content_sha256": "61a5b38956c85e63d8f086bf55607339c9714b44d77aebe0b3f40eeef94873a2",
+      "content_matches": true
+    },
+    {
+      "local": "src/boostedhh/corrections/2024_jetid.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetid.json.gz",
+      "local_content_sha256": "9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27",
+      "official_content_sha256": "9ed80d232ed8669808f56ae86750d7745e8e7cd8919109340b130e04a354ad27",
+      "content_matches": true
+    },
+    {
+      "local": "src/boostedhh/corrections/2024_puWeights.json.gz",
+      "official": "/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz",
+      "local_content_sha256": "998c2abe13614c2afb9e83f2ed348b705a0f2b4716ada119a467700bfe3b91de",
+      "official_content_sha256": "998c2abe13614c2afb9e83f2ed348b705a0f2b4716ada119a467700bfe3b91de",
+      "content_matches": true
+    }
+  ],
+  "payload_comparison_scope": "Decompressed SHA-256 against official CAT latest files visible on BRUX during this review. This is not independent confirmation of every current POG recommendation.",
+  "queue_snapshot": {
+    "started_utc": "2026-11-05T17:00:47.628569+00:00",
+    "completed_utc": "2026-11-05T17:00:47.683771+00:00",
+    "command": [
+      "condor_q",
+      "jhuan166",
+      "-json",
+      "-attributes",
+      "ClusterId,JobStatus,JobBatchName,DAGManJobId"
+    ],
+    "dagman_cluster": 7651230,
+    "groups": [
+      {
+        "status": "idle",
+        "job_batch_name": "VCB_TT2Q_worker",
+        "count": 39
+      },
+      {
+        "status": "running",
+        "job_batch_name": "VCB_TTBB_finalize",
+        "count": 1
+      },
+      {
+        "status": "running",
+        "job_batch_name": "production.dag+7651230",
+        "count": 1
+      }
+    ]
+  },
+  "historical_evidence_sha256": {
+    "docs/cms-readiness-2026-10-27-validation.json": "5cba652952290f2087613f5c7d0a276781441f2335338d93eae2d97694d3ff7a",
+    "docs/cms-c1-integration-2026-11-03-validation.json": "239e74584462c0273ecb09d8184038bb128688a2bbcb65001315fbe36f2e8472",
+    "docs/c1-input-readiness-2026-11-04-validation.json": "bc8b5c2a5651ab90f81a42b269bb7fa5b466ef2e45d69c5468f64054f76dd5f2",
+    "docs/c1-b0-production-2026-11-04.json": "0065ec351b2dbc14d6cd6e905acdcfeb148a984fb8bbf3a4684829cd4e983804",
+    "docs/b0-input-readiness-2026-10-28.json": "5ae70907d88998cd1459b697ac31b31dc5c6609319b355b03ec5c0b0ba5efdf8",
+    "docs/jet-met-electron-variations-2024-validation.json": "5b02998b8b1b304300f34e4e70780ab340a2a59fda5a3853cd952e8d174d92f0"
+  },
+  "public_guidance": {
+    "url": "https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsDP24028",
+    "checked_date": "2026-11-05",
+    "result": "Readable; analysis-dependent Tight-with-cleaning exception remains documented. Application to this analysis still needs closure."
+  },
+  "external_access_limits": [
+    {
+      "url": "https://muon-wiki.docs.cern.ch/guidelines/corrections/",
+      "result": "Web reader reported inaccessible; prior supplied guidance remains historical evidence."
+    },
+    {
+      "url": "https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/tree/1c7426b5e1d808110e8f4fbfef27e71071ea3c26",
+      "result": "Web reader reported inaccessible; prior pinned-source review was not revalidated online."
+    }
+  ],
+  "remaining_work": [
+    "High-pT muon prescription and boundary migration; momentum closure against data.",
+    "Lepton efficiencies and trigger coverage in the analysis phase space.",
+    "Physical normalization conventions, additional-b-jet source partition and DPS.",
+    "Nominal top-pT choice, theory/experimental nuisance correlations and downstream tagger SF assessment.",
+    "Upstream JetQk-to-Jet association guarantee.",
+    "Jet cleaning, veto-map and independent Type-1 MET analysis closure.",
+    "Certified-lumi selection, run-dependent JEC/MET and collision-data validation.",
+    "Remaining source finalizations and the overall C1 population audit."
+  ]
+}

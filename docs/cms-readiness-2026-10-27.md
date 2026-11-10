@@ -1,145 +1,84 @@
-# 2024 CMS readiness — 27 October 2026
+# CMS readiness: quick guide
 
-**Status: substantial 2024 MC coverage, with identified physics limitations.
-Do not describe this processor as fully validated against CMS recommendations.**
-The supported scope is Summer24 MC, AK4 PUPPI jets and the single-lepton skim.
-The [normalization integrity follow-up](normalization-integrity-2026-10-27.md)
-corrects signed/zero-weight validation and stale-output handling without
-changing event selection, physics weights or prescription version 3.
-The latest [top-pT follow-up](top-pt-normalization-2026-10-27.md) introduces
-weight prescription version 3, preserving all-input and joint normalization
-sums plus explicit validity/event counts. The muon/payload implementation and
-validation below record the preceding version-2 stage.
-This record is the current follow-up to the [September audit](audit-2024-mc-2026-09-11.md),
-[cross-check](audit-crosscheck-2026-09-23.md), [information-preservation changes](skim-realignment-2026-10-27.md)
-and [weight prescription version 1](weight-realignment-2026-10-27.md).
+**Reviewed: 5 November 2026.** Applies to our 2024 TT2Q, TTCB and TTBB simulation.
 
-All changes and validation outputs are in the isolated BRUX copy
-`Calib_ChargeTagger_JH-realignment-20261027`. The live checkout and production
-outputs are unchanged. `realignment.patch` contains the cumulative changes;
-`snapshot-provenance.json` identifies the source snapshot. Python checks in
-this copy require `PYTHONPATH="$PWD/src"` with the `ttbar` environment because
-the shared editable installation still points to the live checkout.
+**The tested simulation workflow works. A final physics measurement still needs more work.**
 
-## Changes in this follow-up
+Three terms used below:
 
-### Muon efficiency uncertainties
+- **MC** = simulated collisions. **Data** = collisions recorded by CMS.
+- **Jet** = a spray of particles. **pT** = momentum perpendicular to the beams.
+- **Weight** = how much a simulated event contributes when we count events.
 
-The official `2026-06-18/muon_Z.json.gz` payload describes `systup/down` as
-combined statistical and systematic alternatives. For the Tight ID and Tight
-PF-isolation corrections this is correct. For
-`NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight`, those categories instead
-return nominal ± `syst`. The old trigger variation therefore omitted `stat`.
+**✅ Checked** means the code matches the reviewed recipe within the stated scope.
+**🟡 Incomplete** means a calculation, decision or validation is still needed.
+**❌ Missing** means the required capability is absent. These are our review
+judgments, not official CMS approval.
 
-The processor now evaluates the released `nominal`, `stat` and `syst` fields
-and forms nominal ± sqrt(stat² + syst²) for all three steps. It uses the
-released aggregate `syst`; it does not invent a new combination of AltBkg,
-AltSig or other subcomponents. For example, at signed eta 0.5 and pT 45 GeV,
-IsoMu24 has nominal 0.9723169804, stat 0.0001169212 and syst 0.0005890280.
-The total error is 0.0006005202. The supplied MUO efficiency guidance calls
-for the statistical and systematic errors to be combined in quadrature.
+## ✅ Implemented and checked
 
-Under `--save-systematics`, twelve new complete event weights preserve the
-components:
+Read each row as: **the CMS recipe → what this code does → where to check it.**
 
-```text
-weight_muon_{id,iso,trigger}_{stat,syst}{Up,Down}
-```
+| Part | CMS recipe, in plain English | What works here | Sources |
+| --- | --- | --- | --- |
+| **Jet momentum** | Correct the jet energy and simulated resolution. Repeat event selection when testing a correction's uncertainty. | The 2024 corrections and separate uncertainty runs are implemented. The current production uses the default, unshifted corrections. | [CMS jet-resolution guide](https://cms-jme-jerc.docs.cern.ch/application/jer/) · [our checks](jet-met-electron-variations-2024-plan.md) |
+| **Bad detector regions** | Reject events containing jets in the recommended problem regions, using the prescribed jet selection. | The veto map and its event rejection are implemented. Jet-quality definitions match the official correction file. | [CMS veto-map guide](https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/#application) · [our checks](../src/boostedhh/corrections/README.md) |
+| **Missing momentum, or MET** | Update MET when jet corrections change. Apply the recommended detector-noise filters. | Jet-based MET corrections and the eight required filters are implemented. A separate comparison with real data remains open. | [CMS MET corrections](https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/) and [filters](https://cms-jme-jmar.docs.cern.ch/recommendations/met/noise_filters/) · [our checks](jet-met-electron-variations-2024-plan.md) |
+| **Electron energy** | Use the released 2024 electron corrections, including smearing to model detector resolution. | Corrections are implemented; the bundled file matches the official release checked on BRUX. | [Official electron correction file](/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronSS_EtDependent.json.gz) · [our checks](../src/vcb/corrections/README.md) |
+| **Muon momentum: 26–200 GeV** | Correct the selected muons before making momentum-dependent event cuts. | Corrected momenta and their uncertainty runs are implemented in this range. | [CMS muon-momentum guide](https://muon-wiki.docs.cern.ch/code/ptcorr/) · [our checks](muon-momentum-2024-plan.md) |
+| **Electron and muon detection efficiencies** | Apply correction factors for how often a lepton is reconstructed, identified and triggers the detector. Include the measured uncertainties. | Released factors are applied. Muon statistical and systematic errors are included, including the previously missing trigger term. | [Official electron/muon files and definitions](../src/vcb/corrections/README.md) · [CMS muon guidance](https://muon-wiki.docs.cern.ch/guidelines/corrections/) · [our checks](archive/cms-readiness-detailed-2026-11-05.md#muon-efficiency-uncertainties) |
+| **Pileup: extra collisions in the same crossing** | Use the released 2024 C–I correction factors. | The code uses the full factors; the old artificial cap has been removed. | [Official CMS pileup file](/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz) · [our checks](weight-realignment-2026-10-27.md) |
+| **Generator uncertainty information** | Identify the weights that describe alternative collision simulations and proton structures. | Their identities and values are preserved, including negative weights and totals needed to scale event counts. The final uncertainty calculation is still separate. | [CMS NanoAOD weight definitions](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD#Weights) · [our checks](skim-realignment-2026-10-27.md) |
 
-Each replaces one SF by nominal ± its named error, retaining all other
-nominal factors and cross section × luminosity. The replacement multiplies
-the other factors directly; it does not divide by that SF, so a zero nominal
-SF and signed generator weights are handled. Lepton alternatives all use the
-nominal all-input normalization denominator. The total and component models
-are alternatives for a given step; using both together would double-count
-the uncertainty. The skim does not prescribe bin-to-bin nuisance correlations.
+## 🟡 / ❌ Still needs work
 
-`WeightPrescriptionVersion=2` and ROOT/pickle metadata identify this change.
-The validator requires the twelve components in version-2 systematic output.
-Version 1 remains readable as its own campaign; merge and normalization
-reject mixtures. Nominal event weights are unchanged by this follow-up.
-Adopting it requires regenerating systematic outputs, then consistently
-rebuilding their downstream products.
+These rows explain **why we cannot call the whole analysis CMS-ready yet**.
+An unfinished analysis choice is different from a known coding error.
 
-The MUO fallback is fixed to the dated June release and the loader checks
-SHA-256 of decompressed content for both bundled and fallback inputs.
-A changed or missing payload stops the run. Detailed provenance is in the
-[lepton-payload README](../src/vcb/corrections/README.md).
+| Status | Item | What is missing | Source of the requirement or decision |
+| --- | --- | --- | --- |
+| 🟡 Incomplete | **Muons outside 26–200 GeV** | Especially above 200 GeV, we still need an appropriate momentum definition, correction and uncertainty treatment. Copying a correction measured for a different momentum definition is not sufficient. | [CMS muon guidance](https://muon-wiki.docs.cern.ch/guidelines/corrections/) · [remaining application questions](muon-momentum-2024-plan.md) |
+| 🟡 Incomplete | **Efficiencies in our actual events** | Check that the lepton corrections work in events with many jets and heavy-flavour decays. Confirm the electron-trigger angle convention and efficiency near its threshold. | [CMS muon guidance](https://muon-wiki.docs.cern.ch/guidelines/corrections/) · [electron/trigger audit](audit-2024-mc-2026-09-11.md) |
+| 🟡 Incomplete | **Jet cleaning and MET validation** | Show that our lepton removal, detector-region veto and MET treatment behave correctly in this analysis. Tests of the formulas alone do not establish that. | [CMS Jet-ID guidance](https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsDP24028) allows an analysis-dependent cleaning choice; [CMS MET guide](https://cms-jme-jmar.docs.cern.ch/recommendations/met/corrections/) · [our remaining checks](jet-met-electron-variations-2024-plan.md) |
+| 🟡 Decision needed | **Combining TT2Q and TTBB** | Define which sample supplies each background category, so overlapping physics is not counted twice. The provisional TTBB rate, **16.0117 pb**, is already implemented; it does not solve overlap. | [CMS HIG-19-011, §7](https://arxiv.org/html/2407.10896v2#S7) is an analysis example, not a universal 2024 recipe. See [our adopted convention and open choices](b0-input-readiness-2026-10-28.md#ttbb-normalization-and-overlap). |
+| 🟡 Decision needed | **Predicted event rates** | Settle the W-decay probabilities and reference Vcb value used to predict how many events we expect. | [AN-25-214](/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf) is our reference analysis, not a universal selection rule. See the [rate comparison](audit-crosscheck-2026-09-23.md). |
+| 🟡 Decision needed | **The final uncertainty model** | Choose the top-pT treatment and shared uncertainties; jet-tagging corrections are the next row. TTBB has no separate weights for varying the strong-force coupling, alpha-S; its uncertainty still needs a prescription. | [CMS jet-uncertainty guidance](https://cms-jme-jerc.docs.cern.ch/recommendations/uncertainties/) · [CMS generator guidance](https://cms-pdmv.gitbook.io/project/mccontact/info-for-mc-production-for-run3-campaigns) · [our PDF/alpha-S review](pdf-alphas-2024-plan.md) |
+| 🟡 Decision needed | **Flavour-tagger calibration** (added 10 November) | A tagger scores how b-like or c-like a jet is. For 2024, CMS has released corrections only for fixed score thresholds ("working points"), and its b-tagging and c-tagging corrections cannot be used together. Our B0 network inputs use the raw scores, which have no official 2024 correction. Choose threshold-binned inputs, a future CMS correction of the score shape, or our own factors. The skim applies no tagging cut, so its output is unaffected. | [CMS 2024 tagging campaign](https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer24/), [working-point recipe](https://btv-wiki.docs.cern.ch/PerformanceCalibration/fixedWPSFRecommendations/) and [uncertainties](https://btv-wiki.docs.cern.ch/PerformanceCalibration/SFUncertaintiesAndCorrelations/) · [our B0 inputs](b0-input-profile.md) |
+| ❌ Missing guarantee | **Jet charge attached to the correct jet** | The code assumes two jet lists have matching order. We need an explicit mapping or a shared source collection to guarantee that. | [CMS jet-updater code](https://github.com/cms-sw/cmssw/blob/CMSSW_15_1_0_patch4/PhysicsTools/PatAlgos/python/producersLayer1/jetUpdater_cfi.py) sorts jets. This is a **software-correctness issue**, documented in [our round-trip checks](tests.md#the-jet-tagger-round-trip-check). |
+| ❌ Not implemented | **Real collision data** | Add the approved good-data mask and corrections that depend on the data-taking run. Then compare corrected simulation with data. The code currently refuses 2024 data. | [CMS luminosity guidance, pp. 3–4](/isilon/export/home/jhuan166/.codex/attachments/da14dc9c-6865-46a8-b359-245635000e10/CMS_LumiRecommendationsRun3.pdf) · [CMS JEC guidance](https://cms-jme-jerc.docs.cern.ch/faq/#jet-energy-corrections) · [data-path audit](audit-crosscheck-2026-09-23.md) |
 
-### Selection and operating scope
+**One issue already closed:** extra lepton impact-parameter cuts were removed.
+That resolves the concern about applying standard efficiency corrections after
+adding those extra cuts. This follows our reference analysis,
+[AN-25-214, §§3.2 and 4.2](/isilon/export/home/jhuan166/Vcb/References/AN-25-214.pdf);
+it is an analysis choice, not a universal CMS selection rule.
 
-- The 2024 jet-veto map is bundled from CAT's dated `2026-07-16` release,
-  with a dated fallback and a compressed-file SHA-256 check. The content is
-  identical to the former JSON POG map. No map values or selection rules change.
-- The same release's Jet-ID payload is bundled as an independent test reference.
-  Both Tight and TightLepVeto are checked offline against its decision tree on
-  20,000 random jets per working point, including separate boundary tests.
-  This verifies the implementation of the released definition, not its
-  performance in this analysis.
-- Public [CMS-DP-2024-028](https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsDP24028)
-  supports an analysis-dependent Tight-with-cleaning exception. Our inference
-  is that trigger-lepton cleaning and the need to retain semileptonic
-  heavy-flavour jets provide a documented basis for this choice. Cleaning one
-  trigger lepton does not establish that all lepton-fake jets are removed.
-  Veto-map candidates still use TightLepVeto as prescribed.
-- The runner and direct processor reject 2024 collision-data input. That path
-  is incomplete without certified-luminosity selection, run-dependent data JEC
-  and rebuilt data MET. Object-level data helper tests do not establish an
-  operational collision-data workflow.
-- The JetQk documentation now states the actual limitation: `updatedPatJets`
-  sorts by default, so a positional JetQk-to-Jet match depends on this production.
-  Equal lengths alone prove nothing about order. Existing per-jet and
-  statistical checks support the audited samples; a common final collection
-  or explicit source index is needed upstream to guarantee association.
-- The extra-lepton veto continues to be saved, not applied, as requested.
-  This preserves heavy-flavour-lepton studies and downstream selection choices.
+## Evidence behind the colors
 
-Jet payload sources and both compressed/decompressed hashes are recorded in
-the [jet-payload README](../src/boostedhh/corrections/README.md).
+The November 5 review found:
 
-## Validation
+- **474 tests + 22 subtests passed**, and the code-quality check passed.
+- **All nine reviewed correction files matched** the official CMS files visible on BRUX.
+- **All 60 pinned production files matched** this checkout and each frozen campaign copy.
 
-The [machine-readable record](cms-readiness-2026-10-27-validation.json)
-contains comparisons, source-weight checks, payload hashes and pipeline receipts.
+Those checks support the implementation claims. Real-data validation and the
+unfinished physics decisions above still need their own evidence.
 
-| Check | Result |
-| --- | --- |
-| Unit tests | 308 passed, plus 22 subtests; three existing dependency deprecation warnings. |
-| Lint | `ruff check src/vcb tests condor` passes. Vendored code is deliberately excluded. |
-| Full nominal integration | 208,780 signal input events; 59,712 selected; 808 columns. The schema and jet round-trip baseline are unchanged. The first-event baseline changes only the prescription version. |
-| Jet round trip | 319,710 saved jets and 5,435,070 tagger/charge comparisons; zero mismatches or unexplained missing jets. This checks preservation, not the upstream JetQk association. |
-| Full signal systematics | 59,712 events, 941 columns, including 103 PDF members. All twelve component and six total muon alternatives agree with independent evaluation of the dated CMS payload. |
-| TTBB systematics | All 10,000 pilot events processed; 2,709 selected in three outputs, 939 columns, including 101 PDF members. The same independent uncertainty checks pass. |
-| Unchanged physics fields | Selected identities, nominal weights, kinematics, truth labels and other pre-existing fields are bitwise unchanged in both samples. Only the version field and six muon total-weight branches change. ID/ISO differences are floating-point roundoff; trigger changes restore the missing statistical term. |
-| Other weights | Nominal, PU, four shower and six scale alternatives agree with direct source/payload calculations. Raw PDF members match exactly; all-input sums agree within floating-point accumulation precision. |
-| Campaign pipeline | TTBB batch validator: 58 checks pass. Actual merge and normalization succeed; merged validator: 23 checks pass, and all 23 pass again after forced normalization. |
-| Failure cases | Missing/corrupt pinned payloads, incomplete component sets, mixed prescriptions and unsupported data input are rejected. Zero nominal SFs and negative generator weights are covered. |
+**Production snapshot — November 5, about noon Eastern:** TTCB was complete;
+TTBB was finalizing; TT2Q still had queued jobs. The overall **C1 check**—our
+check that all three complete datasets agree with their required input and
+output definitions—had not finished. This is a project milestone, not a CMS
+standard. See the [timestamped review record](cms-readiness-2026-11-05-validation.json).
 
-The signal skim retains 1,108 events failing the recorded extra-lepton veto.
-Muon total-weight differences are checked at relative tolerance 3e-12; the
-largest absolute discrepancy from independently computed weights is 5.96e-8
-for signal and 2.84e-14 for TTBB, reflecting their different overall scales.
+## Reading the sources
 
-The TTBB pilot uses the existing `weight_norm=1` fallback. Its normalized
-test yield is an arithmetic check, not a physical yield prediction.
-This follow-up reruns nominal kinematics with weight systematics; the full
-JES/JER/lepton momentum pass validation remains the evidence recorded in
-[the existing kinematic validation](jet-met-electron-variations-2024-validation.json).
+A **CMS guide or official correction file** supplies the recipe. An **“our checks”**
+link shows how this repository tested it. An **analysis example** shows one
+choice made in a CMS analysis; it does not make that choice mandatory everywhere.
 
-## Remaining work before a physics-ready claim
+Some CMS web guides require CERN access and could not be reopened during this
+review. Their previously reviewed copies and conclusions are identified in the
+linked technical records. CVMFS file links refer to the official files on BRUX.
 
-| Item | Current limit and required closure |
-| --- | --- |
-| High-pT muons | Ordinary-momentum corrections cover 26–200 GeV. The signal test has 330 trigger muons above 200 GeV, including 3 above 500 GeV; TTBB has 31 and 1. Resolve the TuneP/GE application and uncertainty model, plus boundary migration treatment. Supplied GE tables alone do not establish how to correct ordinary MC momenta. |
-| Muon efficiency closure | Study impact-parameter efficiency versus pileup and isolation efficiency in high-jet/heavy-flavour environments. Z-based SF arithmetic is not a substitute for these checks. |
-| Physical normalization | Fix and document the TTBB cross section/filter convention and overlap treatment with inclusive ttbar. Resolve the W branching-fraction and reference-Vcb conventions identified by the cross-check. |
-| Top-pT and nuisance model | Version 3 now preserves all-input and joint normalization sums. Choose and validate the nominal top-pT model, then complete correlations and the final PDF/alpha-S/theory model downstream. Tagger SFs need assessment if downstream selections or categories use them. |
-| Jet charge association | Guarantee JetQk-to-Jet identity upstream or supply a verifiable mapping. The current length guard and statistical checks do not provide that guarantee for every production. |
-| Collision data and closure | Implement the certified-lumi mask, run-dependent data JEC/MET and the intended data workflow, then validate corrected simulation against collision data. 2024 data is currently blocked explicitly. |
-
-Public CMS guidance, the official CVMFS release contents and previously
-supplied POG documents were used. Some current CERN-protected recommendation
-pages could not be read in this session. No blanket claim is made that every
-current POG requirement has been independently verified. Payload agreement
-and successful regression tests establish implementation evidence within the
-stated scope; they do not close the analysis studies above.
+For formulas, release identifiers, historical results and detailed limitations,
+use the [archived detailed report](archive/cms-readiness-detailed-2026-11-05.md).

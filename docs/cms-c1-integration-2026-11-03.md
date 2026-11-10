@@ -2,7 +2,10 @@
 
 This branch combines the corrected 2024 MC processing and weight prescription
 from CMS realignment with B0 feature preparation and the C1 truth-production
-workflow. It is an integration checkpoint; production has not been restarted.
+workflow. This records the November 3 integration checkpoint, before production
+was restarted. The later [November 4 submission](c1-input-readiness-2026-11-04.md)
+and [current CMS readiness](cms-readiness-2026-10-27.md) supersede its production
+status; the merge and validation evidence below remains historical.
 
 ## Parents and preserved behavior
 
@@ -118,8 +121,8 @@ The November 3 C1 repair
 validator and recovery notes are also uncommitted work in the original C1
 checkout; this merge preserves them there without silently adding them.
 
-Before further production, freeze the combined release and pass a final campaign
-pilot using its exact source, schema and weight mode. The additional-b-jet
-source partition, DPS treatment, high-pT muon prescription, upstream charge
+The final campaign pilots required at this checkpoint subsequently passed for
+all three sources before the November 4 schema-2 production submission. The
+additional-b-jet source partition, DPS treatment, high-pT muon prescription, upstream charge
 association guarantee and collision-data closure remain the separate physics
 limitations recorded in [CMS readiness](cms-readiness-2026-10-27.md).

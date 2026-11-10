@@ -199,7 +199,7 @@ and [B0 dataset requirements](docs/b0-input-profile.md#release-validation-2026-1
 | --- | --- |
 | [CMS/C1 integration](docs/cms-c1-integration-2026-11-03.md) | Combined realignment and B0/C1 scope, merge validation and production boundaries |
 | [TTBB helper integration](docs/ttbb-helper-integration-2026-11-03.md) | Passed Condor pilot, matching counts, source freeze and validation evidence |
-| [CMS readiness](docs/cms-readiness-2026-10-27.md) | 2024 MC coverage, payload pins and remaining limits |
+| [CMS readiness](docs/cms-readiness-2026-10-27.md) | Quick status tables, CMS sources and remaining physics checks; reviewed November 5 |
 | [Top-pT normalization](docs/top-pt-normalization-2026-10-27.md) | Optional top-pT factors, all-input sums and downstream formulas; not applied to nominal weights |
 | [Normalization integrity](docs/normalization-integrity-2026-10-27.md) | Signed/zero weights, reruns and stale-output checks |
 | [B0 input preparation](docs/b0-input-readiness-2026-10-28.md) | Original processor freeze, ten-jet cap, W-lepton flag and provisional normalization sources |
