@@ -119,9 +119,28 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   (`JERSmear`, 2025-11-03); loaded bundled-first with a CAT cvmfs fallback.
   Provenance in
   [src/boostedhh/corrections/README.md](../src/boostedhh/corrections/README.md).
-- **Not wired (future):** JER up/down + JES variations (`…_SFUncertainty`) — the
-  Vcb skimmer consumes no jet-energy variations (`jec_shifted_jetvars` unused);
-  2024 **data** L2L3Residual JEC and AK8 remain no-ops.
+- **Variations:** global JER up/down (`…_SFUncertainty`) and the 27 JES sources
+  are separate passes, produced with `--kinematic-variation jets`
+  ([CLI reference](cli.md#kinematic-variation-passes)). 2024 **data**
+  L2L3Residual JEC and AK8 remain no-ops.
+- **Re-checked 2026-11-10 against a saved copy** of the JERC page
+  "Application Methods → Jet Energy Resolution"
+  (`https://cms-jme-jerc.docs.cern.ch/application/jer/`, CERN login; copy in
+  `/isilon/export/home/jhuan166/Vcb/References/jme-jer-2026-11-10/`, sha256
+  `c2afe41e155250db…`). Every rule on the page matches `_jer_smear_2024`:
+  - nominal JEC first, then smearing, on simulation only;
+  - a jet is matched when ΔR < R/2 = 0.2 **and** |pT − pT(gen)| < 3σ·pT, and
+    then gets `1 + (s − 1)(pT − pT(gen))/pT`;
+  - otherwise it gets `1 + N(0, σ)·sqrt(max(s² − 1, 0))`, with the random
+    number hashed from (JEC pT, η, ρ, event number);
+  - nominal, up and down use the same inputs, so they share one random draw;
+  - the factor scales the whole four-momentum (pT and mass here).
+
+  One difference is between the page and the official file, not the code: the
+  page truncates a negative factor to zero, while the 2026-09-18 `JERSmear`
+  floors the smeared pT at 0.01 GeV. Either way the jet fails every selection.
+  The page does not give the scale factors, tags or the up/down prescription;
+  those are on its "recommendations/jer" page, which was not supplied.
 - **Impact:** MC jet pT resolution (shape) plus a JES shift from V1→V5. Jet-pT
   baselines move — refresh with `tests/test_run.py`.
 
