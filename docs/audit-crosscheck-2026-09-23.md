@@ -204,6 +204,8 @@ calibration, consider the TOP practice in AN-25-050 §7.1. It replaces
 `FlavorQCD` with `FlavorPure{Bottom,Charm,Quark,Gluon}`, applied by jet
 flavour. The V5 payload provides all four. At 30 GeV in the central detector,
 `FlavorQCD` is 1.6%, compared with −0.5% for b jets and −0.2% for c jets.
+The TOP PAG TopSystematics page (r208, read 10 November 2026) says the same
+in general terms: the per-flavour breakdown "should be used as a default".
 
 ## Minor drift
 
@@ -233,7 +235,10 @@ flavour. The V5 payload provides all four. At 30 GeV in the central detector,
 
 - Pages behind CERN SSO: JetID13p6TeV, TopPtReweighting/TopSystematics, BTV 2024
   SFs and the MUO wiki. (JetID13p6TeV rev 24 was supplied and checked on
-  10 November 2026; see [2024 inputs, item 6](2024-inputs.md#6-ak4-jet-id--done).)
+  10 November 2026; see [2024 inputs, item 6](2024-inputs.md#6-ak4-jet-id--done).
+  TopPtReweighting r31 and TopSystematics r208 were supplied and checked the
+  same day; see [2024 inputs, item 8](2024-inputs.md#8-top-pt-reweighting--done).
+  Both are Run 2 pages with no Run 3 successor supplied.)
 - The GE-table transcription.
 - The remaining 62 variation passes.
 - The audit's muon impact-parameter counts and electron energy-error ratios.

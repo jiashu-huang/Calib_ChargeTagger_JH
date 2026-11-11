@@ -103,6 +103,21 @@ stored 13.6 TeV extrapolation remains the one already transcribed from
 AN-25-050; it is not newly applied to any sample here. The two `data*` fits
 remain historical 13 TeV comparisons.
 
+**Correction, 10 November 2026.** The paragraph above understates the general
+guidance. A saved copy of the TOP PAG `TopPtReweighting` page (r31, 2020-09-24)
+says in so many words that these weights "should not be used to correct the MC
+of single top quark production and ttX processes, with X being vector bosons,
+Higgs boson or bb/cc", because nothing shows that ttX shares the ttbar
+mismodelling, and that other generators need corrections of their own. The
+dedicated `TTBB-TTtoLNu2Q` sample generates ttbb directly, so it is a ttX
+process in the page's sense and not the inclusive ttbar process the fits were
+derived on. TOP-22-009 remains a published precedent for treating ttbb, but
+the general page advises against applying the stored factor to dedicated
+TTBB. Its columns and sums stay as diagnostics; nothing applies them. Events
+with extra b jets inside the inclusive ttbar samples are ordinary ttbar and
+are not affected by this caveat. See the
+[re-check record](2024-inputs.md#8-top-pt-reweighting--done).
+
 `WeightPrescriptionVersion=3` records whether top-pT information is enabled
 for the sample. Removing all factor fields therefore fails validation rather
 than appearing to disable the feature. Versions 1 and 2 remain readable as

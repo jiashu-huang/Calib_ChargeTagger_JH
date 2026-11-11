@@ -457,6 +457,34 @@ as optional diagnostics; adoption is an analysis-specific choice. See the
   (checked 2026-08-11); this correction has never been packaged as one.
   Theory reference for the NNLO-NLO function: Czakon *et al.*, JHEP 10 (2017)
   186, arXiv:1705.04105.
+- **Re-checked 2026-11-10 against a saved copy.** The page was supplied again
+  and is still at **r31, 2020-09-24**: TOP PAG has published no Run 3 update,
+  so no code changed. Copies are in
+  `/isilon/export/home/jhuan166/Vcb/References/top-pag-2026-11-10/`
+  (`TopPtReweighting_r31_2020-09-24.html`, sha256 `bf92817594e41df4…`;
+  `TopSystematics_r208_2026-02-23.html`, sha256 `584b9b975a5dcc69…`).
+  - **Formulas agree.** The three fit functions, the event weight
+    `sqrt(SF(t) × SF(t̄))`, the `isLastCopy` top definition and the 500 GeV cap
+    on the data-based fits all match `top_pt.py` coefficient for coefficient.
+  - **Reference samples.** The data/NLO fit is a ratio to a 2015
+    `TT_TuneCUETP8M1` POWHEG+Pythia8 sample, not to CP5. The NNLO-NLO fit is a
+    ratio to `TTTo2L2Nu_TuneCP5`. This is one more reason the data-based
+    columns do not transfer to Summer24.
+  - **Scope.** The page says the weights "should not be used to correct the MC
+    of single top quark production and ttX processes, with X being vector
+    bosons, Higgs boson or bb/cc", and that for other generators "it is the
+    responsibility of the authors to evaluate the appropriate corrections".
+    The factor stored for the dedicated TTBB sample is therefore a diagnostic
+    that the general page advises against applying; see
+    [sample scope](top-pt-normalization-2026-10-27.md#sample-scope-and-compatibility).
+  - **Use case.** W→cb signal inside SM ttbar is the page's case 3.2: correct
+    the signal with NNLO-NLO, and where every ttbar region is a signal region
+    NNLO-NLO "is the only possibility", provided other distributions are not
+    spoiled. That is the convention AN-25-214 follows. Deriving tagger
+    efficiencies from ttbar MC is case 1, which points at data/NLO, and that
+    has no Run 3 version.
+  - **Uncertainty.** Compare results with and without the reweighting. The page
+    advises against applying it twice or in the opposite direction.
 - **Verified:** AN-25-050 fits its extrapolation on tops with Pythia8 `status
   62`, whereas we select `fromHardProcess & isLastCopy`. On the 2024 fixture
   the two are identical particle for particle over 200 000 events, both giving
@@ -477,6 +505,33 @@ as optional diagnostics; adoption is an analysis-specific choice. See the
   document.
 - **Impact:** none as shipped — four extra `Double_t` columns and nothing else.
   `weight`, `finalWeight` and the event count are untouched.
+
+### TOP PAG uncertainty list, checked against the skim (2026-11-10)
+
+`TopSystematics` **r208, 2026-02-23** is titled "(Run2)" and most sections say
+"Last check: Feb. 2024". Its only Run 3 content is the `hdamp` setting and a
+link to the Run 3 luminosity page, so read the table as Run 2 guidance that
+Run 3 TOP analyses still cite, not as a 2024 prescription. Its top-pT section
+(last updated 6 July 2017) only points at `TopPtReweighting`. Nothing in it
+changes the skim; it mostly lists inputs the skim cannot supply.
+
+| TOP PAG item | What r208 asks for | Status here |
+| --- | --- | --- |
+| Normalization of modelling variations | Variations that change the total cross section are normalized back before any acceptance cut | ✅ The all-input sums in `Norm/np_*` exist for this |
+| PDF | `NNPDF31_nnlo_as_0118_mc_hessian_pdfas` (LHA 325300): each eigenvector its own nuisance, alpha-S one more, correlated across years and processes | ✅ Members and sums are kept with `--save-systematics`. Dedicated TTBB has a different set with no alpha-S members: open, see the [PDF plan](pdf-alphas-2024-plan.md) |
+| Matrix-element scales | Renormalization and factorization scales varied separately by 2 and 0.5, as two nuisances and not an envelope; uncorrelated between ttbar and single top | ✅ The four needed points are among the six saved `scale_weights` |
+| Shower radiation (ISR, FSR) | Weights for scale factors 2 and 0.5, separately for ISR and FSR. The 32 split variations only if the shower dominates or is strongly constrained | ✅ The four default weights. The 32 split variations are not in these NanoAOD files |
+| Matching scale `hdamp` | Dedicated up/down samples. Run 3 nominal is 250 GeV, written as (1.449 +0.9739 −0.5333) × top mass | ❌ Needs alternative samples or the TOP ML reweighting |
+| Underlying event | Dedicated CP5 up/down samples | ❌ Needs alternative samples |
+| Colour reconnection | Dedicated CR1, CR2 and ERDon samples, each its own nuisance | ❌ Needs alternative samples |
+| b fragmentation | The existing Bowler–Lund weights give "unphysically large uncertainties of 50-100%" and are not advised; the treatment is agreed at pre-approval | ❌ Open. It matters here, because fragmentation shapes both the b/c scores and the jet charge |
+| B semileptonic decay rates | Reweight generator-level b jets to the measured rates | ❌ Not implemented |
+| Top mass | Not a default systematic: quote the dependence using alternative-mass samples. Otherwise ±0.5 GeV, cross-checked with 1 GeV | ❌ Needs alternative samples |
+| Top pT | With versus without the reweighting | ✅ Factors and sums saved; the model is undecided |
+| Jet energy scale | The full source list; the reduced list "is not recommended in TOP". The per-flavour breakdown "should be used as a default" | ✅ All 27 sources. 🟡 Uses the inclusive `FlavorQCD` source; the per-flavour split is open item N8 in the [cross-check](audit-crosscheck-2026-09-23.md) |
+| b tagging | Fixed-threshold factors wherever possible, shape factors only if the score shape is used, and `mujets` rather than `comb` when the analysis overlaps the ttbar regions used to derive `comb` | 🟡 Agrees with the BTV review recorded in the [readiness guide](cms-readiness-2026-10-27.md) and in [`cms_releases.json`](../condor/scripts/cms_releases.json). B0 uses the score shape, which has no 2024 factors yet |
+| Lepton factors in ttbar topology | An extra multiplicative correction from Z events with many jets, as a separate nuisance, with correctionlib files attached to the page (`phase_space_jsons.tar.gz`, 2025-12-02) | ❌ Not applied. The attachment was not supplied, so the eras it covers are unknown |
+| Other generators | Not an uncertainty; compare and document | Not needed in the skim |
 
 ---
 

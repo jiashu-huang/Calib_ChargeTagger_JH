@@ -208,6 +208,16 @@ any TOP-specific outlier guidance. The
 timed out; it was not observed to return 401. Public sources and the provided
 notes are sufficient to establish the information-preservation fix.
 
+**TopSystematics supplied, 10 November 2026** (r208, 2026-02-23; PDF section
+"Last check Feb. 2024", written for Run 2). It names
+`NNPDF31_nnlo_as_0118_mc_hessian_pdfas` (LHA 325300) as the minimal starting
+point, asks for each eigenvector as an independent nuisance with the alpha-S
+variation as one more, and treats every vector as fully correlated across
+years and across processes. That agrees with the AN-25-214 treatment above.
+It gives no alpha-S interval, no fit-construction detail and no outlier
+guidance, so those three questions stay open; HowToPDF was not supplied.
+Copy: `/isilon/export/home/jhuan166/Vcb/References/top-pag-2026-11-10/`.
+
 When implementing, validate signed/zero weights, missing and mismatched member
 metadata, all-input totals across chunks, empty selected outputs, and ROOT
 merging. Check that the full Hessian template covariance matches the stored

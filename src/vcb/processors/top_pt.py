@@ -108,9 +108,14 @@ was fitted on.
 Sample scope
 ------------
 The saved factors cover the named ttbar samples, including TTBB-TTtoLNu2Q.
-This is not a universal prescription to apply them to every generator. CMS
-TOP-22-009 section 7.2 applies a top-pT modelling treatment to its ttbar
-components, including ttbb, while excluding single top and ttV/ttH. The
+This is not a universal prescription to apply them to every generator. The
+twiki (r31) says the weights "should not be used to correct the MC of single
+top quark production and ttX processes, with X being vector bosons, Higgs
+boson or bb/cc", and that other generators need their own corrections; so
+for dedicated TTBB the saved factor is a diagnostic the general page advises
+against applying. CMS TOP-22-009 section 7.2 is an analysis precedent the
+other way: it applies a top-pT modelling treatment to its ttbar components,
+including ttbb, while excluding single top and ttV/ttH. The
 Summer24 analysis must choose and validate its own nominal model. The
 ``is_ttbar`` name match is also used for truth and generator-weight handling;
 it must not be confused with physics approval of a correction.
