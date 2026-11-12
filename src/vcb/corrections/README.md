@@ -13,6 +13,9 @@ analysis-local — its working points track the Vcb object selection, so it does
 not belong in the vendored `boostedhh` tree.
 
 All five files are **byte-identical copies** of their cvmfs source (checksums below).
+To see whether any bundled file, here or in `src/boostedhh/corrections/`, has
+been superseded, run the
+[CMS release check](../../../condor/README.md#0-check-the-corrections-are-current).
 
 | File | Content date | Retrieved | Used by |
 |---|---|---|---|

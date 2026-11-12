@@ -1,6 +1,6 @@
 # HTCondor batch processing
 
-Last update: **2026-09-13**
+Last update: **2026-11-09**
 
 One Condor job per `batch_*` input directory. Each job runs the `vcb` skimmer
 on all ROOT files in its batch and writes one skimmed ROOT + one totals pickle.
@@ -26,6 +26,35 @@ Input: 93 `batch_*` dirs (465 files, 5 per batch, ~65 GB, 19,823,340 events;
 ```
 /isilon/export/home/jhuan166/Vcb/MC/TTtoLNuCB_Summer24MiniAODv6/NanoAOD-cmssw-charge/charge_Run3_2024_150X_v1/
 ```
+
+### 0. Check the corrections are current
+
+```bash
+micromamba run -n ttbar python condor/scripts/check_cms_releases.py
+```
+
+The skimmer reads committed copies of the CMS correction files, so a job cannot
+see a newer official release. This compares each bundled file with its
+`latest/` copy on CVMFS, by decompressed SHA-256, and lists dated releases newer
+than the one acknowledged for each group in
+[`scripts/cms_releases.json`](scripts/cms_releases.json). That list also watches
+groups with no bundled file: b/c-tagging and data certification.
+
+| Verdict | Exit code | Meaning |
+|---|---|---|
+| `UP TO DATE` | 0 | Every file matches and no release is unreviewed. |
+| `ACTION NEEDED` | 1 | A file differs, or a release has not been acknowledged. |
+| `NOT CHECKED` | 2 | CVMFS is not mounted; nothing was compared. |
+
+For each new release, read its `changes.md` and decide. To adopt it, replace the
+bundled file, update its pinned hash, the dated fallback path in its loader
+(`tests/test_selection_payloads.py` fails if the two disagree) and its
+provenance README, bump the
+weight-prescription version if event weights change, rerun `tests/test_run.py`,
+and reprocess from the original NanoAOD. Either way, record the outcome by
+raising `acknowledged` and editing `decision` for that group. Run it about
+monthly as well. It covers published files only; the written POG
+recommendations need a CERN login.
 
 ### 1. Generate (and optionally submit) the campaign
 

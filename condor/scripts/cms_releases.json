@@ -1,0 +1,95 @@
+{
+  "cat_root": "/cvmfs/cms-griddata.cern.ch/cat/metadata",
+  "bundled": [
+    {
+      "path": "src/vcb/corrections/2024_electron.json.gz",
+      "source": "EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electron.json.gz"
+    },
+    {
+      "path": "src/vcb/corrections/2024_electronHlt.json.gz",
+      "source": "EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronHlt.json.gz"
+    },
+    {
+      "path": "src/vcb/corrections/2024_electronSS_EtDependent.json.gz",
+      "source": "EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/electronSS_EtDependent.json.gz"
+    },
+    {
+      "path": "src/vcb/corrections/2024_muon_Z.json.gz",
+      "source": "MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_Z.json.gz"
+    },
+    {
+      "path": "src/vcb/corrections/2024_muon_scalesmearing.json.gz",
+      "source": "MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/muon_scalesmearing.json.gz"
+    },
+    {
+      "path": "src/boostedhh/corrections/2024_jet_jerc.json.gz",
+      "source": "JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz"
+    },
+    {
+      "path": "src/boostedhh/corrections/2024_jetvetomaps.json.gz",
+      "source": "JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetvetomaps.json.gz"
+    },
+    {
+      "path": "src/boostedhh/corrections/2024_jetid.json.gz",
+      "source": "JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetid.json.gz"
+    },
+    {
+      "path": "src/boostedhh/corrections/jer_smear.json.gz",
+      "source": "JME/JER-Smearing/latest/jer_smear.json.gz"
+    },
+    {
+      "path": "src/boostedhh/corrections/2024_puWeights.json.gz",
+      "source": "LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz"
+    }
+  ],
+  "unchecked": [
+    {
+      "path": "src/boostedhh/corrections/jec_compiled_py311.pkl.gz",
+      "why": "2022/2023 pickle built from JECDatabase text files; it has no CAT counterpart"
+    }
+  ],
+  "tracked": [
+    {
+      "source": "DC/Collisions24/latest/Cert_Collisions2024_378981_386951_Golden.json",
+      "sha256": "32572466413b0b2ee72ebe18b1e556e7e083f550e74e596830be4f10aa25bf9d",
+      "why": "Certified-luminosity list behind the 2024 luminosity and pileup profile. Not applied: 2024 data are rejected."
+    }
+  ],
+  "groups": [
+    {
+      "dir": "EGM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "acknowledged": "2025-12-15",
+      "decision": "Bundled: electron reco/ID, Ele30 trigger and scale/smearing."
+    },
+    {
+      "dir": "MUO/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "acknowledged": "2026-06-18",
+      "decision": "Bundled: muon_Z efficiencies (2026-06-18) and scale/smearing (2026-04-28). muon_HighPt is not used."
+    },
+    {
+      "dir": "JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "acknowledged": "2026-07-16",
+      "decision": "Bundled: Summer24Prompt24_V5 JEC, JRV2 JER, veto map and Jet ID."
+    },
+    {
+      "dir": "JME/JER-Smearing",
+      "acknowledged": "2026-09-18",
+      "decision": "Bundled: the generic JERSmear formula. 2026-09-18 (smeared pT floored at 0.01 GeV) adopted 2026-11-09; the fixture skim is bitwise unchanged."
+    },
+    {
+      "dir": "LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "acknowledged": "2026-04-15",
+      "decision": "Bundled: C-I pileup weights."
+    },
+    {
+      "dir": "BTV/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
+      "acknowledged": "2026-10-20",
+      "decision": "Not bundled: the skim applies no tagging cut or scale factor and saves raw UParTAK4 scores. Reviewed 2026-11-10 against the BTV wiki (2024 campaign, fixed-WP recommendations, uncertainties and correlations): all working points match. Downstream b-tag working-point use: Method 1a with its multi-WP extension, UParTAK4_mujets (b, c) and UParTAK4_light rather than comb in the lepton+4-jet phase space, and per-sample MC efficiencies; with one era, plain up/down, separately for b/c and light jets. Open: fixed-WP b-tag and c-tag factors cannot be combined, c-tag factors are preliminary (no light jets), and the release has no shape-correction factors, so the continuous UParT and PNet scores used as B0 features have no official 2024 calibration."
+    },
+    {
+      "dir": "DC/Collisions24",
+      "acknowledged": "2026-08-04",
+      "decision": "Baseline recorded 2026-11-09, not adopted: 2024 data are rejected. Recompute the luminosity against this list when data are added."
+    }
+  ]
+}
