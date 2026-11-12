@@ -65,6 +65,32 @@ The complete [JER application page](https://cms-jme-jerc.docs.cern.ch/applicatio
 
 The [Run-3 veto-map recommendations](https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/#application) confirm mandatory event rejection using corrected AK4 jets with pT > 15 GeV, TightLepVeto ID and charged-plus-neutral EM fraction < 0.9, consistently in data and MC. They list the 2024 V1 map. This closes the audit's current-wording access gap for the veto selection. It does not settle the separate Tight-versus-TightLepVeto exception for lepton-cleaned analysis jets, or replace occupancy and analysis-impact validation. The [JEC FAQ](https://cms-jme-jerc.docs.cern.ch/faq/#jet-energy-corrections) also confirms the complete `L1L2L3Res` compound for MC, retaining identity levels, and that rescaling jet momenta must not rescale stored constituent energy fractions.
 
+### Re-checked 2026-11-11 against saved copies
+
+The *Uncertainties and Correlations* page and the complete *FAQ* were supplied as HTML. They ask for the same uncertainty treatment as the table above, so no code changed. Copies are in `/isilon/export/home/jhuan166/Vcb/References/jme-jerc-2026-11-11/` (`Uncertainties_and_Correlations_-_CMS_JME_JERC.html`, sha256 `0c767f0ee0e89a6d…`; `FAQ_-_CMS_JME_JERC.html`, sha256 `26284aa8a7b887ea…`).
+
+| Page item | Processor |
+| --- | --- |
+| Apply both JES and JER uncertainties and treat them as uncorrelated with each other | ✅ Separate passes: 27 JES sources and one JER pair |
+| Case I: the full 27 sources for precision measurements. Case II: 11 reduced sources is the default for mild sensitivity. Case III: one total source needs JME approval | ✅ Case I is the implemented default |
+| `RelativeJER*` JES sources do not double-count the standalone JER uncertainty; "Include both" | ✅ `RelativeJEREC1`, `RelativeJEREC2` and `RelativeJERHF` are among the 27 |
+| Vary simulation only. Build the varied jets first, then repeat selection, overlap removal and derived observables | ✅ Every pass restarts from the input NanoAOD |
+| Propagate each JES source, nominal JER and each JER variation to Type-1 MET | ✅ |
+| JER Case II: a single nuisance is enough if the fit does not constrain it. Case I: six eta/pT regions, described "for full Run 2 analyses" | ✅ Global `jerUp`/`jerDown`. The six-region split is not implemented |
+| Veto map: mandatory in Run 3, key `jetvetomap`, evaluated after nominal JEC with corrected pT and the jet axis, rejecting the event; an event selection and not a nuisance | ✅ As implemented in `corrections.py` |
+| Veto-map validation: jet occupancy before and after, in data and matching simulation | 🟡 Open; needs a data path |
+| Monitor nominal with up/down distributions, and show with impact plots that the fit does not constrain JES or JER | 🟡 Fit-stage checks, outside the skim |
+| AK8 jets, PNet- or UParT-regressed jet pT, scouting jets, 2026 low-pileup tags | Not applicable: `src/vcb` uses none of them |
+
+Four points are new or sharper than the September snapshot:
+
+- **The JER section is Run 2 text.** The page notes that "Current JER SFs are flat in pT". The bundled 2024 `JRV2` scale factor is not: at `abs(eta) = 0.2` it is 1.347 at 15 GeV, 1.096 at 100 GeV and 1.069 at 200 GeV. The six-region split and the "uncorrelated across all years in Run 2" statement were written for flat factors, so neither is a 2024 prescription.
+- **Run 2 with Run 3 correlations are provisional.** The page says "Currently, the uncertainties are copied from the 2018 (Run 2) values", and the FAQ asks for JERC review before relying on that model. This matters only if 2024 is combined with other years.
+- **Unversioned CVMFS paths.** The FAQ answers "No" to whether an unversioned path is enough for reproducible processing, because files "can be replaced when a new release is deployed", and asks for the exact tags and the dated release. The processor loads the bundled copies first; their releases are recorded in the corrections READMEs and in [`cms_releases.json`](../condor/scripts/cms_releases.json), which [`check_cms_releases.py`](../condor/scripts/check_cms_releases.py) compares with CVMFS. Six fallback paths, used only if a bundled file is missing, pointed at `latest/`: `jet_jerc`, `jer_smear`, the pileup weights and the three electron files. **Fixed the same day:** each now names the dated release its bundled copy is byte-identical to (`jet_jerc` 2026-07-16, `jer_smear` 2026-09-18, pileup 2026-04-15, the electron files 2025-12-15), and `tests/test_selection_payloads.py` fails if any 2024 fallback is undated or differs from the bundled content. Only the veto map, `muon_Z` and the muon scale/smearing file are also hash-checked on load.
+- **Metadata to store.** The FAQ lists the campaign, jet collection, JEC and JER tags, payload file or version, correction names, the veto-map tag and key, and the code version. The `<filetag>.kinematics.json` sidecar records the year, the three jet files with their sha256, the JEC and JER correction names (which carry campaign, version and collection) and the active variation. It did not record the veto-map tag `Summer24Prompt24_RunBCDEFGHI_V1` or its key `jetvetomap`. **Fixed the same day:** both are now written as `jet_veto_tag` and `jet_veto_key`, taken from the constants the selection itself evaluates; sidecars of earlier productions lack them. Still not in the sidecar: the dated release (the loaders' fallback paths name it, and a test ties each to the bundled content) and the code version, which campaigns record as `code_sha256` but a standalone run does not.
+
+The FAQ also says to subtract a prompt lepton from the raw jet before applying JEC. No such subtraction is implemented or needed for analysis jets: `good_ak4jets` removes jets within ΔR < 0.4 of the trigger lepton, and Type-1 MET uses the muon-subtracted momenta stored in NanoAOD.
+
 ## Case I workbook: full source list resolved
 
 The supplied [JEC Uncertainty Correlation 2017 and 2016.xlsx](</isilon/export/home/jhuan166/.codex/attachments/581cac15-d3f4-47ed-b165-30c4f7e3e784/JEC Uncertainty Correlation 2017 and 2016.xlsx>) is the table the user identifies as linked by Case I. Its visible **Simple** worksheet contains exactly 27 source names in **A2:A28**, with **Correlation (Ideal)** in column B and **Correlation (Simple)** in column C. All 27 names have exact matches of the form `Summer24Prompt24_V5_MC_<source>_AK4PFPuppi` in the bundled 2024 V5 payload, all taking `(JetEta, JetPt)`. The [full-source manifest](jes-2024-full-source-manifest.json) records those mappings, workbook cells, historical correlation values and both file hashes. This resolves the outstanding source-list request and supplies the explicit basis for 54 JES up/down passes.
@@ -142,6 +168,24 @@ Each term uses its muon-subtracted transverse direction. Increasing a jet contri
 
 The optional unclustered variation has an established additive prescription in the supplied `Type1METUnc.pdf`: add `stored_shifted_PuppiMET_xy - stored_nominal_PuppiMET_xy` to the rebuilt nominal MET. It can be implemented separately. Electron/muon-to-MET propagation is also optional according to the supplied JMAR table; it is not needed to fix entering-electron events. Any chosen lepton propagation must avoid double counting leptons through jets or unclustered energy.
 
+**Re-checked 2026-11-10 against a saved copy.** The JMAR *MET corrections* page was supplied again as HTML and asks for the same things recorded above, so no code changed. The copy is in `/isilon/export/home/jhuan166/Vcb/References/jme-met-2026-11-10/` (`Corrections_-_CMS_JME_JMAR.html`, sha256 `8d074194b1ac4c36…`).
+
+| Page item | Page label | Processor |
+|---|---|---|
+| Type-1 from the AK4 jets with the JEC in use; AK4 jets only | Mandatory | Rebuilt from `RawPuppiMET` with V5; no AK8 or other collection enters |
+| On NanoAOD, start from raw MET and use both `Jet` and `CorrT1METJet` | Required recipe | As implemented; a missing `CorrT1METJet` raises |
+| Correct x and y, then recompute pT and phi | Convention | As implemented |
+| Each JES source propagated to MET under the same nuisance | Mandatory | Every `jes_*` pass rebuilds MET from its own shifted jets |
+| JER smearing propagated to MET, with the smear already applied to each jet | Optional | Applied, nominal and `jerUp/Down` |
+| Unclustered energy | Optional | Saved from the stored NanoAOD shifts |
+| Lepton and photon variations propagated to MET | Optional | Not propagated |
+| XY shift | Optional | Not applied: no 2024 correction exists (below) |
+| Recoil calibration | Optional, analysis-specific | Not applied; the page asks for a validated transfer before use on ttbar |
+
+- **XY.** The page's table of available files ends at 23DSep23 / Summer23BPix. On CVMFS the same day, the official 2024 JME folder holds `jet_jerc`, `fatJet_jerc`, `jetid` and `jetvetomaps` only, while the 2023 folder also holds `met_xyCorrections_2023_2023.json.gz`.
+- **Still open.** Data MET is not rebuilt; the page requires the same recomputation for data once a data path exists.
+- **Noise filters.** The *Noise filters* page was supplied the same day (`Noise_filters_-_CMS_JME_JMAR.html`, sha256 `7d2bfa52f6a06ad9…`, same folder). The eight `Flag_*` names in its "Run 3: 2022-2026" table, extracted from the HTML, are the same set as `RUN3_MET_FILTERS`. For 2024 it says to use the stored `Flag_ecalBadCalibFilter`; the special handling is for 2022-2023 prompt reconstruction, and 2025-2026 is under review. The HBHE flags are not required for Run 3 and `Flag_METFilters` must not be used; the skim uses neither. The page requires the filters in every analysis, on data and simulation, which the unconditional `met_filters` selection does. It also asks for the filter efficiency to be validated in signal simulation: the September audit measured 103 of 208,780 fixture events failing any flag, which is one unweighted signal file and not every production sample.
+
 ### Electron passes and downstream reconstruction
 
 The current [electron helper](../src/vcb/processors/electron_ss.py) already computes `pt_scaleUp`, `pt_scaleDown`, `pt_smearUp` and `pt_smearDown` on the complete input collection using one stable Gaussian per electron. Select the requested field as active pT **before** `objects.good_electrons` and trigger matching, while preserving nominal and raw pT and the electron's input identity. Keep the current 2024 EGM formulas; the references do not justify replacing them with fixed percentage shifts or an older year's helper signature.
@@ -198,6 +242,10 @@ Unauthenticated checks on 13 September 2026 returned **HTTP 401** for the JER ap
 The **Case I full JES table request is closed** by the supplied workbook and verified source manifest. No additional source-table upload or repository access is needed for the implemented 2024-only full-JES/global-JER model. The separately linked grouping table and Run-2/Run-3 correlation slides are supplementary if choosing a reduced model or combining periods. Confirming a six-region JER alternative for 2024 remains separate from implementing the global pair. The implementation and its event-migration/MET checks are recorded below. Final-fit validation remains an analysis step.
 
 The affected-sample [JES anomaly issue](https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/153#note_9486099) redirects to GitLab sign-in. This sample-specific check is separate from implementing the missing variation passes. No repeat upload of the JES, JER or MET recommendation PDFs is needed.
+
+**Issue 153 supplied, 11 November 2026.** The saved page (`/isilon/export/home/jhuan166/Vcb/References/jme-jerc-2026-11-11/JME_coordination_issue_153.html`, sha256 `7876d03eea706427…`) contains the issue description only; GitLab loads the comments separately, so the affected-sample list in the linked comment is still unread. The description locates the defect: in the **data** correction `Summer22EEPrompt22_RunF_V1_DATA`, the `L2Relative` function for the eta bin 3.839–4.013 "has an asymptotic discontinuity at raw jet pT ~ 56.7143", which turned one 2022F jet into 77,888 GeV. Its to-do list asks to "Check `L2Relative` functions for all Run 3 JECs".
+
+That check was run here on the correction this processor applies, `Summer24Prompt24_V5_MC_L2Relative_AK4PFPuppi` in the bundled file: all 82 eta bins, one point in every phi bin, and 40,001 raw-pT points from 1 GeV to 7 TeV (29.5 million evaluations, 0.022% steps). Every value is finite, the factor stays between 0.899 and 1.594, and neighbouring points never differ by more than 0.04%, so there is no pole. The full `L1L2L3Res` compound has the same maximum. This clears the 2024 simulation correction used here. It says nothing about the 2024 data corrections, which are not applied because 2024 data are rejected.
 
 ## Implementation validation, 13 September 2026
 

@@ -1,6 +1,6 @@
 # 2024 calibration inputs — provenance
 
-Last update: **2026-09-12**
+Last update: **2026-11-11**
 
 This repo is copied from Calib_ChargeTagger, which could only process files up
 to 2023. This document records, for each 2024 calibration input, what was
@@ -41,13 +41,59 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   [LumiRecommendationsRun3 PDF](/isilon/export/home/jhuan166/.codex/attachments/da14dc9c-6865-46a8-b359-245635000e10/CMS_LumiRecommendationsRun3.pdf),
   PDF pages 3–4, and AN-25-214 §6 (PDF page 61). This constant does not itself
   add a luminosity nuisance to the skim.
-- **Provenance limit:** 109.82 fb⁻¹ is the documented analysis reference,
-  not a fresh `brilcalc` result for the latest JSON. Before using a different
-  data subset, extra lumisection exclusions, or restricted trigger coverage,
-  calculate its recorded luminosity with the actual analysis JSON and
-  `normtag_PHYSICS.json`, and record their versions. The note does not pin
-  hashes of its JSON/normtag. The LumiPOG PDF's 110.11 fb⁻¹ combination example
-  does not specify this processor's C–I selection and is not used here.
+- **Confirmed with `brilcalc` (2026-11-11):** a calculation run by hand on
+  lxplus reproduces the reference. Inputs: the current certified list,
+  `DC/Collisions24/latest/Cert_Collisions2024_378981_386951_Golden.json`
+  (2026-08-04 release, sha256 `32572466…bf9d`, the file tracked by the
+  [CMS release check](../condor/README.md#0-check-the-corrections-are-current)),
+  and `normtag_PHYSICS.json` (sha256 `693ef4b3…3548`, CVMFS copy dated
+  2025-12-19; every certified 2024 run uses its `avgLumi24_v1` tag).
+
+  | Era | Runs | Certified lumisections | With a luminosity value | Recorded (pb⁻¹) | AN-25-214 (fb⁻¹) |
+  |---|---|---|---|---|---|
+  | B | 378985–379355 | 5,939 | 5,939 | 131.662 | not used |
+  | C | 379416–380238 | 24,348 | 24,317 | 7,261.429 | 7.26 |
+  | D | 380306–380947 | 23,209 | 23,209 | 7,976.148 | 7.98 |
+  | E | 380963–381544 | 31,552 | 31,522 | 11,423.203 | 11.42 |
+  | F | 382229–383779 | 69,968 | 69,966 | 28,037.825 | 28.04 |
+  | G | 383811–385801 | 92,519 | 92,505 | 38,069.119 | 38.07 |
+  | H | 385836–386319 | 13,073 | 13,073 | 5,489.668 | 5.49 |
+  | I | 386478–386951 | 26,993 | 26,993 | 11,558.220 | 11.56 |
+  | **C–I** | | 281,662 | 281,585 | **109,815.612** | **109.82** |
+
+  Every era rounds to the AN's value. The C–I sum is 4.4 pb⁻¹ (0.004%) below
+  the configured 109,820 pb⁻¹, inside the AN's 0.01 fb⁻¹ rounding, so the
+  constant is unchanged. The era values are sums of `brilcalc`'s per-run
+  output over the run ranges above; with era B they reproduce its own total,
+  109,947.274 pb⁻¹ recorded (117,014.712 delivered, 475 runs).
+  - **Lumisections without a luminosity value:** 77 certified lumisections in
+    12 runs of C, E, F and G have no entry in the normtag. `brilcalc` warns
+    and leaves them out; its lumisection count equals the fourth column in
+    every era. Their events pass the certified list but add no luminosity:
+    about 27 pb⁻¹ (0.02%) if they carried average luminosity. Decide how to
+    treat them when a collision-data path is added.
+  - **Use `normtag_PHYSICS.json`, not `normtag_BRIL.json`.** A second run the
+    same day, identical except for `--normtag …/normtag_BRIL.json`, gave
+    104,634.630 pb⁻¹ recorded and 111,332.613 delivered for B–I (475 runs,
+    287,522 lumisections with a value; data tag `24v2`). That is 4.83% below
+    the `normtag_PHYSICS.json` total above, and its per-run values are not
+    physical: runs 382313, 383536 and 383648 carry negative luminosity, and
+    in runs 381365, 381380 and 383418 the recorded value exceeds the
+    delivered one. It is recorded here as a trap, not as a result. Only the
+    totals and those six runs were checked; the per-run table was not kept.
+  - **Do not use the per-era files.** No per-era split of the current list is
+    published. Top-level `2024<era>_Golden.json` (288,041 lumisections B–I,
+    identical in every release since 2025-07-25, lacks run 380238) and
+    `JSONs_byEra/` (287,707, equal to `…_Golden_before_TrkML2026_review.json`)
+    are older lists; the current one has 287,601. A first attempt on the
+    top-level files gave D: 7.994, H: 5.492, I: 11.608 fb⁻¹, up to 0.4% high.
+  - **Remaining limits:** this covers the full C–I certified list only. A
+    different data subset, extra lumisection exclusions, or a restricted or
+    prescaled trigger needs its own calculation; luminosity per trigger path
+    has not been checked. AN-25-214 does not pin hashes of its JSON/normtag,
+    so agreement with it is established at its rounding. The LumiPOG PDF's
+    110.11 fb⁻¹ combination example does not specify this processor's C–I
+    selection and is not used here.
 - **Location:** [src/boostedhh/hh_vars.py](../src/boostedhh/hh_vars.py) — the
   `LUMI["2024"]` entry at the top of the `LUMI` dict.
 - **Impact:** new luminosity-bearing weights are multiplied by
@@ -116,7 +162,9 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   stand-in.
 - **Inputs:** bundled in `src/boostedhh/corrections/` — `2024_jet_jerc.json.gz`
   (V5 JEC + JRV2 JER, CAT 2026-07-16 snapshot) and `jer_smear.json.gz`
-  (`JERSmear`, 2025-11-03); loaded bundled-first with a CAT cvmfs fallback.
+  (`JERSmear`, 2026-09-18 release since 2026-11-09; 2025-11-03 before that);
+  loaded bundled-first with a CAT cvmfs fallback. Since 2026-11-11 each
+  fallback names that same dated release instead of `latest/`.
   Provenance in
   [src/boostedhh/corrections/README.md](../src/boostedhh/corrections/README.md).
 - **Variations:** global JER up/down (`…_SFUncertainty`) and the 27 JES sources
@@ -164,7 +212,10 @@ on 2026-08-11, extended on 2026-08-12 with the 13.6 TeV extrapolation.
   [src/vcb/corrections/](../src/vcb/corrections/) (pinned to the EGM
   `2025-12-15` and MUO `2026-06-18` snapshots) with a cvmfs fallback.
   As of 2026-10-27, the MUO fallback is dated and its decompressed SHA-256 is
-  checked. The total ID/ISO/HLT error is formed from the explicit `stat` and
+  checked. As of 2026-11-11 the EGM fallbacks (these two files and the
+  scale/smearing file of item 5b) and the pileup fallback of item 3 are dated
+  too, following the JERC FAQ's warning that unversioned CVMFS paths can be
+  replaced. The total ID/ISO/HLT error is formed from the explicit `stat` and
   `syst` fields, because the released IsoMu24 `systup/down` omits `stat`.
   Separate component weights are retained under `--save-systematics`; see
   [the readiness record](cms-readiness-2026-10-27.md).
@@ -530,8 +581,36 @@ changes the skim; it mostly lists inputs the skim cannot supply.
 | Top pT | With versus without the reweighting | ✅ Factors and sums saved; the model is undecided |
 | Jet energy scale | The full source list; the reduced list "is not recommended in TOP". The per-flavour breakdown "should be used as a default" | ✅ All 27 sources. 🟡 Uses the inclusive `FlavorQCD` source; the per-flavour split is open item N8 in the [cross-check](audit-crosscheck-2026-09-23.md) |
 | b tagging | Fixed-threshold factors wherever possible, shape factors only if the score shape is used, and `mujets` rather than `comb` when the analysis overlaps the ttbar regions used to derive `comb` | 🟡 Agrees with the BTV review recorded in the [readiness guide](cms-readiness-2026-10-27.md) and in [`cms_releases.json`](../condor/scripts/cms_releases.json). B0 uses the score shape, which has no 2024 factors yet |
-| Lepton factors in ttbar topology | An extra multiplicative correction from Z events with many jets, as a separate nuisance, with correctionlib files attached to the page (`phase_space_jsons.tar.gz`, 2025-12-02) | ❌ Not applied. The attachment was not supplied, so the eras it covers are unknown |
+| Lepton factors in ttbar topology | An extra multiplicative correction from Z events with many jets, as a separate nuisance, with correctionlib files attached to the page (`phase_space_jsons.tar.gz`, 2025-12-02) | ❌ Not applied. The attachment was supplied on 2026-11-11 (below); its files do not say which years they cover |
 | Other generators | Not an uncertainty; compare and document | Not needed in the skim |
+
+**The lepton attachment, read 2026-11-11.** `phase_space_jsons.tar.gz` is saved in
+`/isilon/export/home/jhuan166/Vcb/References/top-pag-2026-11-10/` (sha256
+`90d32984413d1dba…`; despite its name it is an uncompressed tar). It holds five
+correctionlib files, each with two corrections of one input, lepton pT from 10
+to 200 GeV with `flow: error`: `pT_bias_correction`, a multiplicative factor
+described as "Correction to account for the extrapolation from the DY topology
+to the ttbar topology", and `pT_bias_correction_err`, its relative uncertainty.
+
+| File | Matches our selection? | Factor − 1 | Uncertainty |
+| --- | --- | --- | --- |
+| `Mu_Fit_SF_TightIso.json` | By name, yes: we use tight PF isolation (`pfRelIso04_all < 0.15`). The file does not define its working point | −0.59% to +0.06% | 0.06%–0.28% |
+| `Ele_Fit_SF_isowp90.json` | By name, yes: we use `mvaIso_WP90`. The file does not define its working point | −0.49% to +0.13% | 0.17%–0.33% |
+| `Mu_Fit_SF_LooseIso.json`, `Ele_Fit_SF_isowp80.json`, `Ele_Fit_SF_CutBasedTight.json` | No | — | — |
+
+- **Size here.** On the 59,712 selected fixture events, holding the last bin
+  above 200 GeV (648 trigger leptons), the weighted mean factor is −0.18% for
+  muons and −0.20% for electrons: −0.19% on the selected yield, with a mean
+  uncertainty of 0.14% and 0.21%.
+- **Why it is not applied.** None of the five files names a year, campaign or
+  data set, and the page only says the factors are "correlated between years".
+  Whether they were derived for 2024, and whether they multiply the ID, the
+  isolation or the combined factor, is in the linked
+  [presentation](https://indico.cern.ch/event/1532168/#16-phase-space-extrapolation-f),
+  which has not been read. The files also give no value above 200 GeV.
+- **If adopted:** apply as one extra factor per trigger lepton with its own
+  nuisance, separate from the Z-based factors, as the page asks, and bump the
+  weight-prescription version.
 
 ---
 
