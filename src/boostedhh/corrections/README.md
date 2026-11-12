@@ -13,7 +13,7 @@ because cvmfs mtimes track the sync, not the derivation.
 |---|---|---|---|
 | `jec_compiled_py311.pkl.gz` | 2022 `22Sep2023` reReco / 2023 `Prompt` (see tags) | 2026-07-14 (repo port) | 2022 / 2023 JEC **+ JER** |
 | `2024_jet_jerc.json.gz` | 2026-07-16 snapshot | 2026-07-23 | 2024 MC AK4 JEC (V5) + nominal JER (JRV2) |
-| `jer_smear.json.gz` | 2025-11-03 | 2026-07-23 | 2024 MC AK4 nominal JER smearing formula |
+| `jer_smear.json.gz` | 2026-09-18 release | 2026-11-09 | 2024 MC AK4 nominal JER smearing formula |
 | `2024_puWeights.json.gz` | 2026-04-15 snapshot | 2026-07-23 | 2024 pileup event weight (nominal/up/down) |
 | `2024_jetvetomaps.json.gz` | 2026-07-16 snapshot | 2026-10-27 | 2024 event veto map |
 | `2024_jetid.json.gz` | 2026-07-16 snapshot | 2026-10-27 | Independent offline reference for the AK4 Jet-ID tests |
@@ -122,13 +122,35 @@ gen-jet pT into a per-jet multiplicative smear factor. Inputs
 
 **Origin.**
 `/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/JER-Smearing/latest/jer_smear.json.gz`.
-(An identical-size copy also lives at the top of the `jsonpog-integration` JME
-tree; the CAT copy was used for consistency with `2024_jet_jerc.json.gz`.)
+At retrieval `latest/` was byte-identical to the dated release **`2026-09-18`**
+(verified by `cmp`), so the bundled copy is pinned to that release. Its
+`changes.md`: "Fix min cut bug. Adding min cut to the smeared pt of 0.01. It's
+now aligned with CMSSW." (The `jsonpog-integration` JME tree still carries the
+previous formula; the CAT copy is used for consistency with
+`2024_jet_jerc.json.gz`.)
 
-- content date: **2025-11-03** (cvmfs mtime)
-- retrieved: **2026-07-23**
-- size: 462 bytes
-- md5: `390e4be4be109bb1a2d3a116f2c9386a`
+- content date: **2026-09-18** (cvmfs release)
+- retrieved: **2026-11-09**
+- size: 553 bytes
+- md5: `54096475d7aa01da2fa3297e6f4e30a5`
+- sha256 (compressed): `6a9a2133e0d1f7c0a44045dbc7a347d9f7b31f48e7bb1dc8af33665be226062d`
+- sha256 (decompressed): `9826e2472c7f5621e9fa7102afa26ca52794456e5a51f85d9a17e712d8ebfe46`
+
+**What changed from the 2025-11-03 release.** That release (decompressed sha256
+`cb9411ec7a2a0371bf935d9e74496a80417fdf4bf94e468d6f5a75e015d0a8a9`) was bundled
+from 2026-07-23 to 2026-11-09. The new one adds a floor to both branches,
+`max(0.01/pt, ...)`, so a smeared jet keeps at least 0.01 GeV instead of
+reaching zero or below. The correction name and inputs are unchanged; its
+version went from 1 to 2. On two million synthetic jets per branch the two
+formulas return identical factors wherever the old smeared pT was at least
+0.01 GeV. Combined with the `max(smear, 0)` clip in `_jer_smear_2024`, the only
+difference is that a jet formerly smeared into [0, 0.01) GeV now has exactly
+0.01 GeV; every jet selection here starts at 15 GeV. On the 208,780-event
+integration fixture the skim is unchanged: all 809 `Events` and 14 `Norm`
+columns of the 59,712 selected events are bitwise identical between the two
+files (48,307,047 values). Productions made before
+2026-11-09, including `c1-b0-20261104`, used the 2025-11-03 formula from their
+frozen source copies.
 
 **How the code uses it.** `JECs.__init__` loads this file for `year == "2024"`,
 again preferring the bundled copy and falling back to the CAT `latest/` path. In

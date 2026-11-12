@@ -17,6 +17,11 @@ git submodule and is not pip-installed from upstream.
 
 ## Local modifications on top of that
 
+- **JER smearing formula update (2026-11-09)** — `corrections/jer_smear.json.gz`
+  replaced by the CAT `JER-Smearing` 2026-09-18 release, which floors the
+  smeared pT at 0.01 GeV. No vendored Python changed. Source, hashes and the
+  comparison with the previous formula are recorded in `corrections/README.md`.
+
 - **Pinned 2024 jet-veto map (2026-10-27)** — `corrections.py` loads the
   bundled July 2026 CAT map or its dated fallback and verifies compressed-file
   SHA-256. Its values match the former JSON POG map. The same release's Jet-ID
