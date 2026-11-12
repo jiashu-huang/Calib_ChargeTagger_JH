@@ -98,6 +98,17 @@ cat_lum_campaigns = {
 # 2024 CDEFGHI = C-E reReco + F-I prompt, no commissioning era B (matches the
 # campaign name; swap in puWeights_BCDEFGHI.json.gz to include era B)
 cat_lum_filenames = {"2024": "puWeights_CDEFGHI.json.gz"}
+# Dated CAT release of the cvmfs fallback. `latest/` can be replaced by a new
+# release, so a year with a bundled copy names the release that copy came from
+# (byte-identical, checked 2026-11-11). Years without one still use `latest/`.
+cat_lum_releases = {"2024": "2026-04-15"}
+
+
+def pileup_cvmfs_path(year: str) -> str:
+    """The cvmfs fallback for the pileup weights of ``year``."""
+    fname = cat_lum_filenames.get(year, "puWeights.json.gz")
+    release = cat_lum_releases.get(year, "latest")
+    return f"{cat_lum_path}/{cat_lum_campaigns[year]}/{release}/{fname}"
 
 
 def add_pileup_weight(weights: Weights, year: str, nTrueInt: np.ndarray):
@@ -118,8 +129,7 @@ def add_pileup_weight(weights: Weights, year: str, nTrueInt: np.ndarray):
     if pathlib.Path(bundled).is_file():
         path = bundled
     else:
-        fname = cat_lum_filenames.get(year, "puWeights.json.gz")
-        path = f"{cat_lum_path}/{cat_lum_campaigns[year]}/latest/{fname}"
+        path = pileup_cvmfs_path(year)
 
     cset = correctionlib.CorrectionSet.from_file(path)
     # each LUM payload holds exactly one correction
@@ -267,11 +277,14 @@ TYPE1_MET_MAX_ABS_ETA = 5.2
 JEC_JER_2024_BUNDLED = package_path + "/corrections/2024_jet_jerc.json.gz"
 JERSMEAR_2024_BUNDLED = package_path + "/corrections/jer_smear.json.gz"
 # CAT metadata tree (has the real Summer24 V5 JEC + JRV2 JER; jsonpog does not).
+# The fallbacks name the dated releases the bundled copies are byte-identical
+# to (checked 2026-11-11), not `latest/`, which a new release can replace.
+# Adopting a newer release means replacing the bundled file AND this date.
 _CAT_JME = "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME"
 JEC_JER_2024_CVMFS = (
-    f"{_CAT_JME}/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jet_jerc.json.gz"
+    f"{_CAT_JME}/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jet_jerc.json.gz"
 )
-JERSMEAR_2024_CVMFS = f"{_CAT_JME}/JER-Smearing/latest/jer_smear.json.gz"
+JERSMEAR_2024_CVMFS = f"{_CAT_JME}/JER-Smearing/2026-09-18/jer_smear.json.gz"
 
 
 def _load_correctionset_bundled_first(bundled: str, cvmfs: str, what: str):
@@ -800,6 +813,16 @@ JETVETO_2024_CVMFS = (
     f"{_CAT_JME}/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16/jetvetomaps.json.gz"
 )
 JETVETO_2024_SHA256 = "849cd1098814175ab58faac4834df0a353de63482f4017e22c0134ee7e840aec"
+# The map's tag (correction name) per year and the key evaluated inside it.
+# Module-level so run metadata records exactly what get_jetveto_event applies.
+JETVETO_TAGS = {
+    "2022": "Summer22_23Sep2023_RunCD_V1",
+    "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
+    "2023": "Summer23Prompt23_RunC_V1",
+    "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+    "2024": "Summer24Prompt24_RunBCDEFGHI_V1",  # verified on cvmfs jsonpog-integration
+}
+JETVETO_KEY = "jetvetomap"
 
 
 @lru_cache(maxsize=4)
@@ -829,16 +852,10 @@ def get_jetveto_event(jets: JetArray, year: str):
     def get_veto(j, nj, csetstr):
         j_phi = np.clip(np.array(j.phi), -3.1415, 3.1415)
         j_eta = np.clip(np.array(j.eta), -4.7, 4.7)
-        veto = cset[csetstr].evaluate("jetvetomap", j_eta, j_phi)
+        veto = cset[csetstr].evaluate(JETVETO_KEY, j_eta, j_phi)
         return ak.unflatten(veto, nj)
 
-    corr_str = {
-        "2022": "Summer22_23Sep2023_RunCD_V1",
-        "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
-        "2023": "Summer23Prompt23_RunC_V1",
-        "2023BPix": "Summer23BPixPrompt23_RunD_V1",
-        "2024": "Summer24Prompt24_RunBCDEFGHI_V1",  # verified on cvmfs jsonpog-integration
-    }[year]
+    corr_str = JETVETO_TAGS[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
 

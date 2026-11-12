@@ -116,6 +116,9 @@ The `KinematicVariation` integer branch identifies each pass; IDs are fixed in
 [`kinematic_variations.py`](../src/vcb/processors/kinematic_variations.py).
 `outfiles/<tag>.kinematics.json` records its name, ID, jet options, input files
 and jet-payload paths/hashes, including for a pass with no selected events.
+Under `jet_payloads` it also names the JEC and JER corrections evaluated and,
+since 2026-11-11, the veto-map tag and key (`jet_veto_tag`, `jet_veto_key`);
+sidecars written before that date lack those two fields.
 
 Normalize and merge each pass separately. Each is a copy of the same MC
 sample with the same all-input denominator; summing denominators across

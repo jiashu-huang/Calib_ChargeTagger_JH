@@ -74,15 +74,18 @@ _CAT_METADATA = "/cvmfs/cms-griddata.cern.ch/cat/metadata"
 _CAMPAIGN_2024 = "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15"
 
 # payload -> (file bundled under corrections/, cvmfs fallback path)
+# Each fallback names the dated release its bundled copy is byte-identical to,
+# never `latest/`, which a new release can replace. Adopting a newer release
+# means replacing the bundled file AND the date here.
 LEPTON_SF_SOURCES = {
     "2024": {
         "electron": (
             "2024_electron.json.gz",
-            f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/latest/electron.json.gz",
+            f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/2025-12-15/electron.json.gz",
         ),
         "electron_hlt": (
             "2024_electronHlt.json.gz",
-            f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/latest/electronHlt.json.gz",
+            f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/2025-12-15/electronHlt.json.gz",
         ),
         "muon": (
             "2024_muon_Z.json.gz",

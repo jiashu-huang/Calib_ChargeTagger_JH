@@ -536,7 +536,9 @@ Relevant files (line numbers as of the current commit):
   `chEmEF + neEmEF < 0.9`, applied to the *uncleaned* corrected collection.
   These are not the analysis jets `good_ak4jets` returns.
 - [`src/boostedhh/processors/corrections.py`](../src/boostedhh/processors/corrections.py)
-  implements `get_jetveto_event` and the year-to-correction-name map.
+  implements `get_jetveto_event` and the year-to-correction-name map
+  (`JETVETO_TAGS`, with the evaluated key in `JETVETO_KEY`). The runner writes
+  both into each output's `kinematics.json` sidecar.
 - The 2024 map is bundled as `2024_jetvetomaps.json.gz`, with a dated
   `2026-07-16` CAT fallback and a checked compressed-file SHA-256. Missing or
   changed content stops processing. Provenance is in the
@@ -880,9 +882,10 @@ Relevant files (line numbers as of the current commit):
 The payload is **not** taken from the `jsonpog-integration` tree used for the
 jet-veto map: that tree's LUM entries stop at `2023_Summer23BPix`. It comes
 from the CAT metadata tree,
-`/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/puWeights_CDEFGHI.json.gz`
+`/cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_CDEFGHI.json.gz`
 — the LUM sibling of the same campaign as the 2024 JEC/JER file — pinned to
-the `2026-04-15` snapshot and committed to the repo so condor workers need no
+the `2026-04-15` snapshot (also the loader's fallback path, instead of
+`latest/`, since 2026-11-11) and committed to the repo so condor workers need no
 network access. Era set `CDEFGHI` matches the campaign name (C–E reReco + F–I
 prompt, no commissioning era B). Every year resolves the same way: bundled
 `corrections/<year>_puWeights.json.gz` first, else the CAT campaign directory

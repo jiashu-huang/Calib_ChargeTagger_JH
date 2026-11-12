@@ -17,6 +17,21 @@ git submodule and is not pip-installed from upstream.
 
 ## Local modifications on top of that
 
+- **Dated cvmfs fallbacks (2026-11-11)** — in `processors/corrections.py` the
+  2024 fallbacks for `jet_jerc`, `jer_smear` and the pileup weights name the
+  dated CAT releases their bundled copies are byte-identical to (2026-07-16,
+  2026-09-18, 2026-04-15) instead of `latest/`, which the JERC FAQ says "can
+  be replaced when a new release is deployed". Adds `cat_lum_releases` and
+  `pileup_cvmfs_path()`; years without a bundled pileup file still resolve to
+  `latest/`. The bundled-first order and every file's content are unchanged.
+  Guarded by `tests/test_selection_payloads.py`.
+
+- **Named veto-map tag and key (2026-11-11)** — the year-to-tag table inside
+  `get_jetveto_event` and the literal `"jetvetomap"` moved to module level as
+  `JETVETO_TAGS` and `JETVETO_KEY` in `processors/corrections.py`, with the
+  same values, so `vcb.run` can record in each output's sidecar exactly what
+  the selection evaluates. The selection itself is unchanged.
+
 - **JER smearing formula update (2026-11-09)** — `corrections/jer_smear.json.gz`
   replaced by the CAT `JER-Smearing` 2026-09-18 release, which floors the
   smeared pT at 0.01 GeV. No vendored Python changed. Source, hashes and the

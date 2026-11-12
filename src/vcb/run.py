@@ -241,6 +241,9 @@ def _jet_payload_metadata(year: str) -> dict:
     result["jer_resolution"] = corrections.JER_2024_MC_RESO
     result["jer_scale_factor"] = corrections.JER_2024_MC_SF
     result["jer_fractional_uncertainty"] = corrections.JER_2024_MC_SF_UNCERTAINTY
+    # JERC FAQ: store the veto-map tag and key, not only the file they are in.
+    result["jet_veto_tag"] = corrections.JETVETO_TAGS[year]
+    result["jet_veto_key"] = corrections.JETVETO_KEY
     return result
 
 

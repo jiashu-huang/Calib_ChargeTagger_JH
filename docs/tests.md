@@ -52,7 +52,10 @@ the original NanoAOD, including the events rejected by reconstruction cuts.
 the combined stat/syst total and separate full-event alternatives, including
 zero nominal factors, negative generator weights and flavour masking.
 `tests/test_selection_payloads.py` checks the pinned veto-map values, event
-mask and missing/corrupt-payload failures. The 2024 Jet-ID reference is now
+mask and missing/corrupt-payload failures. It also checks that all nine 2024
+CVMFS fallback paths name a dated release, never `latest/`, and, where CVMFS
+is mounted, that each dated file holds the bundled content, and that the run
+sidecar records the veto-map tag and key the selection evaluates. The 2024 Jet-ID reference is now
 bundled: `tests/test_objects.py` tests both working points offline with stable
 random seeds. Only the older-era CVMFS comparisons can skip when it is absent.
 

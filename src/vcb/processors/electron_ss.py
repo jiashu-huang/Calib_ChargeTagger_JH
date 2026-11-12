@@ -85,10 +85,12 @@ _CAT_METADATA = "/cvmfs/cms-griddata.cern.ch/cat/metadata"
 _CAMPAIGN_2024 = "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15"
 
 # year -> (file bundled under corrections/, cvmfs fallback path)
+# The fallback names the dated release the bundled copy is byte-identical to,
+# never `latest/`, which a new release can replace.
 ELECTRON_SS_SOURCES = {
     "2024": (
         "2024_electronSS_EtDependent.json.gz",
-        f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/latest/electronSS_EtDependent.json.gz",
+        f"{_CAT_METADATA}/EGM/{_CAMPAIGN_2024}/2025-12-15/electronSS_EtDependent.json.gz",
     ),
 }
 
